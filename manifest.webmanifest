@@ -1,0 +1,87 @@
+{
+  "name": "YOKO! Student",
+  "short_name": "YOKO! Student",
+  "description": "Plan your paycheck, pay off debt, budget and save. Everything stays on your device.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add an expense",
+      "short_name": "Add expense",
+      "url": "./index.html#do/add-expense",
+      "icons": [
+        {
+          "src": "assets/sc-add.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Scan a receipt",
+      "short_name": "Scan receipt",
+      "url": "./index.html#do/scan-receipt",
+      "icons": [
+        {
+          "src": "assets/sc-receipt.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Paste a bank message",
+      "short_name": "Bank message",
+      "url": "./index.html#do/import-sms",
+      "icons": [
+        {
+          "src": "assets/sc-message.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Bill calendar",
+      "short_name": "Calendar",
+      "url": "./index.html#dashboard/calendar",
+      "icons": [
+        {
+          "src": "assets/sc-calendar.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

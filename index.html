@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<title>YOKO! Student · Personal Finance Planner</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/favicon.png">
+<script src="js/theme-boot.js"></script>
+<!-- Chart.js: bundled copy in assets/ so charts work offline; falls back to the CDN if the file is missing. -->
+<script src="assets/chart.umd.min.js"></script>
+<script>window.Chart || document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');</script>
+<link rel="stylesheet" href="css/app.css">
+</head>
+
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="topbar">
+  <a class="brand" href="#dashboard" aria-label="YOKO! home"><img class="brand-logo yoko-logo" alt="YOKO!" width="130" height="34"></a>
+  <div class="topbar-actions">
+    <div class="menu-wrap">
+      <button type="button" class="btn btn-primary" id="quickadd-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="quickadd-menu" aria-label="Add">
+        <span id="plus-icon"></span><span class="hide-sm">Add</span>
+      </button>
+      <div class="menu" id="quickadd-menu" role="menu" aria-labelledby="quickadd-btn" hidden>
+        <p class="menu-label" role="presentation">Money in and out</p>
+        <button type="button" role="menuitem" data-action="add-expense">Expense</button>
+        <button type="button" role="menuitem" data-action="scan-receipt">Scan a receipt</button>
+        <button type="button" role="menuitem" data-action="split-expense">Split an expense</button>
+        <button type="button" role="menuitem" data-action="import-sms">Paste a bank message</button>
+        <button type="button" role="menuitem" data-action="cash-out">Cash in / out</button>
+        <button type="button" role="menuitem" data-action="split-bill">Split a bill</button>
+        <button type="button" role="menuitem" data-action="log-income">Income received</button>
+        <button type="button" role="menuitem" data-action="open-paycheck">Paycheck</button>
+        <p class="menu-label" role="presentation">Plans</p>
+        <button type="button" role="menuitem" data-action="add-recurring">Recurring payment</button>
+        <button type="button" role="menuitem" data-action="add-yearly">Yearly bill</button>
+        <button type="button" role="menuitem" data-action="add-debt">Debt</button>
+        <button type="button" role="menuitem" data-action="add-goal">Goal</button>
+        <button type="button" role="menuitem" data-action="add-gift">Gift</button>
+        <p class="menu-label" role="presentation">Other</p>
+        <button type="button" role="menuitem" data-action="add-subscription">Subscription</button>
+        <button type="button" role="menuitem" data-action="add-iou">IOU</button>
+        <button type="button" role="menuitem" data-action="add-transport">Transport</button>
+        <button type="button" role="menuitem" data-action="add-tax">Tax payment</button>
+        <button type="button" role="menuitem" data-action="open-payslip">Payslip (PDF or photo)</button>
+        <button type="button" role="menuitem" data-action="import-statement">Bank statement</button>
+      </div>
+    </div>
+    <button type="button" class="icon-btn" data-action="open-palette" aria-label="Search and commands (Ctrl+K)" title="Search and commands (Ctrl+K)" id="palette-btn"></button>
+    <button type="button" class="icon-btn" data-action="toggle-privacy" aria-label="Hide amounts" aria-pressed="false" id="privacy-btn"></button>
+    <button type="button" class="icon-btn settings-mobile" data-action="open-settings" aria-label="Settings" id="settings-mobile-btn"></button>
+  </div>
+</header>
+
+<aside class="sidebar" aria-label="Sections">
+  <nav aria-label="Primary"><ul class="nav-list" id="side-nav"></ul></nav>
+  <div class="side-foot">
+    <button type="button" class="nav-link" data-action="open-palette" id="side-palette"></button>
+    <button type="button" class="nav-link" data-action="open-settings" id="side-settings"></button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <main id="main" tabindex="-1">
+    <div class="print-brand"><img class="yoko-logo" alt="YOKO!"><span id="print-date"></span></div>
+    <section id="view-dashboard" class="view" aria-labelledby="h-dashboard" hidden></section>
+    <section id="view-debt" class="view" aria-labelledby="h-debt" hidden></section>
+    <section id="view-budget" class="view" aria-labelledby="h-budget" hidden></section>
+    <section id="view-wallet" class="view" aria-labelledby="h-wallet" hidden></section>
+    <section id="view-goals" class="view" aria-labelledby="h-goals" hidden></section>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="Primary (mobile)" id="tab-nav"></nav>
+<div id="modal-root"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="undo-bar" class="undo-bar" role="status" aria-live="polite" hidden></div>
+
+
+<!-- Scripts run in this order and share one global scope. Order matters: see README-AGENTS.md. -->
+<script src="js/finmath.js"></script>
+<script src="js/selftests.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/state.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui-shared.js"></script>
+<script src="js/page-dashboard.js"></script>
+<script src="js/page-debt.js"></script>
+<script src="js/page-budget.js"></script>
+<script src="js/suggestions.js"></script>
+<script src="js/page-goals.js"></script>
+<script src="js/fun.js"></script>
+<script src="js/tour.js"></script>
+<script src="js/page-wallet.js"></script>
+<script src="js/payslip.js"></script>
+<script src="js/more.js"></script>
+<script src="js/import.js"></script>
+<script src="js/rewards.js"></script>
+<script src="js/pet.js"></script>
+<script src="js/challenges.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/global.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/sub-checkin.js"></script>
+<script src="js/router.js"></script>
+<script src="js/modals.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/export.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/init.js"></script>
+</body>
+</html>

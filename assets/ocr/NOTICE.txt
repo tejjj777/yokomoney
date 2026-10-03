@@ -1,0 +1,3 @@
+Offline text recognition (OCR) used to read photos and scanned payslips:
+- tesseract.js v5 and tesseract.js-core v5 (Apache License 2.0) — see LICENSE files here.
+- eng-data.js contains the English "tessdata_best" (4.0.0_best_int) model from the Tesseract OCR project (Apache License 2.0), base64-encoded so it loads from file:// without a web server.
