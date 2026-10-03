@@ -385,3 +385,33 @@ function renderWallet() {
   };
 }
 
+/* ---------- Split & Roommates view ---------- */
+function renderSplit() {
+  const w = state.wallet;
+  const open = w.ious.filter(x => !x.settled);
+  const settled = w.ious.filter(x => x.settled);
+  const owe = sum(open.filter(x => x.dir === 'owe'), x => x.amount);
+  const owed = sum(open.filter(x => x.dir === 'owed'), x => x.amount);
+  const head = viewHeader('split', 'Split & Roommates', 'Split group bills, track who owes who, and settle up with roommates.',
+    `<button type="button" class="btn btn-primary" data-action="split-bill"><span aria-hidden="true">🧾</span><span>Split a bill</span></button>`);
+
+  const summaryCard = `<div class="stats-grid two" style="margin-bottom:14px">
+    ${stat('You are owed', fmt(owed), `${open.filter(x => x.dir === 'owed').length} pending payments from friends`, owed > 0 ? 'tone-success' : '')}
+    ${stat('You owe', fmt(owe), `${open.filter(x => x.dir === 'owe').length} pending IOUs to pay back`, owe > 0 ? 'tone-danger' : '')}
+  </div>`;
+
+  const iousTab = summaryCard + iouCard();
+  const historyTab = `<div class="card" id="w-settled">
+    <div class="card-head"><div><h2>Settled history</h2><p class="muted small">Previous IOUs and bill settlements.</p></div></div>
+    ${settled.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Person</th><th scope="col">Date settled</th><th class="num" scope="col">Amount</th><th scope="col">Note</th></tr></thead>
+    <tbody>${settled.slice().reverse().map(x => `<tr><td><strong>${esc(x.person)}</strong></td><td>${fmtDate(F.parseDate(x.settledAt || x.date))}</td><td class="num font-bold">${fmt(x.amount)}</td><td class="muted small">${esc(x.note || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No settled IOUs yet.</p>'}
+  </div>`;
+
+  const html = head + tabbed('split', {
+    ious: iousTab,
+    history: historyTab
+  });
+
+  return { html };
+}
+

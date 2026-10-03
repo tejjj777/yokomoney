@@ -682,6 +682,211 @@ const FinMath = (() => {
     return out;
   }
 
+  /* ---------- Student money math: Safe-to-spend, Run-out forecast, Semester plan ---------- */
+  /**
+   * Safe-to-spend today: (current balance - upcoming bills before next allowance) / days until next allowance.
+   * Thresholds:
+   *  - 'green' (on track): perDay >= 65% of monthly baseline daily allowance
+   *  - 'amber' (tight): 0 < perDay < 65% of baseline
+   *  - 'red' (danger/over): perDay <= 0 or balance <= upcoming bills
+   */
+  function safeToSpend({ balance, upcomingBills = 0, daysLeft = 1, monthlyAllowance = 0 }) {
+    const bal = isNum(balance) ? balance : 0;
+    const bills = isNum(upcomingBills) && upcomingBills > 0 ? upcomingBills : 0;
+    const allowance = isNum(monthlyAllowance) && monthlyAllowance > 0 ? monthlyAllowance : 0;
+    const available = bal - bills;
+    const days = isNum(daysLeft) && daysLeft > 0 ? Math.round(daysLeft) : 1;
+    const perDay = available > 0 ? available / days : 0;
+    const baselineDaily = (allowance > 0 ? allowance : Math.max(bal, 1)) / Math.max(days, 30);
+
+    let status = 'green';
+    let reason = 'On track until your next allowance';
+    if (bal <= 0 || available <= 0) {
+      status = 'red';
+      reason = 'Money runs out before your next allowance';
+    } else if (perDay < 0.65 * baselineDaily) {
+      status = 'amber';
+      reason = 'Below what is needed to last comfortably';
+    }
+
+    return {
+      available,
+      perDay,
+      daysLeft: days,
+      baselineDaily,
+      status,
+      reason,
+      willLast: available > 0 && status !== 'red'
+    };
+  }
+
+  /**
+   * Run-out forecast: day-by-day projected balance from today to the next allowance.
+   */
+  function forecastRunOut({ currentBalance, daysLeft = 30, dailySpendByCategory = {}, sliderAdjustments = {}, startDate = null }) {
+    const start = startDate ? (parseDate(startDate) || new Date()) : new Date();
+    const days = Math.max(1, Math.round(daysLeft));
+    let bal = isNum(currentBalance) ? currentBalance : 0;
+
+    let totalDailySpend = 0;
+    const allCats = new Set([...Object.keys(dailySpendByCategory || {}), ...Object.keys(sliderAdjustments || {})]);
+    for (const cat of allCats) {
+      const base = isNum(dailySpendByCategory[cat]) ? dailySpendByCategory[cat] : 0;
+      const adj = isNum(sliderAdjustments[cat]) ? sliderAdjustments[cat] : 0;
+      totalDailySpend += Math.max(0, base + adj);
+    }
+    if (totalDailySpend <= 0 && bal > 0) {
+      totalDailySpend = bal / days;
+    }
+
+    const points = [];
+    let runOutDay = null;
+    let runOutDayIndex = null;
+
+    points.push({ dayIndex: 0, date: toISO(start), balance: bal, dailySpend: 0 });
+
+    for (let i = 1; i <= days; i++) {
+      bal -= totalDailySpend;
+      const d = addDays(start, i);
+      const dateStr = toISO(d);
+      const currBal = Math.round(bal * 100) / 100;
+      points.push({ dayIndex: i, date: dateStr, balance: currBal, dailySpend: totalDailySpend });
+      if (currBal <= 0 && runOutDay === null) {
+        runOutDay = dateStr;
+        runOutDayIndex = i;
+      }
+    }
+
+    const endBalance = points[points.length - 1].balance;
+    const willMakeIt = endBalance >= 0;
+
+    return {
+      points,
+      runOutDay,
+      runOutDayIndex,
+      endBalance,
+      willMakeIt,
+      dailySpend: totalDailySpend
+    };
+  }
+
+  /**
+   * Semester planner: track semester start/end, heavy months (fees, exams, trips) and buffer.
+   */
+  function semesterPlan({ start, end, monthlyIncome = 0, monthlyBaseExpenses = 0, heavyMonths = [], currentSaved = 0 }) {
+    const sDate = parseDate(start) || new Date();
+    const eDate = parseDate(end) || addMonths(sDate, 5);
+    const months = Math.max(1, Math.round(daysBetween(sDate, eDate) / 30.4375));
+    const income = (isNum(monthlyIncome) && monthlyIncome > 0 ? monthlyIncome : 0) * months;
+    const baseExpenses = (isNum(monthlyBaseExpenses) && monthlyBaseExpenses > 0 ? monthlyBaseExpenses : 0) * months;
+    const heavyTotal = (heavyMonths || []).reduce((s, h) => s + (isNum(h.amount) && h.amount > 0 ? h.amount : 0), 0);
+    const totalNeeded = baseExpenses + heavyTotal;
+    const saved = isNum(currentSaved) && currentSaved > 0 ? currentSaved : 0;
+    const surplus = (income + saved) - totalNeeded;
+    const monthlyBufferNeeded = months > 0 ? Math.max(0, (heavyTotal - saved) / months) : 0;
+    const onTrack = surplus >= 0;
+
+    return {
+      months,
+      totalIncome: income,
+      baseExpenses,
+      heavyTotal,
+      totalNeeded,
+      saved,
+      surplus,
+      monthlyBufferNeeded,
+      onTrack,
+      diff: Math.abs(surplus)
+    };
+  }
+
+  /* ---------- Afford check: "Can I afford X on date Y?" ---------- */
+  /**
+   * @param {Object} opts
+   * @param {number} opts.balance          - current available balance
+   * @param {number} opts.daysLeft         - days until next allowance
+   * @param {number} opts.amount           - cost of the thing
+   * @param {number} opts.eventDayOffset   - days from today until the event (0 = today)
+   * @param {number} opts.dailySpend       - average daily spend rate
+   * @param {number} opts.monthlyAllowance - for baseline comparison
+   * @param {Object} opts.topCategory      - { name, dailyCost } biggest flexible category
+   * @returns {{ verdict:'yes'|'tight'|'no', perDayAfter, balanceAtEvent, balanceAfter, fix }}
+   */
+  function affordCheck({ balance = 0, daysLeft = 1, amount = 0, eventDayOffset = 0, dailySpend = 0, monthlyAllowance = 0, topCategory = null }) {
+    const bal = isNum(balance) ? balance : 0;
+    const days = isNum(daysLeft) && daysLeft > 0 ? Math.round(daysLeft) : 1;
+    const cost = isNum(amount) && amount > 0 ? amount : 0;
+    const offset = isNum(eventDayOffset) && eventDayOffset >= 0 ? Math.round(eventDayOffset) : 0;
+    const daily = isNum(dailySpend) && dailySpend > 0 ? dailySpend : 0;
+    const allowance = isNum(monthlyAllowance) && monthlyAllowance > 0 ? monthlyAllowance : 0;
+
+    // Balance projected to the event day
+    const balanceAtEvent = bal - (daily * offset);
+    // Balance after buying
+    const balanceAfter = balanceAtEvent - cost;
+    // Days remaining after the event day
+    const daysAfter = Math.max(1, days - offset);
+    // Daily rate after buying
+    const perDayAfter = balanceAfter > 0 ? balanceAfter / daysAfter : 0;
+    // Baseline daily (what you'd normally have)
+    const baselineDaily = (allowance > 0 ? allowance : Math.max(bal, 1)) / Math.max(days, 30);
+
+    let verdict = 'yes';
+    if (balanceAfter <= 0) {
+      verdict = 'no';
+    } else if (perDayAfter < 0.65 * baselineDaily) {
+      verdict = 'tight';
+    }
+
+    // Generate a concrete fix from their top spending category
+    let fix = '';
+    if (verdict !== 'yes' && topCategory && topCategory.dailyCost > 0) {
+      const catName = topCategory.name;
+      const catDaily = topCategory.dailyCost;
+      // How many days of skipping this category would cover the shortfall?
+      const shortfall = verdict === 'no' ? cost - Math.max(0, balanceAtEvent) : cost * 0.4;
+      const skipDays = Math.ceil(shortfall / catDaily);
+      if (skipDays <= 14) {
+        fix = `Skip ${skipDays} ${catName.toLowerCase()} ${skipDays === 1 ? 'order' : 'orders'} this week and you can`;
+      } else {
+        const perWeek = Math.ceil(shortfall / catDaily / 2);
+        fix = `Cut ${catName.toLowerCase()} by ${perWeek} orders a week for 2 weeks and you can`;
+      }
+    }
+
+    return { verdict, perDayAfter, balanceAtEvent, balanceAfter, daysAfter, fix };
+  }
+
+  /* ---------- What-if forecast: "What if I change habit X?" ---------- */
+  /**
+   * Like forecastRunOut but with explicit category changes (e.g. "stop ordering on weekends" = -2/7 of food daily)
+   * @param {Object} opts
+   * @param {number} opts.currentBalance
+   * @param {number} opts.daysLeft
+   * @param {Object} opts.dailySpendByCategory  - { Food: 150, Fun: 80 }
+   * @param {Object} opts.categoryChanges        - { Food: -40 } (absolute daily change)
+   * @param {string} opts.startDate
+   * @returns {{ ...forecastRunOut result, savedPerDay, savedTotal }}
+   */
+  function whatIfForecast({ currentBalance, daysLeft = 30, dailySpendByCategory = {}, categoryChanges = {}, startDate = null }) {
+    // Calculate baseline (no changes)
+    const baseline = forecastRunOut({ currentBalance, daysLeft, dailySpendByCategory, sliderAdjustments: {}, startDate });
+    // Calculate with changes
+    const adjusted = forecastRunOut({ currentBalance, daysLeft, dailySpendByCategory, sliderAdjustments: categoryChanges, startDate });
+
+    const savedPerDay = baseline.dailySpend - adjusted.dailySpend;
+    const savedTotal = savedPerDay * Math.max(1, Math.round(daysLeft));
+
+    return Object.assign({}, adjusted, {
+      savedPerDay,
+      savedTotal,
+      baselineRunOutDay: baseline.runOutDay,
+      baselineEndBalance: baseline.endBalance,
+      baselineWillMakeIt: baseline.willMakeIt,
+      daysGained: (adjusted.runOutDayIndex || daysLeft) - (baseline.runOutDayIndex || daysLeft)
+    });
+  }
+
   return {
     PAY_FREQUENCIES, MAX_MONTHS,
     toMonthly, netFromGross, monthlyRate, emi, amortizationSchedule, neverPaysOff, monthsToPayoff,
@@ -689,7 +894,8 @@ const FinMath = (() => {
     parseDate, toISO, startOfDay, addDays, addMonths, daysBetween, monthsBetween, nextPayday, nextAnnualOccurrence,
     roundUpAmount, ruleOf72, daysLeftInMonth, streaks, taxYear, parsePayslip, parseLooseDate,
     parseSms, parseSmsBatch, parseCsv, parseStatementCsv, parseStatementLines, categorize, DEFAULT_RULES,
-    monthForecast, LEVELS, levelFor, splitShares, week52Total, recurringDue, setDateOrder, parseReceipt
+    monthForecast, LEVELS, levelFor, splitShares, week52Total, recurringDue, setDateOrder, parseReceipt,
+    safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast
   };
 })();
 

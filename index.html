@@ -33,20 +33,16 @@
         <button type="button" role="menuitem" data-action="cash-out">Cash in / out</button>
         <button type="button" role="menuitem" data-action="split-bill">Split a bill</button>
         <button type="button" role="menuitem" data-action="log-income">Income received</button>
-        <button type="button" role="menuitem" data-action="open-paycheck">Paycheck</button>
+        <button type="button" role="menuitem" data-action="open-paycheck">Pocket money / Allowance</button>
         <p class="menu-label" role="presentation">Plans</p>
         <button type="button" role="menuitem" data-action="add-recurring">Recurring payment</button>
-        <button type="button" role="menuitem" data-action="add-yearly">Yearly bill</button>
-        <button type="button" role="menuitem" data-action="add-debt">Debt</button>
+        <button type="button" role="menuitem" data-action="add-yearly">Yearly / Semester fee</button>
         <button type="button" role="menuitem" data-action="add-goal">Goal</button>
         <button type="button" role="menuitem" data-action="add-gift">Gift</button>
         <p class="menu-label" role="presentation">Other</p>
         <button type="button" role="menuitem" data-action="add-subscription">Subscription</button>
         <button type="button" role="menuitem" data-action="add-iou">IOU</button>
         <button type="button" role="menuitem" data-action="add-transport">Transport</button>
-        <button type="button" role="menuitem" data-action="add-tax">Tax payment</button>
-        <button type="button" role="menuitem" data-action="open-payslip">Payslip (PDF or photo)</button>
-        <button type="button" role="menuitem" data-action="import-statement">Bank statement</button>
       </div>
     </div>
     <button type="button" class="icon-btn" data-action="open-palette" aria-label="Search and commands (Ctrl+K)" title="Search and commands (Ctrl+K)" id="palette-btn"></button>
@@ -67,10 +63,12 @@
   <main id="main" tabindex="-1">
     <div class="print-brand"><img class="yoko-logo" alt="YOKO!"><span id="print-date"></span></div>
     <section id="view-dashboard" class="view" aria-labelledby="h-dashboard" hidden></section>
-    <section id="view-debt" class="view" aria-labelledby="h-debt" hidden></section>
+    <section id="view-spend" class="view" aria-labelledby="h-spend" hidden></section>
     <section id="view-budget" class="view" aria-labelledby="h-budget" hidden></section>
-    <section id="view-wallet" class="view" aria-labelledby="h-wallet" hidden></section>
+    <section id="view-split" class="view" aria-labelledby="h-split" hidden></section>
     <section id="view-goals" class="view" aria-labelledby="h-goals" hidden></section>
+    <section id="view-debt" class="view" aria-labelledby="h-debt" hidden></section>
+    <section id="view-wallet" class="view" aria-labelledby="h-wallet" hidden></section>
   </main>
 </div>
 
@@ -102,6 +100,8 @@
 <script src="js/pet.js"></script>
 <script src="js/challenges.js"></script>
 <script src="js/commands.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/commandbar.js"></script>
 <script src="js/global.js"></script>
 <script src="js/receipt.js"></script>
 <script src="js/calendar.js"></script>

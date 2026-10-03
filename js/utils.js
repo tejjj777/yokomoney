@@ -28,10 +28,10 @@ const BUCKET_ROLES = ['bills', 'debt', 'goals', 'gifts', 'spending', 'custom'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ROUTES = [
   { id: 'dashboard', label: 'Dashboard', short: 'Home', icon: 'dashboard' },
-  { id: 'debt', label: 'Debt', icon: 'debt', long: 'Debt Payoff' },
-  { id: 'budget', label: 'Budget', icon: 'budget' },
-  { id: 'wallet', label: 'Wallet', icon: 'wallet2' },
-  { id: 'goals', label: 'Goals', icon: 'goal', long: 'Goals & Gifts' }
+  { id: 'spend', label: 'Spend', short: 'Spend', icon: 'wallet2' },
+  { id: 'budget', label: 'Budget', short: 'Budget', icon: 'budget' },
+  { id: 'split', label: 'Split', short: 'Split', icon: 'debt', long: 'Split & Roommates' },
+  { id: 'goals', label: 'Goals', short: 'Goals', icon: 'goal', long: 'Goals & Wishlist' }
 ];
 
 const svg = (p, size = 20) => `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;

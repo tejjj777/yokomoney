@@ -4,9 +4,12 @@
 /* =========================================================
    RENDERING + ROUTER
    ========================================================= */
-const VIEWS = { dashboard: renderDashboard, debt: renderDebt, budget: renderBudget, wallet: renderWallet, goals: renderGoals };
-/** Old links to the Gifts page land on the Gifts tab of Goals. */
-function redirectOldHash() { if (/^#gifts(\/|$)/.test(location.hash)) history.replaceState(null, '', '#goals/gifts'); }
+const VIEWS = { dashboard: renderDashboard, spend: renderSpend, budget: renderBudget, split: renderSplit, goals: renderGoals, debt: renderDebt, wallet: renderWallet };
+/** Old links redirect to appropriate student sections. */
+function redirectOldHash() {
+  if (/^#gifts(\/|$)/.test(location.hash)) history.replaceState(null, '', '#goals/gifts');
+  if (/^#debt(\/|$)/.test(location.hash)) history.replaceState(null, '', '#budget/plan');
+}
 const currentRoute = () => { const h = location.hash.replace('#', '').split('/')[0]; return VIEWS[h] ? h : 'dashboard'; };
 let renderTimer = null;
 

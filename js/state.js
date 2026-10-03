@@ -53,6 +53,7 @@ function defaultState() {
     meta: { startedAt: todayISO(), tourDone: false, budgetMonth: todayISO().slice(0, 7), periodStart: todayISO().slice(0, 7) + '-01', closedEarly: '', lastBackup: '', backupSnooze: '', skippedTotal: 0, streakRewarded: 0, xpDay: { date: '', n: 0 }, xpBackup: '', tourVersion: 0, tourChapters: {} },
     wallet: { cash: [], ious: [], transport: [], taxes: [], deadlines: [], taxYearStart: ci.fy, taxEstimate: 0 },
     payslips: [],
+    student: { allowance: 0, arrivalDay: 1, living: 'hostel', partTimeAmount: 0, partTimeHours: 0, semester: { start: '', end: '', heavyMonths: [] } },
     recurring: [], history: [], rules: [], wishlist: [], challenges: [], xp: { total: 0 }, yearlyBills: [], incomeLog: []
   };
 }
@@ -230,6 +231,25 @@ function normalizeMore(s, raw) {
     const x = rc[i] || {};
     c.bucketId = typeof x.bucketId === 'string' ? (s.split.buckets.some(b => b.id === x.bucketId) ? x.bucketId : '') : guessBucket(c, s.split.buckets);
   });
+  const rst = raw.student || {};
+  const rsem = rst.semester || {};
+  s.student = {
+    allowance: nn(rst.allowance),
+    arrivalDay: rst.arrivalDay === 'irregular' ? 'irregular' : clamp(Math.round(nn(rst.arrivalDay)) || 1, 1, 31),
+    living: ['hostel', 'pg', 'home'].includes(rst.living) ? rst.living : 'hostel',
+    partTimeAmount: nn(rst.partTimeAmount),
+    partTimeHours: nn(rst.partTimeHours),
+    semester: {
+      start: date(rsem.start) || '',
+      end: date(rsem.end) || '',
+      heavyMonths: arr(rsem.heavyMonths).map(h => ({
+        id: str(h.id, uid()),
+        month: ym(h.month) || (date(h.date) ? h.date.slice(0, 7) : todayISO().slice(0, 7)),
+        name: str(h.name, 'Expense', 60),
+        amount: nn(h.amount)
+      })).filter(h => h.amount > 0)
+    }
+  };
   return s;
 }
 
@@ -343,6 +363,21 @@ function sampleState() {
   s.settings = JSON.parse(JSON.stringify(state.settings));
   s.settings.cashOnHand = 40000;
   s.settings.roundUp = { enabled: true, to: 100, goalId: s.goals[2].id };
+  s.student = {
+    allowance: 12000,
+    arrivalDay: 1,
+    living: 'hostel',
+    partTimeAmount: 3000,
+    partTimeHours: 10,
+    semester: {
+      start: iso(F.addMonths(t, -2)).slice(0, 7) + '-01',
+      end: iso(F.addMonths(t, 3)).slice(0, 7) + '-01',
+      heavyMonths: [
+        { id: uid(), month: iso(F.addMonths(t, 1)).slice(0, 7), name: 'Semester Exam & Tech Fest', amount: 8000 },
+        { id: uid(), month: iso(F.addMonths(t, 3)).slice(0, 7), name: 'Next Semester Registration', amount: 25000 }
+      ]
+    }
+  };
   s.meta = { startedAt: iso(F.addDays(t, -45)), tourDone: state.meta.tourDone };
   sampleMore(s, t);
   s.meta.isSample = true;   // shows the "Remove sample data" banner on Home
@@ -518,5 +553,86 @@ function goalInfo(g) {
     reverse = { months: n, date: Number.isFinite(n) && n <= 1200 ? F.addMonths(t, n) : null };
   }
   return { dl, monthsLeft, reached, required, pct, remaining: Math.max(0, g.target - g.saved), reverse };
+}
+
+/* ---------- Student finance helpers ---------- */
+function studentSafeToSpend() {
+  const inc = monthlyIncome();
+  const b = budgetTotals();
+  const next = nextPayInfo();
+  const t = todayDate();
+  const until = next && next.d ? F.toISO(next.d) : F.toISO(F.addDays(t, Math.max(1, F.daysLeftInMonth(t))));
+  const after = F.toISO(t);
+  let upcoming = 0;
+  (state.recurring || []).filter(r => r.active).forEach(r => {
+    const dues = F.recurringDue(r, after, until);
+    upcoming += dues.length * r.amount;
+  });
+  (state.yearlyBills || []).forEach(y => {
+    if (y.due > after && y.due <= until) upcoming += y.amount;
+  });
+  const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(t));
+  const currentBal = (inc > 0 ? (inc - b.actual) : Math.max(0, (state.settings.cashOnHand || 0) - b.actual));
+  const allowance = (state.student && state.student.allowance) || inc;
+  return F.safeToSpend({ balance: currentBal, upcomingBills: upcoming, daysLeft, monthlyAllowance: allowance });
+}
+
+function categoryDailyAverages(daysBack = 30) {
+  const t = todayDate();
+  const cutoff = F.toISO(F.addDays(t, -daysBack));
+  const exps = (state.budget.expenses || []).filter(x => x.date >= cutoff && !x.recurringId);
+  const byCat = {};
+  exps.forEach(x => {
+    const c = state.budget.categories.find(k => k.id === x.categoryId);
+    const name = c ? c.name : 'Other';
+    byCat[name] = (byCat[name] || 0) + x.amount;
+  });
+  const first = exps.map(x => x.date).sort()[0];
+  const actualDays = first ? Math.max(1, F.daysBetween(F.parseDate(first), t) + 1) : Math.min(daysBack, Math.max(1, t.getDate()));
+  const out = {};
+  for (const [k, v] of Object.entries(byCat)) {
+    out[k] = v / actualDays;
+  }
+  if (!Object.keys(out).length) {
+    state.budget.categories.forEach(c => {
+      if (c.planned > 0) out[c.name] = c.planned / 30;
+    });
+  }
+  return out;
+}
+
+function studentRunOutForecast(sliderAdjustments = {}) {
+  const next = nextPayInfo();
+  const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(todayDate()));
+  const dailyAvgs = categoryDailyAverages(30);
+  const inc = monthlyIncome();
+  const b = budgetTotals();
+  const currentBal = Math.max(0, inc > 0 ? (inc - b.actual) : (state.settings.cashOnHand || 0) - b.actual);
+  return F.forecastRunOut({
+    currentBalance: currentBal,
+    daysLeft,
+    dailySpendByCategory: dailyAvgs,
+    sliderAdjustments,
+    startDate: todayISO()
+  });
+}
+
+function studentSemesterPlan() {
+  const sem = (state.student && state.student.semester) || {};
+  const t = todayDate();
+  const start = sem.start || todayISO().slice(0, 7) + '-01';
+  const end = sem.end || F.toISO(F.addMonths(t, 4));
+  const inc = monthlyIncome();
+  const b = budgetTotals();
+  const monthlyBase = b.planned > 0 ? b.planned : (inc > 0 ? inc * 0.8 : 8000);
+  const saved = sum(state.goals, g => g.saved);
+  return F.semesterPlan({
+    start,
+    end,
+    monthlyIncome: inc,
+    monthlyBaseExpenses: monthlyBase,
+    heavyMonths: sem.heavyMonths || [],
+    currentSaved: saved
+  });
 }
 

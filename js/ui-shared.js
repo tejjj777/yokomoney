@@ -6,11 +6,13 @@
    ========================================================= */
 /* ---------- Page tabs and "⋯" menus (keep pages short and buttons few) ---------- */
 const TABS = {
-  dashboard: [['overview', 'Overview'], ['calendar', 'Calendar'], ['charts', 'Charts']],
+  dashboard: [['overview', 'Overview'], ['forecast', 'Run-out forecast'], ['semester', 'Semester'], ['calendar', 'Calendar'], ['charts', 'Charts']],
+  spend: [['log', 'Expense log'], ['categories', 'Categories'], ['recurring', 'Recurring'], ['cash', 'Cash']],
+  budget: [['plan', 'Plan'], ['where', 'Where did it go?'], ['yearly', 'Yearly / Semester fees'], ['history', 'History']],
+  split: [['ious', 'IOUs & Roommates'], ['history', 'Settled']],
+  goals: [['goals', 'Goals'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges'], ['gifts', 'Gifts']],
   debt: [['debts', 'Debts'], ['plan', 'Payoff plan'], ['emi', 'Loan calculator']],
-  budget: [['plan', 'Plan'], ['spending', 'Spending'], ['yearly', 'Yearly bills'], ['history', 'History']],
-  wallet: [['cash', 'Cash'], ['ious', 'IOUs'], ['subs', 'Subscriptions'], ['transport', 'Transport'], ['taxes', 'Taxes'], ['payslips', 'Payslips']],
-  goals: [['goals', 'Goals'], ['gifts', 'Gifts'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges']]
+  wallet: [['cash', 'Cash'], ['ious', 'IOUs'], ['subs', 'Subscriptions'], ['transport', 'Transport']]
 };
 function currentTab(route) {
   const tabs = TABS[route];

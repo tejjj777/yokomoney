@@ -149,6 +149,59 @@ function runSelfTests() {
   const wfc = F.monthForecast({ today: new Date(2026, 8, 15), needs: { planned: 40000, actual: 30000 }, wants: { planned: 20000, actual: 15000 }, savings: { planned: 15000, actual: 0 }, income: 85000 });
   check('Money weather: mid-month forecast 80,000 of 85,000 → mostly sunny', close(wfc.projected, 80000) && wfc.label === 'Mostly sunny', String(wfc.projected));
 
+  // Student money math: Safe-to-spend
+  const stsNormal = F.safeToSpend({ balance: 4500, upcomingBills: 500, daysLeft: 10, monthlyAllowance: 12000 });
+  check('Safe-to-spend (normal on track): (4,500 - 500) / 10 = ₹400/day (green)', stsNormal.available === 4000 && close(stsNormal.perDay, 400) && stsNormal.status === 'green');
+
+  const stsAmber = F.safeToSpend({ balance: 1200, upcomingBills: 200, daysLeft: 10, monthlyAllowance: 12000 });
+  check('Safe-to-spend (tight pace): ₹100/day < 65% of baseline (amber)', stsAmber.available === 1000 && close(stsAmber.perDay, 100) && stsAmber.status === 'amber');
+
+  const stsZero = F.safeToSpend({ balance: 0, upcomingBills: 0, daysLeft: 10, monthlyAllowance: 10000 });
+  check('Safe-to-spend (zero balance): ₹0/day (red)', stsZero.available === 0 && stsZero.perDay === 0 && stsZero.status === 'red');
+
+  const stsOver = F.safeToSpend({ balance: 300, upcomingBills: 500, daysLeft: 5, monthlyAllowance: 10000 });
+  check('Safe-to-spend (balance < bills): available negative → red', stsOver.available === -200 && stsOver.perDay === 0 && stsOver.status === 'red');
+
+  const stsToday = F.safeToSpend({ balance: 10000, upcomingBills: 1000, daysLeft: 0, monthlyAllowance: 10000 });
+  check('Safe-to-spend (allowance arriving today, daysLeft 0): no divide-by-zero', stsToday.available === 9000 && stsToday.perDay === 9000 && stsToday.daysLeft === 1);
+
+  const stsIrregular = F.safeToSpend({ balance: 6000, upcomingBills: 0, daysLeft: 20, monthlyAllowance: 0 });
+  check('Safe-to-spend (irregular allowance): 6,000 / 20 = ₹300/day', stsIrregular.available === 6000 && close(stsIrregular.perDay, 300) && stsIrregular.status === 'green');
+
+  // Student money math: Run-out forecast & Sliders
+  const fcLasts = F.forecastRunOut({ currentBalance: 6000, daysLeft: 20, dailySpendByCategory: { Food: 150, Outings: 50 }, startDate: '2026-10-01' });
+  check('Forecast: 6,000 at 200/day lasts 20 days with 2,000 left', fcLasts.willMakeIt && close(fcLasts.endBalance, 2000) && fcLasts.points.length === 21);
+
+  const fcRunsOut = F.forecastRunOut({ currentBalance: 3000, daysLeft: 20, dailySpendByCategory: { Food: 150, Outings: 50 }, startDate: '2026-10-01' });
+  check('Forecast: 3,000 at 200/day runs out on day 15 (2026-10-16)', !fcRunsOut.willMakeIt && fcRunsOut.runOutDayIndex === 15 && fcRunsOut.runOutDay === '2026-10-16');
+
+  const fcSlider = F.forecastRunOut({ currentBalance: 3000, daysLeft: 20, dailySpendByCategory: { Food: 150, Outings: 50 }, sliderAdjustments: { Food: -60 }, startDate: '2026-10-01' });
+  check('Forecast with slider: saving 60/day makes 3,000 last 20 days with 200 left', fcSlider.willMakeIt && close(fcSlider.endBalance, 200));
+
+  // Student money math: Semester view
+  const semOnTrack = F.semesterPlan({ start: '2026-08-01', end: '2026-12-01', monthlyIncome: 10000, monthlyBaseExpenses: 6000, heavyMonths: [{ month: '2026-08', amount: 10000 }] });
+  check('Semester plan (on track): 40k income covers 24k base + 10k fees', semOnTrack.onTrack && semOnTrack.surplus === 6000);
+
+  const semBehind = F.semesterPlan({ start: '2026-08-01', end: '2026-12-01', monthlyIncome: 10000, monthlyBaseExpenses: 8000, heavyMonths: [{ month: '2026-08', amount: 15000 }], currentSaved: 1000 });
+  check('Semester plan (behind): 41k total resources < 47k needed (6k behind)', !semBehind.onTrack && semBehind.surplus === -6000 && close(semBehind.monthlyBufferNeeded, 3500));
+
+  // Student money math: Afford check
+  const affYes = F.affordCheck({ balance: 5000, daysLeft: 10, amount: 500, eventDayOffset: 0, dailySpend: 100, monthlyAllowance: 12000 });
+  check('Afford check (yes): buying 500 now leaves 4500 for 10 days = 450/day (green)', affYes.verdict === 'yes' && affYes.perDayAfter === 450);
+
+  const affNo = F.affordCheck({ balance: 1000, daysLeft: 10, amount: 1500, eventDayOffset: 0, dailySpend: 100, monthlyAllowance: 12000 });
+  check('Afford check (no): 1500 is more than 1000 balance', affNo.verdict === 'no' && affNo.perDayAfter === 0);
+
+  const affTight = F.affordCheck({ balance: 1500, daysLeft: 10, amount: 1000, eventDayOffset: 0, dailySpend: 0, monthlyAllowance: 12000 });
+  check('Afford check (tight): leaves 500 for 10 days = 50/day < 65% of baseline (400)', affTight.verdict === 'tight' && affTight.perDayAfter === 50);
+
+  const affFix = F.affordCheck({ balance: 1000, daysLeft: 10, amount: 1500, eventDayOffset: 0, dailySpend: 100, monthlyAllowance: 12000, topCategory: { name: 'Food', dailyCost: 200 } });
+  check('Afford check (fix): skip 3 food orders (200/day) to cover 500 shortfall', affFix.fix.includes('Skip 3 food orders'));
+
+  // Student money math: What-if forecast
+  const wiFore = F.whatIfForecast({ currentBalance: 3000, daysLeft: 20, dailySpendByCategory: { Food: 150, Fun: 50 }, categoryChanges: { Food: -50 }, startDate: '2026-10-01' });
+  check('What-if forecast: saving 50/day (1000 total) pushes end balance from -1000 to 0', wiFore.savedPerDay === 50 && wiFore.savedTotal === 1000 && wiFore.willMakeIt && !wiFore.baselineWillMakeIt);
+
   const passed = results.filter(r => r.ok).length;
   console.info(`Self-tests: ${passed}/${results.length} passed`);
   return { passed, total: results.length, results };

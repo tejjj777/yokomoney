@@ -10,7 +10,7 @@ function renderBudget() {
   const auto = computedMonthlyIncome();
   const cats = state.budget.categories;
   const head = viewHeader('budget', 'Budget Planner', 'Plan this month, track what you spend, and see what’s left.',
-    `<button type="button" class="btn btn-primary" data-action="add-expense">${ICON.plus}<span>Add expense</span></button>`);
+    `<button type="button" class="btn" data-action="budget-autopilot"><span>🤖 Set my budgets for me</span></button><button type="button" class="btn btn-primary" data-action="add-expense">${ICON.plus}<span>Add expense</span></button>`);
   const intro = !hasAnyData() ? emptyState('Your budget is empty', 'Enter your paycheck to fill in income automatically, then set planned amounts for each category.', 'open-paycheck', 'Enter paycheck', 'budget') : '';
 
   const incomeCard = `<div class="card stat">
@@ -110,16 +110,19 @@ function renderBudget() {
 
   const html = head + intro + tabbed('budget', {
     plan: statsRow + incomeLogCard() + catCard + `<div class="grid-2">${ruleCard}${splitCard()}</div>`,
-    spending: expCard + recurringCard(),
+    where: whereCard() + `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut', sp.list.length > 0, 'Add planned or actual amounts to see this chart.')}${chartCard('Planned vs actual', 'By category', 'budget-bar', hasBar, 'Add amounts to compare planned and actual.')}</div>`,
     yearly: yearlyCard(),
     history: whereCard() + historyCard() +
-      `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut', sp.list.length > 0, 'Add planned or actual amounts to see this chart.')}${chartCard('Planned vs actual', 'By category', 'budget-bar', hasBar, 'Add amounts to compare planned and actual.')}</div>` +
+      `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut-hist', sp.list.length > 0, 'Add planned or actual amounts to see this chart.')}${chartCard('Planned vs actual', 'By category', 'budget-bar-hist', hasBar, 'Add amounts to compare planned and actual.')}</div>` +
       `<div class="mb">${heatmapCard()}</div>`
   });
   return {
     html,
     charts() {
-      if (sp.list.length) spendChart('budget-doughnut');
+      if (sp.list.length) {
+        spendChart('budget-doughnut');
+        spendChart('budget-doughnut-hist');
+      }
       historyChart();
       if (hasBar) {
         makeChart('budget-bar', {
@@ -132,6 +135,61 @@ function renderBudget() {
         });
       }
       if (document.getElementById('split-chart')) splitChart();
+    }
+  };
+}
+
+/* =========================================================
+   VIEW: SPEND
+   ========================================================= */
+function renderSpend() {
+  const t = todayDate();
+  const b = budgetTotals();
+  const cats = state.budget.categories;
+  const sp = spendingSource();
+  const ym = todayISO().slice(0, 7);
+  const ef = ui.expFilter || emptyExpFilter(), filtering = expFilterActive(ef);
+  const allExps = filtering ? filterExpenses(ef) : state.budget.expenses.filter(x => x.date.slice(0, 7) === ym).sort((a, b2) => b2.date.localeCompare(a.date) || b2.id.localeCompare(a.id));
+  const exps = allExps.slice(0, 300);
+  const olderCount = filtering ? 0 : state.budget.expenses.length - allExps.length;
+  const ru = state.settings.roundUp, ruGoal = ru.enabled ? state.goals.find(g => g.id === ru.goalId) : null;
+  const jarMonth = sum(state.goals.flatMap(g => g.contributions.filter(c => c.roundup && c.date.slice(0, 7) === ym)), c => c.amount);
+  const jarLine = ruGoal ? `🫙 Round-up jar: ${fmt(jarMonth)} saved this month → ${esc(ruGoal.name)}` : '';
+  const catName = id => { const c = cats.find(x => x.id === id); return c ? c.name : 'Deleted category'; };
+
+  const head = viewHeader('spend', 'Spend', `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`,
+    `<button type="button" class="btn btn-primary" data-action="add-expense">${ICON.plus}<span>Add expense</span></button>`);
+
+  const expCard = `<div class="card mb" id="exp-log">
+    <div class="card-head"><div><h2>Expense log</h2><p class="muted small">${filtering ? `${plural(allExps.length, 'match', 'matches')} · ${fmt(sum(allExps, x => x.amount))} in total${allExps.length > exps.length ? `. Showing newest ${exps.length}` : ''}` : `This month${olderCount ? `. Search to find ${olderCount} older ones` : ''}`}.</p>${jarLine ? `<p class="small" style="margin-top:4px">${jarLine}</p>` : ''}</div>
+      <div class="actions no-print">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), csvItem('expenses', 'expenses')])}</div></div>
+    ${expFilterBar(ef, cats)}
+    ${exps.length ? `<div class="table-wrap"><table class="exp-table"><thead><tr><th scope="col">Date</th><th scope="col" class="exp-cat-col">Category</th><th scope="col">Note</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
+      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">—</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num font-bold">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
+      <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-expense" data-id="${x.id}" aria-label="Edit expense of ${esc(fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-expense" data-id="${x.id}" aria-label="Delete expense of ${esc(fmt(x.amount))}">${ICON.trash}</button></td></tr>`).join('')}
+      </tbody></table></div>` : (filtering ? '<p class="muted">Nothing matches. Try fewer filters.</p>' : '<p class="muted">No expenses logged yet this month. Tap "+ Add expense" or paste a bank message.</p>')}
+  </div>`;
+
+  const catBreakdown = `<div class="grid-2">
+    ${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned' : ''), 'spend-doughnut', sp.list.length > 0, 'Log expenses to see this chart.')}
+    <div class="card">
+      <div class="card-head"><div><h2>Categories</h2><p class="muted small">Breakdown of this month’s spend.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Category</th><th class="num" scope="col">Spent</th><th class="num" scope="col">Budget</th></tr></thead>
+      <tbody>${cats.map(c => `<tr><td><strong>${esc(c.name)}</strong></td><td class="num font-bold">${fmt(c.actual)}</td><td class="num muted">${fmt(c.planned)}</td></tr>`).join('')}</tbody></table></div>
+    </div>
+  </div>`;
+
+  const html = head + tabbed('spend', {
+    log: expCard,
+    categories: catBreakdown,
+    recurring: recurringCard(),
+    cash: cashCard()
+  });
+
+  return {
+    html,
+    charts() {
+      if (sp.list.length) spendChart('spend-doughnut');
     }
   };
 }

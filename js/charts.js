@@ -103,3 +103,57 @@ function debtLineChart(id, plan) {
   });
 }
 
+function runOutLineChart(id, forecast) {
+  if (!forecast || !forecast.points) return;
+  const labels = forecast.points.map((p, i) => {
+    const d = F.parseDate(p.date);
+    return i === 0 ? 'Today' : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  });
+  const data = forecast.points.map(p => Math.max(0, p.balance));
+  const color = forecast.willMakeIt ? (css('--tone-success') || '#10B981') : (css('--tone-danger') || '#EF4444');
+  makeChart(id, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Projected balance',
+          data,
+          borderColor: color,
+          backgroundColor: hexA(color.startsWith('#') ? color : '#10B981', 0.18),
+          fill: true,
+          tension: 0.25,
+          borderWidth: 2.5,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` Projected: ${fmt(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        y: moneyAxis(),
+        x: xAxis
+      }
+    }
+  });
+}
+
+function updateRunOutChartLive(id, forecast) {
+  const chart = charts[id];
+  if (!chart || !forecast || !forecast.points) return;
+  const data = forecast.points.map(p => Math.max(0, p.balance));
+  const color = forecast.willMakeIt ? (css('--tone-success') || '#10B981') : (css('--tone-danger') || '#EF4444');
+  chart.data.datasets[0].data = data;
+  chart.data.datasets[0].borderColor = color;
+  chart.data.datasets[0].backgroundColor = hexA(color.startsWith('#') ? color : '#10B981', 0.18);
+  chart.update('none');
+}
+

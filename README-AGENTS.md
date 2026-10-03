@@ -17,20 +17,20 @@ Read this first, every session. Plain HTML/CSS/JS. No framework, no build step. 
 | `css/app.css` | All styles (tokens, layout, components, fun layer, print) |
 | `sw.js` | Service worker. Page + `js/` + `css/` are network-first, assets cache-first |
 | `js/theme-boot.js` | Runs in `<head>`: applies saved theme before first paint |
-| `js/finmath.js` | `FinMath` (alias `F` in app code): payoff sims, dates, `parseSms`, `parseSmsBatch`, `parseStatementCsv`, `categorize`, `parseReceipt`, `parsePayslip`, `levelFor`, `splitShares`, `monthForecast` |
+| `js/finmath.js` | `FinMath` (alias `F` in app code): payoff sims, dates, `parseSms`, `parseSmsBatch`, `parseStatementCsv`, `categorize`, `parseReceipt`, `parsePayslip`, `levelFor`, `splitShares`, `monthForecast`, `safeToSpend`, `forecastRunOut`, `semesterPlan` |
 | `js/selftests.js` | `runSelfTests()` |
-| `js/utils.js` | `STORAGE_KEY`, `APP_NAME`, `THEMES`, `ROUTES`, `ICON`, `COUNTRIES`, `CURRENCIES`, `uid`, `esc`, `nn`, `clamp`, `todayISO`, `parseNum`, `fmt` (money), `fmtDate` and friends |
-| `js/state.js` | `defaultState`, `normalizeState`, `normalizeMore`, `loadState`, `save`, global `state` and `ui`, `sampleState`, derived values: `monthlyIncome`, `budgetTotals`, `spentByCategory`, `syncActuals`, `debtPlan`, `goalInfo` |
-| `js/charts.js` | Chart.js helpers: `makeChart`, `doughnut`, `spendChart`, `debtLineChart` |
+| `js/utils.js` | `STORAGE_KEY`, `APP_NAME`, `THEMES`, `ROUTES` (Student: dashboard, spend, budget, split, goals), `ICON`, `COUNTRIES`, `CURRENCIES`, `uid`, `esc`, `nn`, `clamp`, `todayISO`, `parseNum`, `fmt` (money), `fmtDate` and friends |
+| `js/state.js` | `defaultState`, `normalizeState`, `normalizeMore`, `loadState`, `save`, global `state` and `ui`, `sampleState`, derived values: `monthlyIncome`, `budgetTotals`, `spentByCategory`, `syncActuals`, `debtPlan`, `goalInfo`, `studentSafeToSpend`, `categoryDailyAverages`, `studentRunOutForecast`, `studentSemesterPlan` |
+| `js/charts.js` | Chart.js helpers: `makeChart`, `doughnut`, `spendChart`, `debtLineChart`, `forecastLineChart` |
 | `js/ui-shared.js` | `TABS` (page tabs), `tabbed`, `moreMenu` (⋯ menus), `mi`, `viewHeader`, `stat`, `emptyState`, `chartCard`, `moneyInput` |
-| `js/page-dashboard.js` | `renderDashboard` |
+| `js/page-dashboard.js` | `renderDashboard`, `safeToSpendHero`, `runOutForecastCard`, `semesterCard`, `openSemesterModal` |
 | `js/page-debt.js` | `renderDebt`, `emiCard` |
-| `js/page-budget.js` | `renderBudget`, income log, yearly bills, `whereCard` ("where did my money go"), price list `SUGGEST` + `loadPriceUpdates` |
+| `js/page-budget.js` | `renderBudget`, `renderSpend` (Expense log, Category breakdown, Recurring, Cash), income log, yearly bills, `whereCard`, price list `SUGGEST` + `loadPriceUpdates` |
 | `js/suggestions.js` | Pick-from-list combos, debt/goal pickers, subscription and bill checklists, `findRecurringCharges`, expense search/filter, `splitExpenseForm` |
 | `js/page-goals.js` | `renderGoals` (Goals, Gifts, Wishlist, Challenges tabs) |
 | `js/fun.js` | Feels-like, `dailyAllowance`, `runwayInfo`, badges, confetti/sound, `addExpense`, `addToGoal`, cards, Money Wrapped (`openWrapped`), command palette (`openPalette`, `parseCommand`), theme (`applyTheme`) |
-| `js/tour.js` | `TOUR_VERSION`, `CHAPTERS`, `showWelcome`, `showWhatsNew`, `startTour`, `openTutorialHub` |
-| `js/page-wallet.js` | `renderWallet`: cash, IOUs (`iouForm`, `settleForm`), transport, taxes, payslips; `removeExpense`, `updateExpense` |
+| `js/tour.js` | `TOUR_VERSION`, `CHAPTERS`, `showWelcome`, `showOnboarding` (Student onboarding: pocket money, schedule, living setup, part-time income), `showWhatsNew`, `startTour`, `openTutorialHub` |
+| `js/page-wallet.js` | `renderWallet`, `renderSplit` (IOU summary, Roommates IOUs, Settled history), cash, IOUs (`iouForm`, `settleForm`), transport, taxes, payslips; `removeExpense`, `updateExpense` |
 | `js/payslip.js` | Payslip reader (pdf.js loaded on demand), `loadScript` |
 | `js/more.js` | Undo bar (`undoable`, `doUndo`), privacy, backups, PWA install, recurring payments, month history (`snapshotMonth`) |
 | `js/import.js` | Bank SMS/statement import (`importModal`, `guessCategory`, `isDuplicate`), OCR (`loadOcr`) |

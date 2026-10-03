@@ -28,8 +28,10 @@ function loadSample() {
 
 const ACTIONS = {
   'open-paycheck': () => openPaycheckModal(),
+  'open-semester-modal': () => openSemesterModal(),
   'open-settings': () => openSettings(),
   'close-modal': () => closeModal(),
+  'budget-autopilot': () => budgetAutopilotModal(),
   print: () => window.print(),
   'load-sample': loadSample,
   'add-expense': () => expenseForm(),
