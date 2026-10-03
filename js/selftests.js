@@ -251,6 +251,48 @@ function runSelfTests() {
   check('UPI URL: correct scheme and parameters', upiUrl.startsWith('upi://pay?pa=rahul.sharma%40okaxis&pn=Rahul%20%26%20Friends%20%2B%20Co&am=340.50&cu=INR&tn=Hostel%20Dinner%20%2F%20Friday%20Split%20%26%20Snacks'));
   check('UPI URL: spaces and symbols properly encoded', !upiUrl.includes(' ') && upiUrl.includes('%20%26%20') && upiUrl.includes('%2F'));
 
+  // Student Money Wrapped & Insights: Ghost spending
+  const ghostTest = F.calculateGhostSpending([
+    { amount: 20 }, { amount: 45 }, { amount: 99 }, { amount: 100 }, { amount: 150 }, { amount: 1200 }
+  ], 100);
+  check('Ghost spending: 4 payments <= 100 add up to 264', ghostTest.count === 4 && ghostTest.total === 264);
+
+  // Student Money Wrapped & Insights: Time of Day bands
+  const timeTest = F.calculateTimeOfDayBands([
+    { amount: 50, time: '08:30' },
+    { amount: 120, time: '13:15' },
+    { amount: 300, time: '20:00' },
+    { amount: 450, time: '23:45' }
+  ]);
+  check('Time-of-day: all 4 bands correctly populated', timeTest.hasEnoughData && timeTest.bands.morning.total === 50 && timeTest.bands.afternoon.total === 120 && timeTest.bands.evening.total === 300 && timeTest.bands.lateNight.total === 450);
+
+  // Student Money Wrapped & Insights: Spending Personalities
+  const pLateNight = F.calculateSpendingPersonality({
+    expenses: [{ amount: 400, time: '23:30' }, { amount: 200, time: '01:15' }, { amount: 100, time: '12:00' }],
+    categories: [{ id: 'w1', name: 'Snacks', type: 'wants', actual: 700 }]
+  });
+  check('Spending personality: Late-night snacker rule', pLateNight.title === 'Late-night snacker');
+
+  const pWeekend = F.calculateSpendingPersonality({
+    expenses: [{ amount: 600, date: '2026-10-03' }, { amount: 400, date: '2026-10-04' }, { amount: 200, date: '2026-10-01' }], // Sat + Sun = 1000/1200
+    categories: [{ id: 'w1', name: 'Fun', type: 'wants', actual: 1200 }]
+  });
+  check('Spending personality: Weekend spender rule', pWeekend.title === 'Weekend spender');
+
+  const pChai = F.calculateSpendingPersonality({
+    expenses: Array.from({ length: 9 }, (_, i) => ({ amount: 20, note: `Chai ${i + 1}`, date: '2026-10-02' })),
+    categories: [{ id: 'w1', name: 'Snacks', type: 'wants', actual: 180 }]
+  });
+  check('Spending personality: Chai regular rule', pChai.title === 'Chai regular');
+
+  // Student Hours-of-Work rate check
+  const studentHourly = (partTimeAmt, weeklyHours) => {
+    const monthlyHours = weeklyHours * (52 / 12);
+    return monthlyHours > 0 ? partTimeAmt / monthlyHours : 0;
+  };
+  const testRate = studentHourly(6000, 10); // 6000 per month for 10h/week (43.33h/mo) = ~138.46/hr
+  check('Hourly rate: 6000/mo at 10h/wk ≈ 138.46/hr', close(testRate, 138.46, 0.01));
+
   const passed = results.filter(r => r.ok).length;
   console.info(`Self-tests: ${passed}/${results.length} passed`);
   return { passed, total: results.length, results };

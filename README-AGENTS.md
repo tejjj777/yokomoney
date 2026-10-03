@@ -42,6 +42,8 @@ Read this first, every session. Plain HTML/CSS/JS. No framework, no build step. 
 | `js/commandbar.js` | `commandBarHTML`, `bindCommandBar`, `budgetAutopilotModal`, voice input |
 | `js/qrcode.js` | `QRCode.toSvg` (pure JS, offline SVG QR generator for UPI links) |
 | `js/bill-split.js` | `billSplitterModal` (item photo splitter, multi-person assignment, proportional tax/SC), `settleUpModal` (UPI deep-links, QR codes, WhatsApp drafts), `openTopUpModal` (parent top-up drafts) |
+| `js/wrapped.js` | `openWrapped`, `getWrappedMonthData`, `drawWrappedSquareCard` (1080x1080 PNG exporter) |
+| `js/insights.js` | `ghostSpendingCard`, `timeOfDayCard`, `spendingHeatmapCard` (interactive GitHub-style daily calendar) |
 | `js/global.js` | `applyCountry`, `setCountry`, sample data per country |
 | `js/receipt.js` | Scan a receipt |
 | `js/calendar.js` | Bill calendar, `.ics` download |

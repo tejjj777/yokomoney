@@ -182,6 +182,7 @@ function renderSpend() {
   const html = head + tabbed('spend', {
     log: expCard,
     categories: catBreakdown,
+    insights: ghostSpendingCard() + timeOfDayCard() + spendingHeatmapCard(),
     recurring: recurringCard(),
     cash: cashCard()
   });
@@ -190,6 +191,8 @@ function renderSpend() {
     html,
     charts() {
       if (sp.list.length) spendChart('spend-doughnut');
+      bindGhostSpendingCard();
+      bindSpendingHeatmap();
     }
   };
 }

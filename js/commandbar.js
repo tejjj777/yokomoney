@@ -194,8 +194,9 @@ function renderCommandResult(parsed, originalText, container) {
   if (parsed.intent === 'add') {
     const cat = guessCategory(parsed.note) || state.budget.categories[0];
     const catName = cat ? state.budget.categories.find(c => c.id === cat.id).name : 'Budget';
+    const hrs = fmtHours(parsed.amount);
     html = `<div class="cb-card-confirm">
-      <p>I'll log <strong>${fmt(parsed.amount)}</strong> for <strong>${esc(parsed.note)}</strong> in ${esc(catName)}.</p>
+      <p>I'll log <strong>${fmt(parsed.amount)}</strong>${hrs ? ` <span class="small muted">(= ${hrs})</span>` : ''} for <strong>${esc(parsed.note)}</strong> in ${esc(catName)}.</p>
       ${parsed.split && parsed.withPerson ? `<p class="small muted">And I'll split it with ${esc(parsed.withPerson)} (they owe you ${fmt(parsed.amount/2)}).</p>` : ''}
       <button type="button" class="btn btn-primary btn-sm mt" id="cb-confirm-btn">Confirm and Save</button>
     </div>`;
@@ -266,11 +267,12 @@ function renderCommandResult(parsed, originalText, container) {
       topCategory: topName ? { name: topName, dailyCost: topCost } : null
     });
 
+    const hrs = fmtHours(parsed.amount);
     html = `<div class="cb-card-confirm">
       ${aff.verdict === 'yes' ? `<p class="tone-success-text" style="font-weight:bold">Yes, you can afford it.</p>` : 
         aff.verdict === 'tight' ? `<p class="tone-warn-text" style="font-weight:bold">It's tight.</p>` : 
         `<p class="tone-danger-text" style="font-weight:bold">No, you can't afford it right now.</p>`}
-      <p class="small">It would leave you with <strong>${fmt(aff.perDayAfter)}/day</strong> for the remaining ${plural(aff.daysAfter, 'day')}.</p>
+      <p class="small">${fmt(parsed.amount)}${hrs ? ` (= <strong>${hrs}</strong>)` : ''} would leave you with <strong>${fmt(aff.perDayAfter)}/day</strong> for the remaining ${plural(aff.daysAfter, 'day')}.</p>
       ${aff.fix ? `<p class="mt" style="font-style:italic">💡 ${esc(aff.fix)}.</p>` : ''}
     </div>`;
     container.innerHTML = html;

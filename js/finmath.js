@@ -1121,6 +1121,303 @@ const FinMath = (() => {
     return `Hey Mom and Dad, quick update on my hostel budget. I'm running low on funds for the next ${dStr}${datePart}, and I'm short by about ${amtStr}.\n\nWhere most of it went:\n${breakdownLines}\n\n${cutPart}\n\nCould you send a top-up of ${amtStr}? Thank you!`;
   }
 
+  /* ---------- Ghost Spending, Time-of-Day, Personality & Heatmap ---------- */
+
+  /**
+   * Calculate small "ghost" payments under a specific threshold (e.g. <= ₹100).
+   * @param {Array<{amount: number}>} expenses
+   * @param {number} [threshold=100]
+   * @returns {{ threshold: number, count: number, total: number, pct: number, ghosts: Array }}
+   */
+  function calculateGhostSpending(expenses = [], threshold = 100) {
+    const t = isNum(threshold) && threshold > 0 ? threshold : 100;
+    const ghosts = expenses.filter(x => isNum(x.amount) && x.amount > 0 && x.amount <= t);
+    const ghostTotal = ghosts.reduce((s, x) => s + x.amount, 0);
+    const allTotal = expenses.reduce((s, x) => s + (isNum(x.amount) && x.amount > 0 ? x.amount : 0), 0);
+    const pct = allTotal > 0 ? (ghostTotal / allTotal) * 100 : 0;
+
+    return {
+      threshold: t,
+      count: ghosts.length,
+      total: Math.round(ghostTotal * 100) / 100,
+      pct: Math.round(pct * 10) / 10,
+      ghosts
+    };
+  }
+
+  /**
+   * Categorize timestamped expenses into morning, afternoon, evening, and late night bands.
+   * @param {Array<{amount: number, time?: string, date?: string}>} expenses
+   * @returns {{ hasEnoughData: boolean, totalWithTime: number, totalAmount: number, bands: { morning: Object, afternoon: Object, evening: Object, lateNight: Object }, notablePattern: string }}
+   */
+  function calculateTimeOfDayBands(expenses = []) {
+    const bands = {
+      morning: { label: 'Morning (6am–12pm)', count: 0, total: 0, pct: 0 },
+      afternoon: { label: 'Afternoon (12pm–5pm)', count: 0, total: 0, pct: 0 },
+      evening: { label: 'Evening (5pm–10pm)', count: 0, total: 0, pct: 0 },
+      lateNight: { label: 'Late Night (10pm–6am)', count: 0, total: 0, pct: 0 }
+    };
+
+    let totalWithTime = 0;
+    let timedTotalAmount = 0;
+
+    expenses.forEach(x => {
+      let h = null;
+      if (typeof x.time === 'string' && /^\d{1,2}:\d{2}/.test(x.time)) {
+        h = parseInt(x.time.split(':')[0], 10);
+      } else if (typeof x.date === 'string' && x.date.includes('T')) {
+        const d = new Date(x.date);
+        if (!isNaN(d.getTime())) h = d.getHours();
+      }
+
+      if (h !== null && !isNaN(h) && isNum(x.amount) && x.amount > 0) {
+        totalWithTime++;
+        timedTotalAmount += x.amount;
+        if (h >= 6 && h < 12) {
+          bands.morning.count++;
+          bands.morning.total += x.amount;
+        } else if (h >= 12 && h < 17) {
+          bands.afternoon.count++;
+          bands.afternoon.total += x.amount;
+        } else if (h >= 17 && h < 22) {
+          bands.evening.count++;
+          bands.evening.total += x.amount;
+        } else {
+          bands.lateNight.count++;
+          bands.lateNight.total += x.amount;
+        }
+      }
+    });
+
+    const hasEnoughData = totalWithTime >= 3;
+    if (timedTotalAmount > 0) {
+      for (const k of Object.keys(bands)) {
+        bands[k].total = Math.round(bands[k].total * 100) / 100;
+        bands[k].pct = Math.round((bands[k].total / timedTotalAmount) * 100);
+      }
+    }
+
+    let notablePattern = 'Not enough timestamped transactions to spot a pattern.';
+    if (hasEnoughData && timedTotalAmount > 0) {
+      const top = Object.entries(bands).sort((a, b) => b[1].total - a[1].total)[0];
+      if (top[0] === 'lateNight' && top[1].pct >= 30) {
+        notablePattern = `${top[1].pct}% of your spending happens late at night (10pm–6am).`;
+      } else if (top[0] === 'evening' && top[1].pct >= 35) {
+        notablePattern = `Evenings are your peak spending hours (${top[1].pct}% of tracked spend).`;
+      } else if (top[0] === 'afternoon' && top[1].pct >= 35) {
+        notablePattern = `Most of your day's spending happens in the afternoon (${top[1].pct}%).`;
+      } else if (top[0] === 'morning' && top[1].pct >= 30) {
+        notablePattern = `You are an early spender: ${top[1].pct}% of spending occurs before noon.`;
+      } else {
+        notablePattern = `Your spending is evenly distributed throughout the day.`;
+      }
+    }
+
+    return {
+      hasEnoughData,
+      totalWithTime,
+      totalAmount: Math.round(timedTotalAmount * 100) / 100,
+      bands,
+      notablePattern
+    };
+  }
+
+  /**
+   * Determine student spending personality based on pure data rules.
+   * @param {Object} opts
+   * @param {Array} opts.expenses
+   * @param {Array} opts.categories
+   * @param {number} [opts.income=0]
+   * @param {number} [opts.savings=0]
+   * @param {number} [opts.streak=0]
+   * @returns {{ emoji: string, title: string, desc: string, badgeId: string }}
+   */
+  function calculateSpendingPersonality({ expenses = [], categories = [], income = 0, savings = 0, streak = 0 }) {
+    const totalSpent = expenses.reduce((s, x) => s + (isNum(x.amount) ? x.amount : 0), 0);
+    const wantsSpent = categories.filter(c => c.type === 'wants').reduce((s, c) => s + (c.actual || 0), 0);
+
+    // 1. Check late night spend
+    const timeInfo = calculateTimeOfDayBands(expenses);
+    if (timeInfo.hasEnoughData && timeInfo.bands.lateNight.pct >= 30 && timeInfo.bands.lateNight.total >= 300) {
+      return {
+        emoji: '🌙',
+        title: 'Late-night snacker',
+        desc: `${timeInfo.bands.lateNight.pct}% of your spending happens after 10 PM.`,
+        badgeId: 'late-night'
+      };
+    }
+
+    // 2. Check weekend spend
+    let weekendTotal = 0;
+    expenses.forEach(x => {
+      if (x.date) {
+        const d = parseDate(x.date);
+        if (d && (d.getDay() === 0 || d.getDay() === 6)) {
+          weekendTotal += (isNum(x.amount) ? x.amount : 0);
+        }
+      }
+    });
+    const weekendPct = totalSpent > 0 ? (weekendTotal / totalSpent) * 100 : 0;
+    if (weekendPct >= 45 && weekendTotal >= 500) {
+      return {
+        emoji: '🎉',
+        title: 'Weekend spender',
+        desc: `${Math.round(weekendPct)}% of your expenses happen on Saturdays and Sundays.`,
+        badgeId: 'weekend-spender'
+      };
+    }
+
+    // 3. Check food delivery dominance
+    const foodCat = categories.find(c => /food|delivery|swiggy|zomato|takeout/i.test(c.name));
+    if (foodCat && wantsSpent > 0 && (foodCat.actual / wantsSpent) >= 0.45) {
+      return {
+        emoji: '🛵',
+        title: 'Delivery champion',
+        desc: `${foodCat.name} makes up over 45% of your flexible spending.`,
+        badgeId: 'delivery-champ'
+      };
+    }
+
+    // 4. Check chai / coffee frequency
+    const chaiCount = expenses.filter(x => /chai|tea|coffee|snack|canteen/i.test((x.note || '') + ' ' + (x.merchant || ''))).length;
+    if (chaiCount >= 8) {
+      return {
+        emoji: '☕',
+        title: 'Chai regular',
+        desc: `Logged ${chaiCount} chai & snack breaks this month.`,
+        badgeId: 'chai-regular'
+      };
+    }
+
+    // 5. Check steady saver
+    if ((income > 0 && savings / income >= 0.20) || streak >= 10) {
+      return {
+        emoji: '🐿️',
+        title: 'Steady saver',
+        desc: streak >= 10 ? `Held an impressive ${streak}-day no-spend streak.` : 'Saved over 20% of your total allowance.',
+        badgeId: 'steady-saver'
+      };
+    }
+
+    // 6. Check budget master
+    const activeCats = categories.filter(c => c.planned > 0);
+    const underBudget = activeCats.filter(c => (c.actual || 0) <= c.planned).length;
+    if (activeCats.length >= 3 && underBudget === activeCats.length) {
+      return {
+        emoji: '🧭',
+        title: 'Budget master',
+        desc: 'Stayed 100% within your planned limits across all categories.',
+        badgeId: 'budget-master'
+      };
+    }
+
+    return {
+      emoji: '🌱',
+      title: 'Campus explorer',
+      desc: 'Building your spending habits and learning hostel budget life.',
+      badgeId: 'campus-explorer'
+    };
+  }
+
+  /**
+   * Compare top category spending against another category in user's own data.
+   * @param {Object} topCategory
+   * @param {Array} categories
+   * @param {Array} expenses
+   * @returns {string} E.g. "your ₹3,600 on Food Delivery = 9 of your movie nights"
+   */
+  function calculateCategoryComparison(topCategory, categories = [], expenses = []) {
+    if (!topCategory || !(topCategory.actual > 0)) return '';
+
+    // Find another non-savings category with transactions
+    const otherCats = categories.filter(c => c.id !== topCategory.id && c.type !== 'savings' && c.actual > 0);
+    if (!otherCats.length) {
+      const chaiPrice = 20;
+      const cups = Math.round(topCategory.actual / chaiPrice);
+      return `your ${topCategory.name} spending equals ${cups} cups of chai`;
+    }
+
+    // Pick the second biggest category or one with clear single transactions
+    const compCat = otherCats.sort((a, b) => b.actual - a.actual)[0];
+    const compExps = expenses.filter(x => x.categoryId === compCat.id && x.amount > 0);
+    const avgSpend = compExps.length > 0 ? (compCat.actual / compExps.length) : compCat.actual;
+
+    if (avgSpend > 0) {
+      const times = Math.max(1, Math.round(topCategory.actual / avgSpend));
+      const singularName = compCat.name.replace(/s\b/i, '').toLowerCase();
+      return `your ${topCategory.name.toLowerCase()} (${Math.round(topCategory.actual)}) = ${times} of your ${singularName} outings`;
+    }
+
+    return `your ${topCategory.name} was your largest spending category`;
+  }
+
+  /**
+   * Calculate GitHub-style daily spending heatmap.
+   * @param {Array} expenses
+   * @param {string|Date} startDate
+   * @param {string|Date} endDate
+   * @returns {{ days: Array<{ date: Date, iso: string, dayOfWeek: number, amount: number, level: number, expenses: Array }>, maxDaily: number, totalSpent: number }}
+   */
+  function calculateDailyHeatmap(expenses = [], startDate = null, endDate = null) {
+    const start = startDate ? (parseDate(startDate) || new Date()) : new Date();
+    const end = endDate ? (parseDate(endDate) || new Date()) : new Date();
+    const totalDays = Math.max(1, daysBetween(start, end) + 1);
+
+    const spendByDay = {};
+    const expsByDay = {};
+
+    expenses.forEach(x => {
+      const iso = (x.date || '').slice(0, 10);
+      if (iso) {
+        spendByDay[iso] = (spendByDay[iso] || 0) + (isNum(x.amount) ? x.amount : 0);
+        expsByDay[iso] = expsByDay[iso] || [];
+        expsByDay[iso].push(x);
+      }
+    });
+
+    let maxDaily = 0;
+    let totalSpent = 0;
+    const days = [];
+
+    for (let i = 0; i < totalDays; i++) {
+      const d = addDays(start, i);
+      const iso = toISO(d);
+      const amt = spendByDay[iso] || 0;
+      if (amt > maxDaily) maxDaily = amt;
+      totalSpent += amt;
+
+      days.push({
+        date: d,
+        iso,
+        dayOfWeek: d.getDay(),
+        amount: Math.round(amt * 100) / 100,
+        level: 0,
+        expenses: expsByDay[iso] || []
+      });
+    }
+
+    // Assign heatmap levels (0 to 4)
+    days.forEach(d => {
+      if (d.amount <= 0) {
+        d.level = 0;
+      } else if (maxDaily > 0) {
+        const ratio = d.amount / maxDaily;
+        if (ratio <= 0.25) d.level = 1;
+        else if (ratio <= 0.50) d.level = 2;
+        else if (ratio <= 0.75) d.level = 3;
+        else d.level = 4;
+      } else {
+        d.level = 1;
+      }
+    });
+
+    return {
+      days,
+      maxDaily: Math.round(maxDaily * 100) / 100,
+      totalSpent: Math.round(totalSpent * 100) / 100
+    };
+  }
+
   return {
     PAY_FREQUENCIES, MAX_MONTHS,
     toMonthly, netFromGross, monthlyRate, emi, amortizationSchedule, neverPaysOff, monthsToPayoff,
@@ -1130,7 +1427,9 @@ const FinMath = (() => {
     parseSms, parseSmsBatch, parseCsv, parseStatementCsv, parseStatementLines, categorize, DEFAULT_RULES,
     monthForecast, LEVELS, levelFor, splitShares, week52Total, recurringDue, setDateOrder, parseReceipt,
     safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast,
-    parseBillItems, splitBillExact, buildUpiUrl, generateTopUpDraft
+    parseBillItems, splitBillExact, buildUpiUrl, generateTopUpDraft,
+    calculateGhostSpending, calculateTimeOfDayBands, calculateSpendingPersonality,
+    calculateCategoryComparison, calculateDailyHeatmap
   };
 })();
 

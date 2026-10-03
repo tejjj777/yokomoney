@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 10;   // bumped for student edition session 4
+const TOUR_VERSION = 11;   // bumped for student edition session 5
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'ai', icon: '✨', title: 'AI Command Bar & Voice', blurb: 'Ask questions, add expenses by voice, test what-ifs.', route: 'dashboard/overview', steps: [
@@ -30,9 +30,10 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#pet-card'], title: 'Your money pet', text: 'Gains XP and levels up as you log expenses, stick to your budget, and win challenges.' },
     { route: 'dashboard', target: ['[data-action="open-wrapped"]'], title: 'Money Wrapped', text: 'A visual summary of your monthly spending, streaks and habits to share or download.' }
   ] },
-  { id: 'spend', icon: '💳', title: 'Spend', blurb: 'Expense log, categories and recurring bills.', route: 'spend/log', steps: [
+  { id: 'spend', icon: '💳', title: 'Spend', blurb: 'Expense log, categories, ghost spending & heatmap.', route: 'spend/log', steps: [
     { route: 'spend/log', target: ['#exp-log .exp-filter', '#exp-log'], title: 'Expense log', text: 'Search and filter any expense by merchant, note, category or date. Split or edit any expense anytime.' },
     { route: 'spend/categories', target: ['#view-spend .subtabs-inner'], title: 'Category breakdown', text: 'See where your money actually goes this month compared to your planned targets.' },
+    { route: 'spend/insights', target: ['#w-spending-heatmap'], title: 'Spending Heatmap & Ghost spending', text: 'Interactive GitHub-style calendar intensity view and small payment ghost tracking.' },
     { route: 'spend/recurring', target: ['#recurring-card'], title: 'Recurring charges', text: 'Track hostel rent, mess bills, gym memberships and subscriptions.' }
   ] },
   { id: 'split', icon: '👥', title: 'Split & Roommates', blurb: 'Bill photo splitter, running balances, and UPI settle-up.', route: 'split/ious', tryIt: ['Split a bill', () => billSplitterModal()], steps: [
@@ -53,10 +54,10 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings & customization', text: 'Switch themes, adjust pet roast mode, set chai unit price, and manage local backups.' }
   ] },
   { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Student edition features.', hidden: true, steps: [
-    { title: 'Welcome to YOKO! Student (Session 4)', text: 'New Bill Photo Splitter, UPI Settle-up with QR codes, and Parent Top-up requests.' },
-    { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Bill Photo Splitter', text: 'Snap a bill photo to extract line items, taxes and service charges, then tap people to split.' },
-    { route: 'split/ious', target: ['#w-balances'], title: 'UPI Settle-Up', text: 'Instant UPI deep-links, remembered UPI IDs, QR codes, and copyable WhatsApp messages.' },
-    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Parent Top-Up', text: 'When safe-to-spend turns red, draft an honest, polite top-up message with category breakdowns and savings promises.' }
+    { title: 'Welcome to YOKO! Student (Session 5)', text: 'New swipeable Money Wrapped stories with square PNG export, Ghost spending, Time-of-day habits, and Spending Heatmap.' },
+    { route: 'dashboard/overview', target: ['[data-action="open-wrapped"]'], title: 'Money Wrapped Story', text: 'Swipe through 6 animated story cards with real spending comparisons, personalities and square image exports.' },
+    { route: 'spend/insights', target: ['#w-ghost-spending'], title: 'Ghost Spending', text: 'Track micro-payments under ₹100 that quietly add up to big numbers.' },
+    { route: 'spend/insights', target: ['#w-spending-heatmap'], title: 'Spending Heatmap', text: 'GitHub-style daily spending grid. Tap any day to inspect its exact transactions.' }
   ] }
 ];
 const CHAPTER_ORDER = ['ai', 'quick', 'dashboard', 'spend', 'split', 'budget', 'goals', 'settings'];
@@ -273,11 +274,11 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p>New student edition features:</p><ul class="whats-new">
-        <li><strong>Bill Photo Splitter:</strong> Snap or upload bill receipts, assign items to friends, and split tax & service charge proportionally</li>
-        <li><strong>UPI Settle-Up:</strong> 1-tap deep links, QR codes, and remembered UPI IDs to settle up with roommates</li>
-        <li><strong>Running balances:</strong> See the net balance per friend across all open group expenses</li>
-        <li><strong>Parent Top-Up:</strong> Honest, transparent top-up drafts with category breakdowns when in the red</li>
-        <li><strong>AI Command Bar & Voice:</strong> Ask questions, run what-if scenarios, and log expenses in English, Hindi or Telugu</li></ul>
+        <li><strong>Money Wrapped Story:</strong> 6-card interactive monthly review with real comparisons, personalities and 1080x1080 square image export</li>
+        <li><strong>Ghost Spending:</strong> Track small payments under ₹100 that quietly add up to large totals</li>
+        <li><strong>Time-of-Day Habits:</strong> Discover your peak morning, afternoon, evening or late-night spending trends</li>
+        <li><strong>Spending Heatmap:</strong> GitHub-style interactive calendar with day-by-day expense inspection</li>
+        <li><strong>Hours-of-Work price tags:</strong> Real-time translation of purchases into hours of part-time work</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
   });

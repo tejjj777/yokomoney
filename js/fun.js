@@ -16,10 +16,15 @@ function shortNum(n) {
 
 /* ---------- "Feels like": prices as hours of work ---------- */
 function hourlyRate() {
+  if (state.student && state.student.partTimeAmount > 0 && state.student.partTimeHours > 0) {
+    const monthlyHours = state.student.partTimeHours * (52 / 12);
+    return monthlyHours > 0 ? state.student.partTimeAmount / monthlyHours : 0;
+  }
   const inc = monthlyIncome(), h = state.settings.workHours;
   return inc > 0 && h > 0 ? inc / h : 0;
 }
 function fmtHours(amount) {
+  if (state.settings && state.settings.showHoursOfWork === false) return null;
   const rate = hourlyRate();
   if (!(rate > 0) || !(amount > 0)) return null;
   const h = amount / rate;

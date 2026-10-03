@@ -7,7 +7,7 @@
 /* ---------- Page tabs and "⋯" menus (keep pages short and buttons few) ---------- */
 const TABS = {
   dashboard: [['overview', 'Overview'], ['forecast', 'Run-out forecast'], ['semester', 'Semester'], ['calendar', 'Calendar'], ['charts', 'Charts']],
-  spend: [['log', 'Expense log'], ['categories', 'Categories'], ['recurring', 'Recurring'], ['cash', 'Cash']],
+  spend: [['log', 'Expense log'], ['categories', 'Categories'], ['insights', 'Insights & Heatmap'], ['recurring', 'Recurring'], ['cash', 'Cash']],
   budget: [['plan', 'Plan'], ['where', 'Where did it go?'], ['yearly', 'Yearly / Semester fees'], ['history', 'History']],
   split: [['ious', 'IOUs & Roommates'], ['history', 'Settled']],
   goals: [['goals', 'Goals'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges'], ['gifts', 'Gifts']],

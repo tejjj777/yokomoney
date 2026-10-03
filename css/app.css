@@ -1008,4 +1008,68 @@ select, .select { max-width: 100%; }
 .btn-warn { background: var(--warn-dim, rgba(234, 179, 8, 0.15)); color: var(--warn, #eab308); border: 1px solid var(--warn, #eab308); }
 .btn-warn:hover { background: var(--warn, #eab308); color: #000; }
 
+/* Money Wrapped Story Mode */
+.mw-container { display: flex; flex-direction: column; gap: 12px; }
+.mw-header { display: flex; flex-direction: column; gap: 6px; }
+.mw-story-bars { display: flex; gap: 4px; width: 100%; height: 4px; }
+.mw-story-bar { flex: 1; background: var(--border); border-radius: 2px; transition: background 0.3s; }
+.mw-story-bar.active { background: var(--primary); }
+.mw-story-bar.done { background: var(--primary); opacity: 0.6; }
+.mw-card-frame {
+  background: linear-gradient(145deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.mw-card-tag { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; }
+.mw-card-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.mw-card-sub { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.mw-hero-amount { font-size: 44px; font-weight: 800; letter-spacing: -0.5px; margin: 6px 0; }
+.mw-hero-sub-amt { font-size: 24px; font-weight: 700; color: var(--text); }
+.mw-lead-text { font-size: 15px; color: var(--muted); max-width: 320px; }
+.mw-persona-emoji { font-size: 64px; line-height: 1; margin-bottom: 6px; }
+.mw-brand-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 16px; width: 100%; }
+.mw-nav-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
+
+/* Spending Heatmap */
+.hm-calendar-grid { width: 100%; max-width: 360px; margin: 0 auto; }
+.hm-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.hm-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.hm-empty-cell { aspect-ratio: 1; }
+.hm-day-btn {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s;
+  padding: 0;
+  user-select: none;
+}
+.hm-day-btn:hover { transform: scale(1.08); }
+.hm-day-btn.hm-selected { border-color: #fff; box-shadow: 0 0 0 2px var(--primary); }
+.hm-day-btn.hm-today { font-weight: 800; text-decoration: underline; }
+
+/* Heatmap intensity color levels */
+.hm-lvl-0 { background: var(--surface-2); color: var(--muted); }
+.hm-lvl-1 { background: rgba(34, 197, 94, 0.25); color: var(--text); }
+.hm-lvl-2 { background: rgba(34, 197, 94, 0.50); color: var(--text); }
+.hm-lvl-3 { background: rgba(234, 179, 8, 0.70); color: #000; font-weight: 600; }
+.hm-lvl-4 { background: rgba(239, 68, 68, 0.85); color: #fff; font-weight: 700; }
+
+.hm-legend-dot { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+
 
