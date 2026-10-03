@@ -202,6 +202,55 @@ function runSelfTests() {
   const wiFore = F.whatIfForecast({ currentBalance: 3000, daysLeft: 20, dailySpendByCategory: { Food: 150, Fun: 50 }, categoryChanges: { Food: -50 }, startDate: '2026-10-01' });
   check('What-if forecast: saving 50/day (1000 total) pushes end balance from -1000 to 0', wiFore.savedPerDay === 50 && wiFore.savedTotal === 1000 && wiFore.willMakeIt && !wiFore.baselineWillMakeIt);
 
+  // Student money math: Bill split proportional tax, service charge & paise rounding
+  const testBill = F.splitBillExact({
+    items: [
+      { id: 'i1', name: 'Butter Chicken', price: 350 },
+      { id: 'i2', name: 'Naan', price: 100 },
+      { id: 'i3', name: 'Cold Drink', price: 65 }
+    ],
+    tax: 25.75,
+    serviceCharge: 51.50,
+    people: [
+      { id: 'p1', name: 'Sam' },
+      { id: 'p2', name: 'Rahul' },
+      { id: 'p3', name: 'Aarav' }
+    ],
+    assignments: {
+      'i1': ['p1', 'p2'],       // 350 split between Sam & Rahul = 175 each
+      'i2': ['p1', 'p2', 'p3'], // 100 split 3 ways = 33.33 each
+      'i3': ['p3']              // 65 to Aarav
+    }
+  });
+  const sumOfShares = testBill.shares.reduce((s, sh) => s + sh.total, 0);
+  const roundedSum = Math.round(sumOfShares * 100) / 100;
+  check('Bill Split: 3 people with odd paise, 25.75 tax and 51.50 SC adds up exactly to grand total', roundedSum === testBill.grandTotal && testBill.grandTotal === 592.25);
+  check('Bill Split: Proportional tax distributed higher to higher spenders', testBill.shares[0].tax > testBill.shares[2].tax);
+
+  // Large group split stress test: 6 people, 15 items
+  const people6 = Array.from({ length: 6 }, (_, i) => ({ id: `p${i + 1}`, name: `Friend ${i + 1}` }));
+  const items15 = Array.from({ length: 15 }, (_, i) => ({ id: `it${i + 1}`, name: `Item ${i + 1}`, price: 45 + (i * 17.33) }));
+  const assign15 = {};
+  items15.forEach((it, i) => {
+    // arbitrary overlapping assignments
+    assign15[it.id] = [people6[i % 6].id, people6[(i + 1) % 6].id, people6[(i + 3) % 6].id];
+  });
+  const largeSplit = F.splitBillExact({ items: items15, tax: 123.45, serviceCharge: 67.89, people: people6, assignments: assign15 });
+  const largeSum = Math.round(largeSplit.shares.reduce((s, sh) => s + sh.total, 0) * 100) / 100;
+  check('Bill Split (6 people, 15 items): sum of shares matches grand total to exact paisa', largeSum === largeSplit.grandTotal && largeSplit.shares.length === 6);
+
+
+  // Student money math: UPI Deep-Link URL encoding
+  const upiUrl = F.buildUpiUrl({
+    pa: 'rahul.sharma@okaxis',
+    pn: 'Rahul & Friends + Co',
+    am: 340.5,
+    cu: 'INR',
+    tn: 'Hostel Dinner / Friday Split & Snacks'
+  });
+  check('UPI URL: correct scheme and parameters', upiUrl.startsWith('upi://pay?pa=rahul.sharma%40okaxis&pn=Rahul%20%26%20Friends%20%2B%20Co&am=340.50&cu=INR&tn=Hostel%20Dinner%20%2F%20Friday%20Split%20%26%20Snacks'));
+  check('UPI URL: spaces and symbols properly encoded', !upiUrl.includes(' ') && upiUrl.includes('%20%26%20') && upiUrl.includes('%2F'));
+
   const passed = results.filter(r => r.ok).length;
   console.info(`Self-tests: ${passed}/${results.length} passed`);
   return { passed, total: results.length, results };

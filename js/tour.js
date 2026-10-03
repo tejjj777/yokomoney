@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 9;   // bumped for student edition session 3
+const TOUR_VERSION = 10;   // bumped for student edition session 4
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'ai', icon: '✨', title: 'AI Command Bar & Voice', blurb: 'Ask questions, add expenses by voice, test what-ifs.', route: 'dashboard/overview', steps: [
@@ -35,10 +35,10 @@ const CHAPTERS = [
     { route: 'spend/categories', target: ['#view-spend .subtabs-inner'], title: 'Category breakdown', text: 'See where your money actually goes this month compared to your planned targets.' },
     { route: 'spend/recurring', target: ['#recurring-card'], title: 'Recurring charges', text: 'Track hostel rent, mess bills, gym memberships and subscriptions.' }
   ] },
-  { id: 'split', icon: '👥', title: 'Split & Roommates', blurb: 'Group bills, who owes who, and settle up.', route: 'split/ious', tryIt: ['Split a bill', () => splitBillForm()], steps: [
+  { id: 'split', icon: '👥', title: 'Split & Roommates', blurb: 'Bill photo splitter, running balances, and UPI settle-up.', route: 'split/ious', tryIt: ['Split a bill', () => billSplitterModal()], steps: [
     { route: 'split/ious', target: ['#view-split .stats-grid'], title: 'Shared expenses', text: 'Track money you owe friends and money friends owe you for food, trips and shared hostel groceries.' },
-    { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Split a bill', text: 'Enter a group bill and names. YOKO! splits it evenly and adds the IOUs with one tap.' },
-    { route: 'split/ious', target: ['[data-action="settle-iou"]'], title: 'Settle up', text: 'When a roommate pays you back or you pay them via UPI, tap Settle to clear the IOU.' }
+    { route: 'split/ious', target: ['#w-balances'], title: 'Running balances', text: 'See the net total owed per person across all open bills with 1-tap UPI settle up.' },
+    { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Bill photo splitter', text: 'Upload or snap a bill receipt to automatically extract items, taxes and service charges, then assign items to friends with proportional tax math.' }
   ] },
   { id: 'budget', icon: '📊', title: 'Budget', blurb: 'Plan categories and track month-to-month changes.', route: 'budget/plan', steps: [
     { route: 'budget/plan', target: ['#cat-card'], title: 'Category plans', text: 'Set a target for each student category. What you spend fills in automatically from your expense log.' },
@@ -53,10 +53,10 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings & customization', text: 'Switch themes, adjust pet roast mode, set chai unit price, and manage local backups.' }
   ] },
   { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Student edition features.', hidden: true, steps: [
-    { title: 'Welcome to YOKO! Student (Session 3)', text: 'Added AI features for easier tracking and budgeting.' },
-    { route: 'dashboard/overview', target: ['#command-bar'], title: 'AI Command Bar', text: 'Use the command bar at the top of Home to do math, log expenses, and see what-if scenarios.' },
-    { route: 'dashboard/overview', target: ['#cb-mic'], title: 'Voice commands', text: 'Tap the mic to speak in English, Hindi, or Telugu. Try saying: "Can I afford a 1500 concert this Saturday?".' },
-    { route: 'budget/plan', target: ['[data-action="budget-autopilot"]'], title: 'Budget Autopilot', text: 'Tap "Set my budgets for me" on the Budget tab to let AI build a plan based on your recent habits.' }
+    { title: 'Welcome to YOKO! Student (Session 4)', text: 'New Bill Photo Splitter, UPI Settle-up with QR codes, and Parent Top-up requests.' },
+    { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Bill Photo Splitter', text: 'Snap a bill photo to extract line items, taxes and service charges, then tap people to split.' },
+    { route: 'split/ious', target: ['#w-balances'], title: 'UPI Settle-Up', text: 'Instant UPI deep-links, remembered UPI IDs, QR codes, and copyable WhatsApp messages.' },
+    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Parent Top-Up', text: 'When safe-to-spend turns red, draft an honest, polite top-up message with category breakdowns and savings promises.' }
   ] }
 ];
 const CHAPTER_ORDER = ['ai', 'quick', 'dashboard', 'spend', 'split', 'budget', 'goals', 'settings'];
@@ -273,11 +273,11 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p>New student edition features:</p><ul class="whats-new">
-        <li><strong>AI Command Bar:</strong> Ask questions, run what-if scenarios, and add expenses via natural language</li>
-        <li><strong>Voice input:</strong> Speak in English, Hindi or Telugu to manage your money</li>
-        <li><strong>Budget Autopilot:</strong> One-tap AI budgets based on your spending history</li>
-        <li><strong>Run-out forecast:</strong> Visual line chart and habit adjustment sliders</li>
-        <li><strong>Semester view:</strong> Plan for heavy exam, fest, and semester fee months</li></ul>
+        <li><strong>Bill Photo Splitter:</strong> Snap or upload bill receipts, assign items to friends, and split tax & service charge proportionally</li>
+        <li><strong>UPI Settle-Up:</strong> 1-tap deep links, QR codes, and remembered UPI IDs to settle up with roommates</li>
+        <li><strong>Running balances:</strong> See the net balance per friend across all open group expenses</li>
+        <li><strong>Parent Top-Up:</strong> Honest, transparent top-up drafts with category breakdowns when in the red</li>
+        <li><strong>AI Command Bar & Voice:</strong> Ask questions, run what-if scenarios, and log expenses in English, Hindi or Telugu</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
   });

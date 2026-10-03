@@ -386,6 +386,58 @@ function renderWallet() {
 }
 
 /* ---------- Split & Roommates view ---------- */
+function personBalancesCard() {
+  const pList = personBalances();
+  if (!pList.length) return '';
+
+  return `<div class="card mb" id="w-balances">
+    <div class="card-head">
+      <div>
+        <h2>Running balances</h2>
+        <p class="muted small">Total net balance per friend across all shared expenses.</p>
+      </div>
+      <div class="actions no-print">
+        <button type="button" class="btn btn-sm btn-primary" data-action="split-bill"><span aria-hidden="true">🧾</span><span>Split a bill</span></button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Person</th>
+            <th scope="col">Status</th>
+            <th class="num" scope="col">Net Balance</th>
+            <th class="no-print"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pList.map(p => `
+            <tr>
+              <td>
+                <strong>${esc(p.person)}</strong>
+                <br><span class="small muted">${plural(p.count, 'open IOU')}</span>
+              </td>
+              <td>
+                <span class="badge ${p.dir === 'owed' ? 'badge-success' : 'badge-danger'}">
+                  ${p.dir === 'owed' ? 'Owes you' : 'You owe'}
+                </span>
+              </td>
+              <td class="num font-bold ${p.dir === 'owed' ? 'tone-success-text' : 'tone-danger-text'}">
+                ${fmt(p.absNet)}
+              </td>
+              <td class="actions no-print">
+                <button type="button" class="btn btn-sm btn-primary" data-action="settle-person" data-person="${esc(p.person)}">
+                  <span>⚡ Settle up</span>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
 function renderSplit() {
   const w = state.wallet;
   const open = w.ious.filter(x => !x.settled);
@@ -400,7 +452,7 @@ function renderSplit() {
     ${stat('You owe', fmt(owe), `${open.filter(x => x.dir === 'owe').length} pending IOUs to pay back`, owe > 0 ? 'tone-danger' : '')}
   </div>`;
 
-  const iousTab = summaryCard + iouCard();
+  const iousTab = summaryCard + personBalancesCard() + iouCard();
   const historyTab = `<div class="card" id="w-settled">
     <div class="card-head"><div><h2>Settled history</h2><p class="muted small">Previous IOUs and bill settlements.</p></div></div>
     ${settled.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Person</th><th scope="col">Date settled</th><th class="num" scope="col">Amount</th><th scope="col">Note</th></tr></thead>

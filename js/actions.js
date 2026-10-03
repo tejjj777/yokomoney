@@ -98,8 +98,11 @@ const ACTIONS = {
     state.wallet.cash = state.wallet.cash.filter(k => k !== x); commit();
   },
   'add-iou': () => iouForm(null),
+  'split-bill': () => billSplitterModal(),
+  'settle-person': el => { const p = el.dataset.person; if (p) settleUpModal(p); },
+  'ask-topup': () => openTopUpModal(),
   'edit-iou': el => { const x = state.wallet.ious.find(k => k.id === el.dataset.id); if (x) iouForm(x); },
-  'settle-iou': el => { const x = state.wallet.ious.find(k => k.id === el.dataset.id); if (x) settleForm(x); },
+  'settle-iou': el => { const x = state.wallet.ious.find(k => k.id === el.dataset.id); if (x) settleUpModal(x.person); },
   'delete-iou': el => {
     const x = state.wallet.ious.find(k => k.id === el.dataset.id);
     if (x && confirm(`Delete the IOU with ${x.person}? Cash entries already logged stay.`)) { state.wallet.ious = state.wallet.ious.filter(k => k !== x); commit(); }

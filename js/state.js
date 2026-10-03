@@ -51,7 +51,7 @@ function defaultState() {
     settings: { theme: 'yoko', sound: true, workHours: 176, unit: { name: 'chai', plural: 'chais', emoji: '☕', price: 20 }, cashOnHand: 0, roundUp: { enabled: false, to: roundUpFor(ci.currency), goalId: null }, privacy: false, roast: 'nice', petName: 'Yoko', country: ci.code },
     badges: {},
     meta: { startedAt: todayISO(), tourDone: false, budgetMonth: todayISO().slice(0, 7), periodStart: todayISO().slice(0, 7) + '-01', closedEarly: '', lastBackup: '', backupSnooze: '', skippedTotal: 0, streakRewarded: 0, xpDay: { date: '', n: 0 }, xpBackup: '', tourVersion: 0, tourChapters: {} },
-    wallet: { cash: [], ious: [], transport: [], taxes: [], deadlines: [], taxYearStart: ci.fy, taxEstimate: 0 },
+    wallet: { cash: [], ious: [], transport: [], taxes: [], deadlines: [], taxYearStart: ci.fy, taxEstimate: 0, upiIds: {} },
     payslips: [],
     student: { allowance: 0, arrivalDay: 1, living: 'hostel', partTimeAmount: 0, partTimeHours: 0, semester: { start: '', end: '', heavyMonths: [] } },
     recurring: [], history: [], rules: [], wishlist: [], challenges: [], xp: { total: 0 }, yearlyBills: [], incomeLog: []
@@ -154,7 +154,8 @@ function normalizeState(raw) {
     taxes: arr(rw.taxes).map(x => ({ id: str(x.id, uid()), date: date(x.date) || todayISO(), type: TAX_TYPES.includes(x.type) ? x.type : (LEGACY_TAX[x.type] || 'Other'), amount: nn(x.amount), note: str(x.note, '', 120), payslipId: str(x.payslipId, null) })),
     deadlines: arr(rw.deadlines).map(x => ({ id: str(x.id, uid()), title: str(x.title, 'Deadline', 80), date: date(x.date) || todayISO(), repeat: x.repeat !== false })),
     taxYearStart: clamp(Math.round(nn(rw.taxYearStart)) || 4, 1, 12),
-    taxEstimate: nn(rw.taxEstimate)
+    taxEstimate: nn(rw.taxEstimate),
+    upiIds: (rw.upiIds && typeof rw.upiIds === 'object') ? rw.upiIds : {}
   };
   s.payslips = arr(raw.payslips).map(x => ({
     id: str(x.id, uid()), month: /^\d{4}-\d{2}$/.test(x.month) ? x.month : todayISO().slice(0, 7), employer: str(x.employer, '', 80),
@@ -635,4 +636,62 @@ function studentSemesterPlan() {
     currentSaved: saved
   });
 }
+
+/**
+ * Returns net running balances grouped per person from all open IOUs.
+ * @returns {Array<{ person: string, owedToMe: number, iOwe: number, net: number, dir: 'owed'|'owe', absNet: number, count: number, ious: Array, upiId: string }>}
+ */
+function personBalances() {
+  const open = (state.wallet.ious || []).filter(x => !x.settled);
+  const map = {};
+  open.forEach(x => {
+    const key = (x.person || '').trim();
+    if (!key) return;
+    if (!map[key]) {
+      map[key] = {
+        person: key,
+        owedToMe: 0,
+        iOwe: 0,
+        net: 0,
+        count: 0,
+        ious: [],
+        upiId: (state.wallet.upiIds && state.wallet.upiIds[key]) || ''
+      };
+    }
+    if (x.dir === 'owed') {
+      map[key].owedToMe += x.amount;
+    } else {
+      map[key].iOwe += x.amount;
+    }
+    map[key].count++;
+    map[key].ious.push(x);
+  });
+
+  const list = Object.values(map).map(p => {
+    p.net = Math.round((p.owedToMe - p.iOwe) * 100) / 100;
+    p.dir = p.net >= 0 ? 'owed' : 'owe';
+    p.absNet = Math.abs(p.net);
+    return p;
+  });
+
+  return list.sort((a, b) => b.absNet - a.absNet);
+}
+
+/**
+ * Returns a list of all distinct contact names known from past and current IOUs.
+ * @returns {string[]}
+ */
+function allKnownPeople() {
+  const names = new Set();
+  (state.wallet.ious || []).forEach(x => {
+    if (x.person && x.person.trim()) names.add(x.person.trim());
+  });
+  if (state.wallet.upiIds) {
+    Object.keys(state.wallet.upiIds).forEach(n => {
+      if (n && n.trim()) names.add(n.trim());
+    });
+  }
+  return Array.from(names).sort();
+}
+
 

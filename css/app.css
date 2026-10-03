@@ -996,3 +996,16 @@ select, .select { max-width: 100%; }
   accent-color: var(--primary);
 }
 
+/* Bill Splitter & UPI Settle-Up */
+.bs-scanner-box { border-radius: var(--radius-sm); padding: 12px; }
+.bs-people-chips .bs-person-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 13px; }
+.bs-items-table { max-height: 48vh; overflow-y: auto; padding-right: 2px; }
+.bs-item-row { transition: background 0.15s; }
+.bs-assign-toggle { transition: transform 0.1s, opacity 0.1s; user-select: none; }
+.bs-assign-toggle:active { transform: scale(0.95); }
+.su-qr-frame { display: flex; justify-content: center; align-items: center; }
+.qr-svg { display: block; max-width: 100%; height: auto; border-radius: 4px; }
+.btn-warn { background: var(--warn-dim, rgba(234, 179, 8, 0.15)); color: var(--warn, #eab308); border: 1px solid var(--warn, #eab308); }
+.btn-warn:hover { background: var(--warn, #eab308); color: #000; }
+
+

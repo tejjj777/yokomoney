@@ -34,6 +34,7 @@ function safeToSpendHero() {
     <div class="safe-hero-actions no-print">
       <button type="button" class="btn btn-primary btn-sm" data-action="add-expense">${ICON.plus}<span>Log expense</span></button>
       <button type="button" class="btn btn-sm" data-action="open-paycheck"><span>Edit allowance</span></button>
+      ${sts.status === 'red' ? `<button type="button" class="btn btn-sm btn-warn" data-action="ask-topup"><span>🙏 Ask for a top-up</span></button>` : ''}
     </div>
   </div>`;
 }

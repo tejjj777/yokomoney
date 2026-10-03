@@ -887,6 +887,240 @@ const FinMath = (() => {
     });
   }
 
+  /* ---------- Bill item extraction & Proportional Split ---------- */
+  /**
+   * Parse a bill's line items, tax, service charge and grand total from text/OCR lines.
+   * @param {string[]|string} input
+   * @returns {{ items: Array<{id: string, name: string, price: number, qty: number}>, tax: number, serviceCharge: number, total: number, merchant: string, date: string }}
+   */
+  function parseBillItems(input) {
+    const lines = (Array.isArray(input) ? input : String(input || '').split(/\r?\n/)).map(l => String(l).trim()).filter(Boolean);
+    const items = [];
+    let tax = 0;
+    let serviceCharge = 0;
+    let grandTotal = null;
+
+    const TAX_PAT = /\b(gst|cgst|sgst|igst|vat|sales\s*tax|service\s*tax|tax)\b/i;
+    const SC_PAT = /\b(service\s*(charge|chg)|sc\b|cov\s*charge)/i;
+    const TOTAL_PAT = /\b(grand\s*total|net\s*(amount|payable|total)|total\s*(amount|due|payable|paid)|balance\s*due|\btotal\b)\b/i;
+    const SKIP_PAT = /\b(sub\s*-?\s*total|table|order|cashier|server|welcome|thank|date|time|card|cash|change|discount|saved|token|upi|fssai|gstin)\b/i;
+
+    let idCounter = 1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const amounts = receiptAmounts(line);
+      if (!amounts.length) continue;
+
+      const amt = amounts[amounts.length - 1];
+      if (amt <= 0) continue;
+
+      if (TOTAL_PAT.test(line) && !SKIP_PAT.test(line)) {
+        grandTotal = amt;
+      } else if (TAX_PAT.test(line)) {
+        tax += amt;
+      } else if (SC_PAT.test(line)) {
+        serviceCharge += amt;
+      } else if (!SKIP_PAT.test(line)) {
+        // Line item
+        let cleanName = line
+          .replace(new RegExp(`[₹$€£]?\\s*${amt.toFixed(2)}|[₹$€£]?\\s*${amt}`, 'g'), '')
+          .replace(/\b\d+(\.\d+)?\s*(x|qty|pc|pcs|nos|kg|gm)?\b/gi, '')
+          .replace(/[^a-zA-Z0-9\s&'’/-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (cleanName.length >= 2 && !/^\d+$/.test(cleanName)) {
+          // Check for quantity in line
+          let qty = 1;
+          const qtyMatch = line.match(/\b(\d+)\s*(?:x|\*|qty|nos|pcs)\b/i) || line.match(/^(\d+)\s+[a-zA-Z]/);
+          if (qtyMatch && Number(qtyMatch[1]) > 0 && Number(qtyMatch[1]) <= 50) {
+            qty = Number(qtyMatch[1]);
+          }
+          items.push({ id: 'item_' + (idCounter++), name: cleanName.slice(0, 60), price: amt, qty });
+        }
+      }
+    }
+
+    const itemsTotal = items.reduce((s, it) => s + it.price, 0);
+    if (!grandTotal) {
+      grandTotal = itemsTotal > 0 ? (itemsTotal + tax + serviceCharge) : 0;
+    }
+
+    let date = null;
+    for (const l of lines) {
+      const d = parseLooseDate(l.replace(/(\d)([A-Za-z])/g, '$1 $2'));
+      if (d) { date = d; break; }
+    }
+
+    let merchant = '';
+    const BAD = /receipt|invoice|\btax\b|gst|vat|\btel\b|phone|www\.|http|@|order|table|cashier|server|welcome|thank|date|time|\bno\.?\b|#/i;
+    for (const l of lines.slice(0, 6)) {
+      const letters = (l.match(/[A-Za-z]/g) || []).length;
+      if (letters >= 3 && letters >= l.replace(/\s/g, '').length * 0.5 && !BAD.test(l)) {
+        merchant = l.replace(/[^\w&'’ .-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+        break;
+      }
+    }
+
+    return { items, tax, serviceCharge, total: grandTotal, merchant, date };
+  }
+
+  /**
+   * Split bill items with proportional tax and service charge + exact paise reconciliation.
+   * @param {Object} opts
+   * @param {Array<{id: string, name: string, price: number}>} opts.items
+   * @param {number} opts.tax
+   * @param {number} opts.serviceCharge
+   * @param {Array<{id: string, name: string}>} opts.people
+   * @param {Object.<string, string[]>} opts.assignments - itemId -> array of personIds
+   * @returns {{ itemsTotal: number, tax: number, serviceCharge: number, grandTotal: number, shares: Array<{ personId: string, name: string, itemSubtotal: number, tax: number, serviceCharge: number, total: number, items: Array<{ name: string, share: number }> }> }}
+   */
+  function splitBillExact({ items = [], tax = 0, serviceCharge = 0, people = [], assignments = {} }) {
+    if (!people.length) return { itemsTotal: 0, tax: 0, serviceCharge: 0, grandTotal: 0, shares: [] };
+
+    const cleanTax = Math.max(0, isNum(tax) ? tax : 0);
+    const cleanSC = Math.max(0, isNum(serviceCharge) ? serviceCharge : 0);
+    const itemsTotal = items.reduce((s, it) => s + (isNum(it.price) ? it.price : 0), 0);
+
+    const personMap = {};
+    people.forEach(p => {
+      personMap[p.id] = {
+        personId: p.id,
+        name: p.name,
+        itemSubtotal: 0,
+        items: []
+      };
+    });
+
+    // Assign items
+    items.forEach(it => {
+      const price = Math.max(0, isNum(it.price) ? it.price : 0);
+      let assigned = assignments[it.id];
+      // Default unassigned items to split evenly across all people
+      if (!Array.isArray(assigned) || !assigned.length) {
+        assigned = people.map(p => p.id);
+      }
+      const validAssigned = assigned.filter(pid => personMap[pid]);
+      const splitWith = validAssigned.length ? validAssigned : people.map(p => p.id);
+      const sharePrice = price / splitWith.length;
+
+      splitWith.forEach(pid => {
+        personMap[pid].itemSubtotal += sharePrice;
+        personMap[pid].items.push({ name: it.name, share: sharePrice });
+      });
+    });
+
+    const activeTotal = people.reduce((s, p) => s + personMap[p.id].itemSubtotal, 0);
+    const divisor = activeTotal > 0 ? activeTotal : 1;
+    const grandTotal = Math.round((itemsTotal + cleanTax + cleanSC) * 100) / 100;
+    const grandTotalPaise = Math.round(grandTotal * 100);
+
+    const rawShares = people.map(p => {
+      const entry = personMap[p.id];
+      const sub = entry.itemSubtotal;
+      const ratio = sub / divisor;
+      const pTax = ratio * cleanTax;
+      const pSC = ratio * cleanSC;
+      const rawTotal = sub + pTax + pSC;
+      const paise = Math.floor(rawTotal * 100);
+      const remainder = (rawTotal * 100) - paise;
+      return {
+        personId: p.id,
+        name: p.name,
+        itemSubtotal: Math.round(sub * 100) / 100,
+        tax: Math.round(pTax * 100) / 100,
+        serviceCharge: Math.round(pSC * 100) / 100,
+        rawTotal,
+        paise,
+        remainder,
+        items: entry.items
+      };
+    });
+
+    // Distribute remaining odd paise based on largest fractional remainders
+    let allocatedPaise = rawShares.reduce((s, r) => s + r.paise, 0);
+    let diffPaise = grandTotalPaise - allocatedPaise;
+
+    // Sort index by remainder descending
+    const order = rawShares.map((r, i) => ({ i, rem: r.remainder })).sort((a, b) => b.rem - a.rem);
+    for (let k = 0; k < Math.abs(diffPaise); k++) {
+      const idx = order[k % order.length].i;
+      rawShares[idx].paise += (diffPaise > 0 ? 1 : -1);
+    }
+
+    const finalShares = rawShares.map(r => ({
+      personId: r.personId,
+      name: r.name,
+      itemSubtotal: r.itemSubtotal,
+      tax: r.tax,
+      serviceCharge: r.serviceCharge,
+      total: r.paise / 100,
+      items: r.items
+    }));
+
+    return {
+      itemsTotal: Math.round(itemsTotal * 100) / 100,
+      tax: Math.round(cleanTax * 100) / 100,
+      serviceCharge: Math.round(cleanSC * 100) / 100,
+      grandTotal,
+      shares: finalShares
+    };
+  }
+
+  /* ---------- UPI Deep-Link & Top-Up Helpers ---------- */
+  /**
+   * Build a standard UPI payment link with proper URL encoding.
+   * Format: upi://pay?pa=<UPI_ID>&pn=<NAME>&am=<AMOUNT>&cu=INR&tn=<NOTE>
+   * @param {Object} opts
+   * @param {string} opts.pa - VPA / UPI ID
+   * @param {string} opts.pn - Payee name
+   * @param {number|string} opts.am - Amount
+   * @param {string} [opts.cu='INR'] - Currency
+   * @param {string} opts.tn - Transaction note
+   * @returns {string} Encoded UPI URL
+   */
+  function buildUpiUrl({ pa, pn, am, cu = 'INR', tn = '' }) {
+    const cleanPa = String(pa || '').trim();
+    const cleanPn = String(pn || '').trim();
+    const cleanAm = Number(am || 0).toFixed(2);
+    const cleanCu = String(cu || 'INR').trim();
+    const cleanTn = String(tn || '').trim();
+
+    return `upi://pay?pa=${encodeURIComponent(cleanPa)}&pn=${encodeURIComponent(cleanPn)}&am=${encodeURIComponent(cleanAm)}&cu=${encodeURIComponent(cleanCu)}&tn=${encodeURIComponent(cleanTn)}`;
+  }
+
+  /**
+   * Draft an honest, polite top-up request message for parents.
+   * @param {Object} opts
+   * @param {number} opts.neededAmount
+   * @param {number} opts.daysLeft
+   * @param {string} [opts.nextDate]
+   * @param {Array<{name: string, spent: number}>} [opts.topCategories=[]]
+   * @param {string} [opts.cutCategory='']
+   * @param {string} [opts.tone='casual'] - 'casual' or 'formal'
+   * @returns {string}
+   */
+  function generateTopUpDraft({ neededAmount = 0, daysLeft = 1, nextDate = '', topCategories = [], cutCategory = '', tone = 'casual' }) {
+    const amtStr = '₹' + Math.round(neededAmount).toLocaleString('en-IN');
+    const dStr = `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`;
+    const datePart = nextDate ? ` (until ${nextDate})` : '';
+
+    const breakdownLines = topCategories.slice(0, 3)
+      .map(c => `• ${c.name}: ₹${Math.round(c.spent).toLocaleString('en-IN')}`)
+      .join('\n');
+
+    const cutPart = cutCategory
+      ? `To make sure this lasts, I will cut back on ${cutCategory.toLowerCase()} for the rest of the month.`
+      : 'I am cutting back on non-essential spending for the rest of the month.';
+
+    if (tone === 'formal') {
+      return `Dear Mom and Dad,\n\nI hope you are doing well. My monthly allowance has run short for the remaining ${dStr}${datePart}, and I need ${amtStr} to cover basic expenses.\n\nMain expenses this month:\n${breakdownLines}\n\n${cutPart}\n\nCould you please send a top-up of ${amtStr} when possible? Thank you for your support.`;
+    }
+
+    return `Hey Mom and Dad, quick update on my hostel budget. I'm running low on funds for the next ${dStr}${datePart}, and I'm short by about ${amtStr}.\n\nWhere most of it went:\n${breakdownLines}\n\n${cutPart}\n\nCould you send a top-up of ${amtStr}? Thank you!`;
+  }
+
   return {
     PAY_FREQUENCIES, MAX_MONTHS,
     toMonthly, netFromGross, monthlyRate, emi, amortizationSchedule, neverPaysOff, monthsToPayoff,
@@ -895,7 +1129,8 @@ const FinMath = (() => {
     roundUpAmount, ruleOf72, daysLeftInMonth, streaks, taxYear, parsePayslip, parseLooseDate,
     parseSms, parseSmsBatch, parseCsv, parseStatementCsv, parseStatementLines, categorize, DEFAULT_RULES,
     monthForecast, LEVELS, levelFor, splitShares, week52Total, recurringDue, setDateOrder, parseReceipt,
-    safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast
+    safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast,
+    parseBillItems, splitBillExact, buildUpiUrl, generateTopUpDraft
   };
 })();
 
