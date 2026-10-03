@@ -257,6 +257,19 @@ function runSelfTests() {
   ], 100);
   check('Ghost spending: 4 payments <= 100 add up to 264', ghostTest.count === 4 && ghostTest.total === 264);
 
+  // Allowance period: money from an allowance on the 5th isn't counted before the 5th
+  const pp1 = F.payPeriod('2026-10-05', 'monthly', '2026-10-03');
+  check('Pay period: 2 days before payday runs from last month\'s payday', pp1 && pp1.start === '2026-09-05' && pp1.end === '2026-10-05' && pp1.daysLeft === 2);
+  const pp2 = F.payPeriod('2026-10-05', 'monthly', '2026-10-05');
+  check('Pay period: on payday a new period starts', pp2 && pp2.start === '2026-10-05' && pp2.end === '2026-11-05' && pp2.daysLeft === 31);
+  const pp3 = F.payPeriod('2026-09-01', 'monthly', new Date(2026, 9, 3));
+  check('Pay period: allowance on the 1st matches the calendar month', pp3 && pp3.start === '2026-10-01' && pp3.end === '2026-11-01' && pp3.daysLeft === 29);
+  check('Pay period: irregular pay has no fixed period', F.payPeriod('2026-10-05', 'irregular', '2026-10-03') === null);
+
+  // Spending heatmap: the month's first and last day can be passed as Dates (as the Insights tab does)
+  const hmT = F.calculateDailyHeatmap([{ date: '2026-10-03', amount: 200 }], new Date(2026, 9, 1), new Date(2026, 9, 31));
+  check('Heatmap: a Date range covers the whole month', hmT.days.length === 31 && hmT.days[0].iso === '2026-10-01' && hmT.days[2].amount === 200);
+
   // Student Money Wrapped & Insights: Time of Day bands
   const timeTest = F.calculateTimeOfDayBands([
     { amount: 50, time: '08:30' },
@@ -292,6 +305,76 @@ function runSelfTests() {
   };
   const testRate = studentHourly(6000, 10); // 6000 per month for 10h/week (43.33h/mo) = ~138.46/hr
   check('Hourly rate: 6000/mo at 10h/wk ≈ 138.46/hr', close(testRate, 138.46, 0.01));
+
+  // Session 6 Polish: Live Pet Reactions
+  if (typeof triggerPetReaction === 'function') {   // dry: nothing shows on screen while the tests run
+    const rRed = triggerPetReaction('safe-red', undefined, { dry: true });
+    check('Pet reaction: safe-red triggers worried mood', rRed.mood === 'worried' && rRed.type === 'safe-red');
+    const rImp = triggerPetReaction('import', undefined, { dry: true });
+    check('Pet reaction: import triggers ecstatic mood', rImp.mood === 'ecstatic' && rImp.type === 'import');
+    const rFreeze = triggerPetReaction('freeze-broken', undefined, { dry: true });
+    check('Pet reaction: freeze-broken triggers reaction text', rFreeze.mood === 'worried' && /frozen/.test(rFreeze.text));
+  }
+
+  // Session 6 Polish: Category Freeze
+  if (typeof getActiveCategoryFreeze === 'function' && typeof state !== 'undefined') {
+    const oldCh = state.challenges;
+    try {
+      state.challenges = [{ id: 'ch-test', type: 'nocat', start: todayISO(), days: 7, categoryId: 'cat-zomato' }];
+      const fz = getActiveCategoryFreeze('cat-zomato');
+      check('Category freeze: active freeze detected with remaining days', fz !== null && fz.daysTotal === 7 && fz.daysLeft >= 6);
+      const noFz = getActiveCategoryFreeze('cat-other');
+      check('Category freeze: non-frozen category returns null', noFz === null);
+    } finally { state.challenges = oldCh; }
+  }
+
+  // Session 6 Polish: Subscription Catcher & Unused detection
+  if (typeof findRecurringCharges === 'function' && typeof state !== 'undefined') {
+    const oldExp = state.budget.expenses;
+    try {
+      state.budget.expenses = [
+        { id: 'e1', date: '2026-09-01', amount: 299, note: 'Jio Prepaid Recharge', categoryId: 'c-phone' },
+        { id: 'e2', date: '2026-10-01', amount: 299, note: 'Jio Prepaid Recharge', categoryId: 'c-phone' }
+      ];
+      const recHits = findRecurringCharges();
+      check('Subscription catcher: detects monthly repeating charge', recHits.some(h => h.name.toLowerCase().includes('jio') && h.amount === 299 && h.cycle === 'monthly'));
+    } finally { state.budget.expenses = oldExp; }
+  }
+
+  // Session 6 Polish: Budget Nudges
+  if (typeof checkBudgetNudges === 'function' && typeof state !== 'undefined') {
+    const oldMeta = state.meta;
+    const oldCats = state.budget.categories;
+    const oldExps = state.budget.expenses;
+    const ym = todayISO().slice(0, 7);
+    try {
+      state.meta = { nudges: {} };
+      state.budget.categories = [
+        { id: 'c-warn', name: 'Snacks', type: 'wants', planned: 1000, actual: 850 },
+        { id: 'c-max', name: 'Movies', type: 'wants', planned: 500, actual: 550 }
+      ];
+      state.budget.expenses = [
+        { id: 'n1', date: ym + '-05', amount: 850, categoryId: 'c-warn' },
+        { id: 'n2', date: ym + '-10', amount: 550, categoryId: 'c-max' }
+      ];
+      const nudges = checkBudgetNudges({ dry: true });   // dry: these test alerts must never reach the screen
+      check('Budget nudges: 80% and 100% limit alerts generated', nudges.some(n => n.type === '80' && n.catId === 'c-warn') && nudges.some(n => n.type === '100' && n.catId === 'c-max'));
+      check('Budget nudges: safe-to-spend alert gives a real daily amount', nudges.every(n => !/—/.test(n.body)));
+    } finally {
+      state.meta = oldMeta;
+      state.budget.categories = oldCats;
+      state.budget.expenses = oldExps;
+    }
+  }
+
+  // Session 6 Polish: Student Demo Profile Integrity
+  if (typeof sampleState === 'function') {
+    const demo = sampleState();
+    check('Demo state: Indian student persona with allowance and part-time income', demo.currency === 'INR' && demo.student.allowance === 12000 && demo.student.partTimeAmount === 4000);
+    check('Demo state: Roommates with UPI IDs configured', demo.wallet.ious.some(i => i.person === 'Rahul' && i.upiId) && demo.wallet.ious.some(i => i.person === 'Aarav' && i.upiId));
+    check('Demo state: Active category freeze challenge present', demo.challenges.some(c => c.type === 'nocat'));
+    check('Demo state: Semester plan with heavy months included', demo.student.semester.heavyMonths.length >= 2);
+  }
 
   const passed = results.filter(r => r.ok).length;
   console.info(`Self-tests: ${passed}/${results.length} passed`);

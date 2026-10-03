@@ -15,6 +15,7 @@ function toast(msg, ms = 2600) {
 function nextToast() {
   const el = document.getElementById('toast');
   const n = toastQ.shift();
+  if (!el) { toastBusy = false; return; }
   if (!n) { toastBusy = false; el.classList.remove('show'); return; }
   toastBusy = true; el.textContent = n[0]; el.classList.add('show');
   const wait = () => setTimeout(nextToast, toastQ.length ? 0 : Math.max(0, n[1] - 1400));
@@ -162,6 +163,12 @@ const ACTIONS = {
   'tour-new': () => startTour(['new']),
   'tour-chapter': el => startTour([el.dataset.chapter]),
   'tour-page': el => startTour([el.dataset.chapter]),
+  'enable-notifs': () => {
+    state.meta.notifPromptDismissed = true;
+    const done = p => { commit(); toast(p === 'granted' ? 'Alerts are on. You’ll hear from YOKO! at 80% and 100% of a budget.' : 'No problem. Alerts will show inside YOKO! instead.', 4500); };
+    try { Promise.resolve(Notification.requestPermission()).then(done, () => done('denied')); } catch (e) { done('denied'); }
+  },
+  'dismiss-notifs': () => { state.meta.notifPromptDismissed = true; commit(); },
   'onboard-sample': () => {
     state = sampleState(); markTourSeen();
     checkBadges(true); save(); closeModal(true); render();
@@ -228,7 +235,8 @@ const ACTIONS = {
   }
 };
 
-Object.assign(ACTIONS, MORE_ACTIONS, SUB_ACTIONS, SYNC_ACTIONS);
+// GROUP_ACTIONS is a top-level const in js/groups.js, so it is not a window property: refer to it by name
+Object.assign(ACTIONS, MORE_ACTIONS, SUB_ACTIONS, SYNC_ACTIONS, typeof GROUP_ACTIONS !== 'undefined' ? GROUP_ACTIONS : {});
 Object.assign(CSV, MORE_CSV);
 
 /* ---------- Quick Add menu ---------- */

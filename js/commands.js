@@ -125,7 +125,7 @@ const MORE_ACTIONS = {
   'wish-buy': el => { const w = byId(state.wishlist, el.dataset.id); if (!w) return; const r = buyItNow(w.name, w.price); if (!r) return; w.status = 'bought'; w.decidedAt = todayISO(); commit(); expenseToast(w.price, r); },
   'wish-skip': el => { const w = byId(state.wishlist, el.dataset.id); if (w) skipPurchase(w.name, w.price, w); },
   'wish-delete': el => { const w = byId(state.wishlist, el.dataset.id); if (w) undoable(`Removed ${w.name} from the wishlist`, () => { state.wishlist = state.wishlist.filter(x => x !== w); }); },
-  'split-bill': () => splitBillForm(),
+  'split-bill': () => billSplitterModal(),   // the item-by-item bill splitter (photo, tax, UPI), not the old quick form
   'add-challenge': () => challengeForm(),
   'c52-deposit': el => { const c = byId(state.challenges, el.dataset.id); if (c) week52Deposit(c); },
   'retry-challenge': el => { const c = byId(state.challenges, el.dataset.id); if (!c) return; c.start = todayISO(); c.failed = false; c.rewarded = false; commit(); toast('Restarted from today'); },
@@ -161,7 +161,7 @@ function moreCommands() {
     { label: 'Paste a bank message…', keys: 'sms upi bank message text notification paste import', run: () => importModal('sms') },
     { label: 'Import bank statement (CSV / PDF)…', keys: 'import statement bank csv pdf', run: () => importModal('file') },
     { label: 'Add bills…', keys: 'recurring autopay rent emi bill repeat internet phone', run: () => billsChecklist() },
-    { label: 'Split a bill…', keys: 'split bill dinner friends iou', run: () => splitBillForm() },
+    { label: 'Split a bill…', keys: 'split bill dinner friends iou', run: () => billSplitterModal() },
     { label: 'Should I buy it?…', keys: 'buy should wishlist impulse', run: () => shouldIBuy() },
     { label: 'New challenge…', keys: 'challenge no-spend 52 week cap', run: challengeForm },
     { label: state.settings.privacy ? 'Privacy mode off (show amounts)' : 'Privacy mode on (blur amounts)', keys: 'privacy blur hide amounts', run: togglePrivacy },
@@ -175,7 +175,7 @@ function moreParse(q, words, low) {
   if (low[0] === 'split' && words.length >= 2) {
     const amt = parseAmount(words[1]);
     const names = words.slice(2).filter(w => !/^(with|between|and)$/i.test(w)).join(', ');
-    if (amt) out.push({ parsed: true, label: `Split ${fmt(amt)}${names ? ` with ${names}` : ''}…`, run: () => splitBillForm({ total: amt, people: names, what: 'Shared bill' }) });
+    if (amt) out.push({ parsed: true, label: `Split ${fmt(amt)}${names ? ` with ${names}` : ''}…`, run: () => billSplitterModal({ total: amt, people: names, what: 'Shared bill' }) });
   }
   const bi = low[0] === 'buy' ? 1 : (low[0] === 'should' && low[1] === 'i' && low[2] === 'buy') ? 3 : -1;
   if (bi > 0) {

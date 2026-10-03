@@ -438,6 +438,36 @@ function personBalancesCard() {
   </div>`;
 }
 
+function liveGroupsCard() {
+  const groups = state.groups || [];
+  if (!groups.length) {
+    return `<div class="card mb">
+      <div class="card-head"><div><h2>Live Shared Budgets</h2><p class="muted small">Sync trips and shared expenses in real time.</p></div></div>
+      <div class="chart-empty">
+        <p>No groups yet. Create one for a trip or flat, or join one with a code. Needs internet.</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+          <button type="button" class="btn btn-primary" data-action="create-group">Create group</button>
+          <button type="button" class="btn" data-action="join-group">Join with code</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  let html = `<div class="card mb"><div class="card-head"><div><h2>Your Groups</h2><p class="muted small">Live syncing budgets.</p></div>
+    <div class="actions no-print"><button type="button" class="btn btn-sm btn-primary" data-action="create-group">Create</button><button type="button" class="btn btn-sm" data-action="join-group">Join</button></div></div>
+    <ul class="plain-list">`;
+  
+  groups.forEach(g => {
+    html += `<li><strong>${esc(g.name)}</strong> <span class="small muted">Code: ${esc(g.joinCode)}</span>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px">
+        <button type="button" class="btn btn-sm" data-action="group-view" data-id="${g.id}">View details</button>
+        <button type="button" class="btn btn-sm" data-action="group-add-expense" data-id="${g.id}">Add expense</button>
+      </div></li>`;
+  });
+  html += `</ul></div>`;
+  return html;
+}
+
 function renderSplit() {
   const w = state.wallet;
   const open = w.ious.filter(x => !x.settled);
@@ -448,8 +478,8 @@ function renderSplit() {
     `<button type="button" class="btn btn-primary" data-action="split-bill"><span aria-hidden="true">🧾</span><span>Split a bill</span></button>`);
 
   const summaryCard = `<div class="stats-grid two" style="margin-bottom:14px">
-    ${stat('You are owed', fmt(owed), `${open.filter(x => x.dir === 'owed').length} pending payments from friends`, owed > 0 ? 'tone-success' : '')}
-    ${stat('You owe', fmt(owe), `${open.filter(x => x.dir === 'owe').length} pending IOUs to pay back`, owe > 0 ? 'tone-danger' : '')}
+    ${stat('You are owed', fmt(owed), `${plural(open.filter(x => x.dir === 'owed').length, 'payment')} to come from friends`, owed > 0 ? 'tone-success' : '')}
+    ${stat('You owe', fmt(owe), `${plural(open.filter(x => x.dir === 'owe').length, 'IOU')} to pay back`, owe > 0 ? 'tone-danger' : '')}
   </div>`;
 
   const iousTab = summaryCard + personBalancesCard() + iouCard();
@@ -459,8 +489,11 @@ function renderSplit() {
     <tbody>${settled.slice().reverse().map(x => `<tr><td><strong>${esc(x.person)}</strong></td><td>${fmtDate(F.parseDate(x.settledAt || x.date))}</td><td class="num font-bold">${fmt(x.amount)}</td><td class="muted small">${esc(x.note || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No settled IOUs yet.</p>'}
   </div>`;
 
+  const groupsTab = liveGroupsCard();
+
   const html = head + tabbed('split', {
     ious: iousTab,
+    groups: groupsTab,
     history: historyTab
   });
 

@@ -101,7 +101,11 @@ const idbGet = k => idbDo('readonly', st => st.get(k));
 const idbSet = (k, v) => idbDo('readwrite', st => st.put(v, k));
 const idbDel = k => idbDo('readwrite', st => st.delete(k));
 
-function afterSave() { if (!BK.writing) scheduleBackup(); syncOnSave(); }
+function afterSave() {
+  if (!BK.writing) scheduleBackup();
+  syncOnSave();
+  if (typeof checkBudgetNudges === 'function') checkBudgetNudges();
+}
 function markBackedUp() {
   state.meta.lastBackup = todayISO();
   if (state.meta.xpBackup !== todayISO()) { state.meta.xpBackup = todayISO(); awardXP(10, 'backup', true); }
@@ -173,7 +177,7 @@ function daysSinceBackup() {
 }
 function sampleBanner() {
   if (!state.meta.isSample) return '';
-  return `<div class="alert alert-info banner no-print" id="sample-banner"><span>You’re looking at <strong>sample data</strong>. When you’re ready for your own numbers, remove it. That clears everything, including anything you added while trying it out.</span>
+  return `<div class="alert alert-info banner no-print" id="sample-banner"><span>You’re looking at <strong>sample data</strong> for a fictional student. When you’re ready for your own numbers, remove it.</span>
     <span class="banner-actions"><button type="button" class="btn btn-sm btn-primary" data-action="remove-sample">Remove sample data</button></span></div>`;
 }
 function backupBanner() {
@@ -189,6 +193,89 @@ function backupBanner() {
   return `<div class="alert alert-info banner no-print" id="backup-banner"><span>${when} Everything is saved only in this browser, so clearing it would wipe your data.</span>
     <span class="banner-actions"><button type="button" class="btn btn-sm btn-primary" data-action="backup-download">Download backup</button>
     <button type="button" class="btn btn-sm" data-action="backup-snooze">Later</button></span></div>`;
+}
+/* ---------- Budget Nudges & Local Notifications ---------- */
+function sendBudgetNotification(title, body, tone = 'info') {
+  ui.activeNudge = { title, body, tone, time: Date.now() };
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    const opts = { body, icon: 'assets/icon-192.png' };
+    const viaSw = () => navigator.serviceWorker && navigator.serviceWorker.getRegistration().then(r => r && r.showNotification(title, opts)).catch(() => {});
+    try { new Notification(title, opts); } catch (e) { viaSw(); }   // Android Chrome only allows the service worker route
+  }
+  toast(`🔔 ${title} · ${body}`, 4500);
+}
+
+function checkBudgetNudges(opts = {}) {
+  if (!state || !state.budget) return [];
+  if (!opts.dry && !hasAnyData()) return [];   // nothing set up yet: no alerts on the first screen
+  const send = opts.dry ? () => {} : sendBudgetNotification;
+  const ym = todayISO().slice(0, 7);
+  state.meta = state.meta || {};
+  state.meta.nudges = state.meta.nudges || {};
+  const nudgesSent = [];
+  
+  // 1. Check category budgets (80% and 100%)
+  const curExpenses = state.budget.expenses.filter(e => e.date.startsWith(ym));
+  state.budget.categories.forEach(cat => {
+    if (cat.type === 'savings' || !(cat.planned > 0)) return;
+    const spent = sum(curExpenses.filter(e => e.categoryId === cat.id), e => e.amount);
+    const ratio = spent / cat.planned;
+    const key100 = `${cat.id}:100:${ym}`;
+    const key80 = `${cat.id}:80:${ym}`;
+    
+    if (ratio >= 1.0) {
+      // a need paid in one go (the mess fee) landing exactly on its plan isn't news; going over is
+      if ((spent > cat.planned + 0.5 || cat.type === 'wants') && !state.meta.nudges[key100]) {
+        state.meta.nudges[key100] = todayISO();
+        state.meta.nudges[key80] = todayISO();
+        const title = spent > cat.planned + 0.5 ? `Over budget: ${cat.name}` : `Budget limit reached: ${cat.name}`;
+        const body = `You’ve spent ${fmt(spent)} of your ${fmt(cat.planned)} limit for ${cat.name}.`;
+        send(title, body, 'danger');
+        nudgesSent.push({ type: '100', catId: cat.id, title, body });
+      }
+    } else if (ratio >= 0.8) {
+      if (!state.meta.nudges[key80]) {
+        state.meta.nudges[key80] = todayISO();
+        const title = `Budget alert: ${cat.name} at ${Math.round(ratio * 100)}%`;
+        const body = `You’ve spent ${fmt(spent)} of your ${fmt(cat.planned)} limit for ${cat.name}.`;
+        send(title, body, 'warn');
+        nudgesSent.push({ type: '80', catId: cat.id, title, body });
+      }
+    }
+  });
+
+  // 2. Check safe-to-spend red
+  if (typeof studentSafeToSpend === 'function' && monthlyIncome() > 0) {   // no allowance set: nothing to be "in the red" against
+    const sts = studentSafeToSpend();
+    if (sts && sts.status === 'red') {
+      const keyRed = `safe_red:${todayISO()}`;
+      if (!state.meta.nudges[keyRed]) {
+        state.meta.nudges[keyRed] = true;
+        const title = 'Safe-to-spend is in the red';
+        const body = 'You’ve spent past this allowance. Try a no-spend day, or ask for a top-up from Home.';
+        send(title, body, 'danger');
+        if (!opts.dry && typeof triggerPetReaction === 'function') triggerPetReaction('safe-red');
+        nudgesSent.push({ type: 'safe-red', title, body });
+      }
+    }
+  }
+  if (nudgesSent.length && !opts.dry) save();   // remember what was sent, so it doesn't repeat on the next open
+  return nudgesSent;
+}
+
+function budgetNudgeBanner() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    if (state.budget.expenses.length >= 3 && !state.meta.notifPromptDismissed) {
+      return `<div class="alert alert-info banner no-print" id="notif-banner">
+        <span>Get notified when category budgets reach <strong>80%</strong> or when safe-to-spend turns <strong>red</strong>?</span>
+        <span class="banner-actions">
+          <button type="button" class="btn btn-sm btn-primary" data-action="enable-notifs">Enable alerts</button>
+          <button type="button" class="btn btn-sm" data-action="dismiss-notifs">Not now</button>
+        </span>
+      </div>`;
+    }
+  }
+  return '';
 }
 function backupStatusHTML() {
   let status;

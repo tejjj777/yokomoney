@@ -282,7 +282,7 @@ function findRecurringCharges() {
   const savings = new Set(state.budget.categories.filter(c => c.type === 'savings' || /loan|debt|rent|mortgage/i.test(c.name)).map(c => c.id));
   const groups = {};
   state.budget.expenses.forEach(x => {
-    if (!['sms', 'import'].includes(x.src) || x.recurringId || savings.has(x.categoryId)) return;
+    if (x.recurringId || savings.has(x.categoryId)) return;
     const k = merchantKey(x.note); if (!k) return;
     if (state.subscriptions.some(s => noteMatchesSub(x.note, s.name)) || state.recurring.some(r => merchantKey(r.name) === k)) return;
     (groups[k] = groups[k] || []).push(x);
@@ -292,25 +292,34 @@ function findRecurringCharges() {
     if (marks[k] === 'no') continue;
     list.sort((a, b) => a.date.localeCompare(b.date));
     const last = list.slice(-3);
-    if (last.length < 2 || new Set(last.map(x => x.date.slice(0, 7))).size < 2) continue;
+    if (last.length < 2) continue;
     const gaps = last.slice(1).map((x, i) => F.daysBetween(F.parseDate(last[i].date), F.parseDate(x.date)));
-    const monthly = gaps.every(g => g >= 25 && g <= 35), yearly = gaps.every(g => g >= 350 && g <= 380);
-    if (!monthly && !yearly) continue;
+    const weekly = gaps.every(g => g >= 6 && g <= 8);
+    const monthly = gaps.every(g => g >= 25 && g <= 35);
+    const yearly = gaps.every(g => g >= 350 && g <= 380);
+    if (!weekly && !monthly && !yearly) continue;
     const ref = last[last.length - 1].amount;
-    if (!last.every(x => Math.abs(x.amount - ref) <= Math.max(1, ref * 0.1))) continue;
+    if (!last.every(x => Math.abs(x.amount - ref) <= Math.max(1, ref * 0.15))) continue;
     const later = typeof marks[k] === 'string' && marks[k].startsWith('later:') ? marks[k].slice(6) : '';
-    out.push({ key: k, name: prettyName(last[last.length - 1].note), amount: ref, cycle: monthly ? 'monthly' : 'yearly', last: last[last.length - 1].date, snoozed: !!later && later > today });
+    const cycle = weekly ? 'weekly' : yearly ? 'yearly' : 'monthly';
+    out.push({ key: k, name: prettyName(last[last.length - 1].note), amount: ref, cycle, last: last[last.length - 1].date, snoozed: !!later && later > today });
   }
   return out;
 }
 function subSuggestModal(all) {
   const list = findRecurringCharges().filter(s => all || !s.snoozed);
   if (!list.length) { toast('Nothing new that looks like a subscription.'); return; }
-  const rowHTML = s => `<li class="sug-row" data-k="${esc(s.key)}"><p>You pay <strong>${esc(s.name)}</strong> ${fmt(s.amount)} every ${s.cycle === 'yearly' ? 'year' : 'month'}. Add it as a subscription?</p>
-    <div class="sug-btns"><button type="button" class="btn btn-sm btn-primary" data-sg="add">Add</button><button type="button" class="btn btn-sm" data-sg="no">Not a subscription</button><button type="button" class="btn btn-sm" data-sg="later">Ask later</button></div></li>`;
+  const cycleLabel = c => (c === 'weekly' ? 'week' : c === 'yearly' ? 'year' : 'month');
+  const rowHTML = s => `<li class="sug-row" data-k="${esc(s.key)}"><p>You pay <strong>${esc(s.name)}</strong> ${fmt(s.amount)} every ${cycleLabel(s.cycle)}. Add it as a subscription?</p>
+    <div class="sug-btns">
+      <button type="button" class="btn btn-sm btn-primary" data-sg="add">Add</button>
+      <button type="button" class="btn btn-sm btn-warn" data-sg="unused">Mark unused</button>
+      <button type="button" class="btn btn-sm" data-sg="no">Not a subscription</button>
+      <button type="button" class="btn btn-sm" data-sg="later">Ask later</button>
+    </div></li>`;
   openModal({
     title: 'These look like subscriptions', hideSubmit: true, cancelLabel: 'Close',
-    body: `<p class="small muted">Found in the bank data you imported: the same shop, about the same amount, on a regular schedule.</p><ul class="sug-list">${list.map(rowHTML).join('')}</ul>`,
+    body: `<p class="small muted">Found in your expenses: the same payee, similar amount, on a regular weekly or monthly schedule.</p><ul class="sug-list">${list.map(rowHTML).join('')}</ul>`,
     onMount: form => {
       form.addEventListener('click', e => {
         const b = e.target.closest('[data-sg]'); if (!b) return;
@@ -319,6 +328,10 @@ function subSuggestModal(all) {
         if (b.dataset.sg === 'add') {
           state.subscriptions.push({ id: uid(), name: s.name, amount: s.amount, cycle: s.cycle, since: s.last, usage: {}, kept: '', plan: '' });
           toast(`${s.name} added to subscriptions`);
+        } else if (b.dataset.sg === 'unused') {
+          const p = prevYM(todayISO().slice(0, 7)), p2 = prevYM(p);
+          state.subscriptions.push({ id: uid(), name: s.name, amount: s.amount, cycle: s.cycle, since: s.last, usage: { [p2]: false, [p]: false }, kept: '', plan: '' });
+          toast(`${s.name} marked as unused. Check Subscription check-in to review cancelling.`);
         } else if (b.dataset.sg === 'no') state.meta.subSuggest[s.key] = 'no';
         else state.meta.subSuggest[s.key] = 'later:' + F.toISO(F.addDays(todayDate(), 7));
         commit();

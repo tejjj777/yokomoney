@@ -24,7 +24,7 @@ function renderBudget() {
     <p class="stat-sub">Income ${fmt(b.income)} − spent ${fmt(b.actual)} · ${b.unplanned >= 0 ? `${fmt(b.unplanned)} not yet planned` : `plan is ${fmt(-b.unplanned)} over income`}</p>
     <div class="progress ${b.actual > b.income ? 'over' : ''}" style="margin-top:12px" role="progressbar" aria-label="Share of income spent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${b.income > 0 ? Math.round(clamp(b.actual / b.income * 100, 0, 100)) : 0}"><span style="width:${b.income > 0 ? clamp(b.actual / b.income * 100, 0, 100) : 0}%"></span></div>
   </div>`;
-  const statsRow = `<div class="stats-grid">${incomeCard}${remaining}${(() => { const al = dailyAllowance(); return stat('Daily allowance', fmt(al.over ? 0 : al.perDay), al.over ? 'You’ve overspent this month' : `a day for the ${al.daysLeft} day${al.daysLeft === 1 ? '' : 's'} left this month`, al.over ? 'tone-danger' : ''); })()}</div>`;
+  const statsRow = `<div class="stats-grid">${incomeCard}${remaining}${(() => { const al = dailyAllowance(); return stat('Daily allowance', fmt(al.over ? 0 : al.perDay), al.over ? 'You’ve overspent this month' : al.byPayday ? `a day until your next allowance (${plural(al.daysLeft, 'day')})` : `a day for the ${al.daysLeft} day${al.daysLeft === 1 ? '' : 's'} left this month`, al.over ? 'tone-danger' : ''); })()}</div>`;
 
   const split = splitSummary();
   const bucketRow = (bk, list) => {

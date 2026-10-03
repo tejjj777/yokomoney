@@ -9,8 +9,9 @@ const VIEWS = { dashboard: renderDashboard, spend: renderSpend, budget: renderBu
 function redirectOldHash() {
   if (/^#gifts(\/|$)/.test(location.hash)) history.replaceState(null, '', '#goals/gifts');
   if (/^#debt(\/|$)/.test(location.hash)) history.replaceState(null, '', '#budget/plan');
+  if (/^#wallet(\/|$)/.test(location.hash)) history.replaceState(null, '', /ious/.test(location.hash) ? '#split/ious' : '#spend/cash');
 }
-const currentRoute = () => { const h = location.hash.replace('#', '').split('/')[0]; return VIEWS[h] ? h : 'dashboard'; };
+const currentRoute = () => { const h = location.hash.replace('#', '').split('/')[0]; return VIEWS[h] && ROUTES.some(r => r.id === h) ? h : 'dashboard'; };
 let renderTimer = null;
 
 function render() {
@@ -38,7 +39,7 @@ function render() {
   try { out.charts && out.charts(); } catch (err) { console.error('Chart error', err); }
 
   document.querySelectorAll('[data-route]').forEach(a => a.getAttribute('data-route') === route ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
-  const r = ROUTES.find(x => x.id === route);
+  const r = ROUTES.find(x => x.id === route) || ROUTES[0];
   document.title = `${r.long || r.label} · ${APP_NAME}`;
 
   if (focusId) {

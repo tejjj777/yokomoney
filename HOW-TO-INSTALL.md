@@ -9,7 +9,7 @@ Phones can't install an app from a file on disk.
 ### Option A: Netlify Drop (easiest, no coding)
 1. On a computer, go to <https://app.netlify.com/drop>.
 2. Sign up or log in (free). Without an account the site still deploys, but it's locked behind a temporary password until you claim it.
-3. Drag the whole `yoko-student` folder onto the page. Delete its `node_modules` folder first if you ran the tests (it is only for testing and is large).
+3. Drag the whole `yoko-student` folder onto the page. Delete its `node_modules` and `tests/out` folders first if you ran the tests (they are only for testing and are large).
 4. After a few seconds you get a link ending in `.netlify.app`. That's your app.
 5. To update later, drag the new `yoko-student` folder onto the same project's deploy page.
 

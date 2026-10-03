@@ -25,9 +25,30 @@ function challengeStatus(c) {
   if (bad) return { state: 'lost', daysIn, progress: daysIn / c.days, why: `${fmt(byDay[bad])} on ${fmtDate(F.parseDate(bad))}`, today };
   return { state: finished ? 'won' : 'active', daysIn, progress: daysIn / c.days, today };
 }
+function getActiveCategoryFreeze(catId) {
+  if (!catId || !state.challenges) return null;
+  for (const c of state.challenges) {
+    if (c.type === 'nocat' && c.categoryId === catId) {
+      const st = challengeStatus(c);
+      if (st.state === 'active') {
+        const cat = state.budget.categories.find(k => k.id === catId);
+        const daysLeft = Math.max(0, c.days - st.daysIn);
+        return {
+          challenge: c,
+          status: st,
+          daysLeft,
+          daysIn: st.daysIn,
+          daysTotal: c.days,
+          catName: cat ? cat.name : 'Category'
+        };
+      }
+    }
+  }
+  return null;
+}
 function challengeTitle(c) {
   if (c.type === 'week52') return `52-week challenge · ${fmt(c.unit)} × week number`;
-  if (c.type === 'nocat') { const cat = state.budget.categories.find(k => k.id === c.categoryId); return `No ${cat ? cat.name : 'spending'} for ${plural(c.days, 'day')}`; }
+  if (c.type === 'nocat') { const cat = state.budget.categories.find(k => k.id === c.categoryId); return `Freeze ${cat ? cat.name : 'spending'} for ${plural(c.days, 'day')}`; }
   return `Spend under ${fmt(c.cap)} a day for ${plural(c.days, 'day')}`;
 }
 /** Reward finished challenges once, and streak milestones. Returns true if anything changed. */
@@ -52,8 +73,8 @@ function evaluateRewards() {
 function challengeForm() {
   const cats = state.budget.categories.filter(c => c.type !== 'savings');
   const fields = [
-    { name: 'type', label: 'Challenge', kind: 'select', wide: true, options: [['nocat', 'No-spend: skip one category'], ['cap', 'Daily cap: spend under an amount each day'], ['week52', '52-week savings challenge']] },
-    { name: 'categoryId', label: 'Category to skip', kind: 'select', options: cats.length ? cats.map(c => [c.id, c.name]) : [['', 'Add a budget category first']] },
+    { name: 'type', label: 'Challenge', kind: 'select', wide: true, options: [['nocat', 'Category freeze: skip one category'], ['cap', 'Daily cap: spend under an amount each day'], ['week52', '52-week savings challenge']] },
+    { name: 'categoryId', label: 'Category to freeze', kind: 'select', options: cats.length ? cats.map(c => [c.id, c.name]) : [['', 'Add a budget category first']] },
     { name: 'days', label: 'For how long?', kind: 'select', options: [['7', '7 days'], ['14', '14 days'], ['30', '30 days']] },
     { name: 'cap', label: 'Daily limit', kind: 'money', required: true, positive: true, hidden: true, help: 'Counts needs and wants you log each day. Recurring payments don’t count.' },
     { name: 'unit', label: 'Week 1 amount', kind: 'money', required: true, positive: true, hidden: true, help: 'Week 2 is double, week 52 is 52×.' },

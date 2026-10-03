@@ -29,7 +29,7 @@ function fmtHours(amount) {
   if (!(rate > 0) || !(amount > 0)) return null;
   const h = amount / rate;
   if (h < 1) return `${Math.max(1, Math.round(h * 60))} min of work`;
-  if (h < 40) return `${shortNum(h)} hrs of work`;
+  if (h < 40) { const n = shortNum(h); return `${n} ${String(n) === '1' ? 'hr' : 'hrs'} of work`; }
   return `${shortNum(h / 8)} workdays`;
 }
 function feelsParts(amount) {
@@ -44,6 +44,10 @@ function feelsLikeText(amount) { return feelsParts(amount).map(([e, t]) => `${e}
 
 /* ---------- Allowance, runway, streaks, subscriptions ---------- */
 function dailyAllowance() {
+  if (allowanceLeft().byPayday) {   // same number as safe-to-spend on Home
+    const s = studentSafeToSpend();
+    return { perDay: s.perDay, daysLeft: s.daysLeft, over: s.available < 0, byPayday: true };
+  }
   const b = budgetTotals();
   const daysLeft = F.daysLeftInMonth(todayDate());
   return { perDay: Math.max(0, b.remaining) / daysLeft, daysLeft, over: b.remaining < 0 };

@@ -6,12 +6,19 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 11;   // bumped for student edition session 5
+const TOUR_VERSION = 13;   // bumped for student edition session 9
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
+  { id: 'polish', icon: '🐾', title: 'Live Pet, Freeze & Demo', blurb: 'Pet reactions, category freeze warnings, subscription catcher and demo data.', route: 'dashboard/overview', steps: [
+    { route: 'dashboard/overview', target: ['#pet-card'], title: 'Live Pet Reactions', text: 'Your pet reacts live with animations and speech when you import statements, keep to your budget, run low on safe-to-spend, or spend in a frozen category.' },
+    { route: 'goals/challenges', target: ['#challenges-card'], title: 'Category Freeze', text: 'Freeze a category for 7 to 30 days. Adding an expense in a frozen category warns you with days remaining before you decide to break it.' },
+    { route: 'dashboard/overview', target: ['#sub-check'], title: 'Subscription Catcher', text: 'Automatically finds repeating weekly and monthly charges in your bank or UPI history and lets you flag unused ones.' },
+    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Budget Nudges', text: 'Get alerted via notifications or in-app banners when any category hits 80% or 100%, and when safe-to-spend turns red.' },
+    { route: 'dashboard/overview', target: ['#side-nav', '.topbar'], title: 'Student Demo Dataset', text: 'Load a complete 2nd-year engineering student profile with roommates, semester milestones, and sample UPI screenshots from the ⋯ menu.' }
+  ] },
   { id: 'ai', icon: '✨', title: 'AI Command Bar & Voice', blurb: 'Ask questions, add expenses by voice, test what-ifs.', route: 'dashboard/overview', steps: [
     { route: 'dashboard/overview', target: ['#command-bar'], title: 'Your AI Assistant', text: 'Use the command bar at the top of Home to do math, log expenses, and see what-if scenarios.' },
-    { route: 'dashboard/overview', target: ['#cb-mic'], title: 'Voice commands', text: 'Tap the mic to speak in English, Hindi, or Telugu. Try saying: "Can I afford a 1500 concert this Saturday?" or "Spent 120 on chai, split it with Rahul".' },
+    { route: 'dashboard/overview', target: ['#cb-mic'], title: 'Voice commands', text: 'Tap the mic and say it out loud. Try: “Can I afford a 1500 concert this Saturday?” or “Spent 120 on chai, split it with Rahul”.' },
     { route: 'budget/plan', target: ['[data-action="budget-autopilot"]'], title: 'Budget Autopilot', text: 'Tap "Set my budgets for me" on the Budget tab to let AI build a plan based on your recent habits.' }
   ] },
   { id: 'quick', icon: '🚀', title: 'Quick start', blurb: 'The student essentials in 60 seconds.', steps: [
@@ -53,11 +60,11 @@ const CHAPTERS = [
   { id: 'settings', icon: '⚙️', title: 'Settings', blurb: 'Themes, sound, unit prices and backups.', tryIt: ['Open Settings', () => openSettings()], steps: [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings & customization', text: 'Switch themes, adjust pet roast mode, set chai unit price, and manage local backups.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Student edition features.', hidden: true, steps: [
-    { title: 'Welcome to YOKO! Student (Session 5)', text: 'New swipeable Money Wrapped stories with square PNG export, Ghost spending, Time-of-day habits, and Spending Heatmap.' },
-    { route: 'dashboard/overview', target: ['[data-action="open-wrapped"]'], title: 'Money Wrapped Story', text: 'Swipe through 6 animated story cards with real spending comparisons, personalities and square image exports.' },
-    { route: 'spend/insights', target: ['#w-ghost-spending'], title: 'Ghost Spending', text: 'Track micro-payments under ₹100 that quietly add up to big numbers.' },
-    { route: 'spend/insights', target: ['#w-spending-heatmap'], title: 'Spending Heatmap', text: 'GitHub-style daily spending grid. Tap any day to inspect its exact transactions.' }
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Fixes and polish.', hidden: true, steps: [
+    { title: 'Smoother and steadier', text: 'Lots of small fixes. YOKO! opens fast on slow Wi-Fi, works offline, and no longer shows test alerts when it starts.' },
+    { route: 'spend/insights', target: ['#w-spending-heatmap'], title: 'Full-month heatmap', text: 'The heatmap now shows every day of the month on the right weekday. Tap a day to see what you spent.' },
+    { route: 'split/ious', target: ['#w-balances'], title: 'Settle up in one tap', text: 'Saved UPI IDs fill in by themselves, so the payment QR shows straight away.' },
+    { route: 'budget/plan', target: ['[data-action="budget-autopilot"]'], title: 'Smarter budgets for you', text: '“Set my budgets for me” now looks at whole months, so a monthly fee like the mess bill counts once.' }
   ] }
 ];
 const CHAPTER_ORDER = ['ai', 'quick', 'dashboard', 'spend', 'split', 'budget', 'goals', 'settings'];
@@ -260,7 +267,7 @@ function showWelcome() {
   const empty = !hasAnyData();
   openModal({
     title: 'Welcome to YOKO! Student', hideSubmit: true, cancelLabel: 'Not now',
-    body: `<img class="welcome-logo" src="${LOGO_URI}" alt="YOKO! Student"><p>YOKO! Student helps you understand where your pocket money goes, budget for hostel and college life, and keep spending on track without advanced financial knowledge.</pp><p="muted">Want a quick walkthrough? The student tour takes about a minute.</p>
+    body: `<img class="welcome-logo" src="${LOGO_URI}" alt="YOKO! Student"><p>YOKO! Student helps you understand where your pocket money goes, budget for hostel and college life, and keep spending on track without advanced financial knowledge.</p><p class="muted">Want a quick walkthrough? The student tour takes about a minute.</p>
       <div class="welcome-actions">${empty
         ? '<button type="button" class="btn btn-primary" data-action="tour-sample">Show me around (with sample data)</button><button type="button" class="btn" data-action="tour-all">Show me around (empty)</button>'
         : '<button type="button" class="btn btn-primary" data-action="tour-all">Show me around</button>'}
@@ -273,12 +280,13 @@ function showWhatsNew() {
   markTourSeen();
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
-    body: `<p>New student edition features:</p><ul class="whats-new">
-        <li><strong>Money Wrapped Story:</strong> 6-card interactive monthly review with real comparisons, personalities and 1080x1080 square image export</li>
-        <li><strong>Ghost Spending:</strong> Track small payments under ₹100 that quietly add up to large totals</li>
-        <li><strong>Time-of-Day Habits:</strong> Discover your peak morning, afternoon, evening or late-night spending trends</li>
-        <li><strong>Spending Heatmap:</strong> GitHub-style interactive calendar with day-by-day expense inspection</li>
-        <li><strong>Hours-of-Work price tags:</strong> Real-time translation of purchases into hours of part-time work</li></ul>
+    body: `<p>Fixes and polish:</p><ul class="whats-new">
+        <li><strong>Heatmap:</strong> shows the whole month, each day on the right weekday.</li>
+        <li><strong>Settle up:</strong> saved UPI IDs fill in, so the QR shows straight away.</li>
+        <li><strong>Set my budgets for me:</strong> uses whole months, so the mess bill counts once.</li>
+        <li><strong>Budget alerts:</strong> “Enable alerts” and “Not now” work, and an alert doesn’t repeat every time you open the app.</li>
+        <li><strong>Live groups:</strong> the buttons work, and tell you when you need internet.</li>
+        <li><strong>Steadier:</strong> opens fast on slow Wi-Fi and works offline.</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
   });

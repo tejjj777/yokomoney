@@ -7,9 +7,17 @@
 
 /** Safe-to-spend hero: the biggest element on Home. */
 function safeToSpendHero() {
-  const sts = studentSafeToSpend();
   const inc = monthlyIncome();
-  const next = nextPayInfo();
+  if (!(inc > 0)) {   // no allowance yet: nothing is "overspent", there's just nothing to divide
+    return `<div class="card safe-hero" id="safe-hero">
+      <p class="stat-label">Safe to spend today</p>
+      <p class="safe-hero-reason">Add your allowance and YOKO! works out how much you can spend each day.</p>
+      <div class="safe-hero-actions no-print"><button type="button" class="btn btn-primary btn-sm" data-action="open-paycheck"><span>Set allowance</span></button></div>
+    </div>`;
+  }
+  const sts = studentSafeToSpend();
+  const al = allowanceLeft();
+  const next = nextPayInfo() ? { days: al.daysLeft } : null;
   const t = todayDate();
   const statusLabel = sts.status === 'green' ? 'On track' : sts.status === 'amber' ? 'Tight pace' : 'Overspent';
   const statusIcon = sts.status === 'green' ? '●' : sts.status === 'amber' ? '▲' : '■';
@@ -42,8 +50,7 @@ function safeToSpendHero() {
 /** Forecast card with interactive sliders for flexible spending. */
 function runOutForecastCard(chartId = 'dash-forecast-chart') {
   const fc = studentRunOutForecast();
-  const next = nextPayInfo();
-  const days = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(todayDate()));
+  const days = allowanceLeft().daysLeft;
 
   return `<div class="card mb" id="forecast-card">
     <div class="card-head">
@@ -148,7 +155,8 @@ function bindForecastSliders(chartId = 'dash-forecast-chart') {
 function renderDashboard() {
   const t = todayDate();
   const inc = monthlyIncome();
-  const next = nextPayInfo();
+  const al = allowanceLeft();
+  const next = nextPayInfo() ? { days: al.daysLeft } : null;
   const b = budgetTotals(), rw = runwayInfo(), sk = streakInfo();
   const saved = sum(state.goals, g => g.saved), target = sum(state.goals, g => g.target);
   const sp = spendingSource();
@@ -160,10 +168,12 @@ function renderDashboard() {
     html += emptyState('Nothing here yet', 'Set your student allowance to build your budget and daily safe-to-spend amount. Or explore with sample data.', 'open-paycheck', 'Set allowance', 'dashboard');
   }
 
-  const overview = sampleBanner() + backupBanner() + subCheckCard() + commandBarHTML() + safeToSpendHero() +
+  const overview = sampleBanner() + backupBanner() + (typeof budgetNudgeBanner === 'function' ? budgetNudgeBanner() : '') + subCheckCard() + commandBarHTML() + safeToSpendHero() +
     `<div class="stats-grid three">
       ${stat('Monthly allowance', fmt(inc), `${state.income.irregular ? `${irregularLine()} · <button type="button" class="linklike" data-action="log-income">Log income</button>` : `${next ? `Next allowance ${daysLabel(next.days).toLowerCase()} · ` : ''}<button type="button" class="linklike" data-action="open-paycheck">Edit</button>`}`, 'featured')}
-      ${stat('Left this month', fmt(b.remaining), inc > 0 ? `${fmtPct(b.actual / inc * 100)} of allowance spent` : 'Track spending', b.remaining < 0 ? 'tone-danger' : '')}
+      ${al.byPayday
+        ? stat('Left until payday', fmt(al.balance), inc > 0 ? `${fmtPct(al.spent / inc * 100)} of this allowance spent` : 'Track spending', al.balance < 0 ? 'tone-danger' : '')
+        : stat('Left this month', fmt(b.remaining), inc > 0 ? `${fmtPct(b.actual / inc * 100)} of allowance spent` : 'Track spending', b.remaining < 0 ? 'tone-danger' : '')}
       ${stat('No-spend streak', `🔥 ${plural(sk.current, 'day')}`, `Longest: ${plural(sk.longest, 'day')}`)}
     </div>` +
     runOutForecastCard('dash-forecast-chart') +

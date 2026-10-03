@@ -82,7 +82,25 @@ Seed test data: `localStorage.setItem('yoko.student.v1', <tests/seed.json>)` and
 
 ## Testing
 One-time setup: `npm install` then `npx playwright install chromium`.
-- `npm test`: load-order check, then `tests/smoke.mjs`: self-tests, every page and tab at 360x640 and 1280x800, quick-add/settings/palette, console errors, sideways scroll, offline after first load. Screenshots land in `tests/out/`. Look at the ones for what you changed. `ONLY=budget,wallet node tests/smoke.mjs` limits pages.
+- `npm test`: load-order check, then `tests/smoke.mjs`: self-tests, every page and tab at 360x640 and 1280x800, quick-add/settings/palette, console errors, sideways scroll, offline after first load. Screenshots land in `tests/out/`. Look at the ones for what you changed. `ONLY=budget,split node tests/smoke.mjs` limits pages.
+- `node tests/full-check.mjs [pages] [crawl] [demo] [network] [motion]` (no args = all, ~10 min): everything above plus text spilling out of boxes, buttons with no handler, a click on every button on every tab, the demo flow 3 times from a fresh install (with on-device OCR of `tests/sample-bill.png`), AI answering / erroring / junk / never answering, offline, slow 3G, reduced motion and a 4x slower CPU. Report + screenshots in `tests/out/full/`.
 - Self-tests by hand: open DevTools console, run `runSelfTests()` (returns `{passed,total,results[{ok,name}]}`).
 - Manual 360px check: `npm run serve`, open `http://localhost:8080`, DevTools device toolbar at 360x640. Service workers need http(s), not `file://`.
 - Service worker caches code. When testing by hand after edits, use DevTools → Application → "Update on reload", or bump `CACHE`.
+
+## Session 6 Polish & Demo Data
+- **Live Pet Reactions** (`js/pet.js`): `triggerPetReaction(type, text)` triggers temporary speech bubble updates and CSS bounce animations (`.boing`) on import, budget-ok, safe-to-spend red, afford check no, and freeze breaks.
+- **Category Freeze** (`js/challenges.js`, `js/modals.js`, `js/commandbar.js`): `getActiveCategoryFreeze(catId)` tracks active `nocat` challenges with days remaining and warns user with confirmation dialogs prior to logging expenses.
+- **Subscription Catcher** (`js/suggestions.js`): `findRecurringCharges()` detects weekly, monthly, and yearly recurring transaction intervals in imports. Users can track as active subscriptions or 1-tap mark unused to flag for cancellation.
+- **Budget Nudges** (`js/more.js`): `checkBudgetNudges()` sends local Web Notifications (fallback in-app toast/banner) when category spending reaches 80% or 100% of planned budget, and when safe-to-spend turns red.
+- **Student Demo Profile & 15 UPI Screenshots** (`js/state.js`, `assets/demo-screenshots/`): Complete 2nd-year engineering hostel persona (₹12,000 allowance on 5th, ₹4,000 tutoring, roommates Rahul & Aarav with UPI IDs, semester plan, active food delivery freeze). 15 realistic UPI screenshot PNG mock images in `assets/demo-screenshots/` for live hackathon demo flow. Load demo data and Remove demo data with undo available in ⋯ menu across all views.
+
+
+## Session 9: full pre-hackathon check
+- **Self-tests never touch the screen.** `runSelfTests()` runs on every start. Use the `{ dry: true }` options (`checkBudgetNudges`, `triggerPetReaction`) and wrap any test that swaps `state` in `try/finally`.
+- **Action maps merge in order** (`ACTIONS` ← `MORE_ACTIONS` ← `SUB_ACTIONS` ← `SYNC_ACTIONS` ← `GROUP_ACTIONS`); a later map wins. Top-level `const`s are not `window` properties, so refer to them by name.
+- **Allowance period** (`allowanceLeft()` in `js/state.js`, `F.payPeriod`): safe-to-spend, the run-out forecast, the command bar and the Budget daily allowance count spending since the last payday, so an allowance on the 5th isn't spent before it arrives. With payday on the 1st it equals the calendar month.
+- **Live groups** load Supabase JS only when used (`GroupSync.ready()`); nothing third-party loads at start-up, so a blocked or slow network can't hold the app.
+- **AI** (`aiCall`) skips straight to the on-device parser when offline, gives up after 4 s for commands, and `validAiCommand()` throws away answers without the fields the next step needs. The bill splitter reads photos on the device only.
+- **Budget alerts** are remembered in `state.meta.nudges` (kept for this month and last). A need paid in one go that lands exactly on its plan doesn't alert.
+- Demo persona: ₹16,000 a month (₹12,000 allowance + ₹4,000 tutoring) split into buckets that add up, roommates' UPI IDs in `wallet.upiIds`.

@@ -25,6 +25,8 @@ const ctx = {
   fetch: () => Promise.resolve({ ok: false }),
   navigator: { language: 'en-IN', languages: ['en-IN', 'en'] },
   location: { hash: '#dashboard', protocol: 'http:', origin: 'http://localhost' },
+  addEventListener: () => {},
+  matchMedia: () => ({ matches: false, addEventListener: () => {} }),
   history: { replaceState: () => {} },
   localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   console,

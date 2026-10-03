@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YOKO! Student · Hackathon Judges</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  body {
+    background-color: var(--surface);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+  .judges-container {
+    max-width: 800px;
+    width: 100%;
+    margin-top: 2rem;
+  }
+  .qr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 340px));
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  .qr-card[hidden] { display: none; }
+  .qr-card {
+    background: var(--surface-2);
+    padding: 2rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .qr-frame {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    width: 250px;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+<script src="js/qrcode.js"></script>
+</head>
+<body>
+
+  <h1>YOKO! Student</h1>
+  <p class="muted">Scan to try it on your phone. No sign-up needed.</p>
+
+  <div class="judges-container">
+    <div class="qr-grid">
+      <div class="qr-card">
+        <h2>Web App</h2>
+        <p class="small muted mb">Opens in your phone’s browser</p>
+        <div class="qr-frame" id="qr-web"></div>
+        <p class="small"><a href="index.html" class="linklike">Or click here to open</a></p>
+      </div>
+
+      <div class="qr-card" id="apk-card" hidden>
+        <h2>Android APK</h2>
+        <p class="small muted mb">Scan to download the compiled APK</p>
+        <div class="qr-frame" id="qr-apk"></div>
+        <p class="small"><a href="yoko-student.apk" class="linklike">Or click to download</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Works for /judges.html, /judges (pretty URLs) and any folder the site lives in
+      const webUrl = new URL('index.html', location.href).href.replace(/index\.html$/, '');
+      const apkUrl = new URL('yoko-student.apk', location.href).href;
+      document.getElementById('qr-web').innerHTML = QRCode.toSvg(webUrl, 218);
+      // Only show the APK card when the file is actually on the site
+      fetch(apkUrl, { method: 'HEAD' }).then(r => {
+        if (!r.ok || /text\/html/.test(r.headers.get('content-type') || '')) return;
+        document.getElementById('qr-apk').innerHTML = QRCode.toSvg(apkUrl, 218);
+        document.getElementById('apk-card').hidden = false;
+      }).catch(() => {});
+    });
+  </script>
+</body>
+</html>

@@ -82,7 +82,7 @@ function bsRenderStage(form, data, assignments) {
       <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div>
           <strong>📸 Snap / Upload bill receipt</strong>
-          <p class="small muted" style="margin:0">Extract items and prices automatically using AI & OCR.</p>
+          <p class="small muted" style="margin:0">Take a photo and YOKO! reads the items and prices on this device.</p>
         </div>
         <div class="row" style="gap:6px">
           <button type="button" class="btn btn-sm btn-primary" id="bs-snap-btn">${ICON.upload}<span>Camera / Upload</span></button>
@@ -401,23 +401,14 @@ function bsRefreshSummary(form, data, assignments) {
 
 async function bsProcessBillFile(form, file, data, assignments) {
   const status = form.querySelector('#bs-ocr-status');
-  if (status) status.innerHTML = `<div class="progress" style="margin-top:6px"><span id="bs-pbar" style="width:20%"></span></div><span class="small muted">Processing bill with OCR & AI...</span>`;
+  if (status) status.innerHTML = `<div class="progress" style="margin-top:6px"><span id="bs-pbar" style="width:5%"></span></div><span class="small muted">Reading the bill on this device…</span>`;
 
   try {
     let parsed = null;
 
-    // 1. Try aiCall first if online
-    if (typeof aiCall === 'function') {
-      try {
-        const textSample = file.name;
-        parsed = await aiCall('split-bill', { filename: file.name, type: file.type });
-      } catch (e) {
-        console.warn('AI bill parsing skipped', e);
-      }
-    }
-
-    // 2. On-device OCR fallback
-    if (!parsed || !parsed.items || !parsed.items.length) {
+    // Read the photo on this device. (The AI service only ever got the file name, never the picture,
+    // so asking it first just added a wait and could invent items.)
+    {
       const lines = await ocrLines([file], p => {
         const bar = form.querySelector('#bs-pbar');
         if (bar) bar.style.width = `${Math.round(p * 100)}%`;
@@ -436,13 +427,13 @@ async function bsProcessBillFile(form, file, data, assignments) {
       data.items.forEach(it => {
         assignments[it.id] = data.people.map(p => p.id);
       });
-      toast(`Extracted ${plural(data.items.length, 'item')} from bill.`);
+      toast(`Found ${plural(data.items.length, 'item')} on the bill.`);
     } else {
-      toast('Could not read line items automatically. You can type them in.');
+      toast('Couldn’t read that photo. You can type the items in.');
     }
   } catch (err) {
     console.warn('Bill processing error', err);
-    toast('OCR failed. You can add items manually.');
+    toast('Couldn’t read that photo. You can type the items in.');
   }
 
   bsRenderStage(form, data, assignments);
@@ -671,12 +662,12 @@ function settleUpModal(personName) {
 function openTopUpModal() {
   const sts = studentSafeToSpend();
   const next = nextPayInfo();
-  const nextDateStr = next && next.d ? fmtDate(next.d) : '';
+  const nextDateStr = next && next.date ? fmtDate(next.date) : '';
   const days = sts.daysLeft || 1;
   const inc = monthlyIncome();
 
   // Estimate needed top-up to cover shortfall + minimum daily safety buffer (e.g. ₹200/day)
-  const neededAmount = Math.max(500, Math.round(Math.abs(sts.available) + (days * 150)));
+  const neededAmount = Math.max(500, Math.round(Math.max(0, -sts.available) + (days * 150)));
 
   // Top spending categories this month
   const dailyAvgs = categoryDailyAverages(30);

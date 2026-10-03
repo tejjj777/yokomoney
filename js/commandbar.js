@@ -7,19 +7,22 @@
    Used when AI is offline or unreachable.
    ========================================================= */
 function parseCommandBarFallback(text) {
-  const q = text.toLowerCase().trim();
+  const q = text.toLowerCase().replace(/[₹$€£]|\brs\.?\s*|\binr\s*/g, '').replace(/(\d),(\d)/g, '$1$2').trim();
+  const orig = String(text || '');
+  const nameFrom = re => { const m = orig.match(re); return m ? m[1] : ''; };   // keep the person's name as typed
   
-  // a. Add ("spent 120 on chai with Rahul, split it")
-  const addMatch = q.match(/(?:spent|paid|bought|add)\s+(\d+(?:\.\d+)?)\s+(?:on|for)\s+([a-z ]+?)(?:\s+with\s+([a-z ]+))?(?:\s*,\s*split\s+it)?$/i);
-  if (addMatch || /split/i.test(q)) {
+  // a. Add ("spent 120 on chai, split it with Rahul" / "paid 300 for pizza with Aarav")
+  if (/^(?:i\s+)?(?:spent|paid|bought|add|log)\b/.test(q) || (/\bsplit\b/.test(q) && /\d/.test(q) && !/afford/.test(q))) {
     const amtMatch = q.match(/(\d+(?:\.\d+)?)/);
     if (amtMatch) {
-      return { 
-        intent: 'add', 
-        amount: Number(amtMatch[1]), 
-        note: addMatch ? addMatch[2] : q.replace(/spent|paid|bought|add|[0-9.]+|with|split|it/gi, '').trim(),
-        withPerson: addMatch && addMatch[3] ? addMatch[3] : (q.match(/with\s+([a-z]+)/i) || [])[1],
-        split: /split/i.test(q)
+      const what = (q.match(/\b(?:on|for)\s+(?:a\s+|an\s+|the\s+|some\s+)?([a-z][a-z &'-]*?)(?=\s*(?:,|\bwith\b|\bsplit\b|\btoday\b|\byesterday\b|[.!?]|$))/) || [])[1]
+        || q.replace(/\b(?:i|spent|paid|bought|add|log|on|for|with|split|it|and|today)\b|[0-9.]+|[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
+      return {
+        intent: 'add',
+        amount: Number(amtMatch[1]),
+        note: (what || 'Expense').trim(),
+        withPerson: nameFrom(/\bwith\s+([A-Za-z][A-Za-z]*)/i),
+        split: /\bsplit\b/.test(q)
       };
     }
   }
@@ -31,7 +34,12 @@ function parseCommandBarFallback(text) {
   }
 
   // c. Afford ("can I afford a 1500 concert on Saturday?")
-  const affordMatch = q.match(/afford\s+(?:a\s+)?(\d+(?:\.\d+)?)\s+([a-z ]+)\s+(?:on|this|next)\s+([a-z]+)/i);
+  const affordMatch = q.match(/afford\s+(?:a\s+|an\s+)?(\d+(?:\.\d+)?)\s+([a-z ]+?)\s+(?:on|this|next)\s+([a-z]+)/i);
+  if (!affordMatch && /afford/.test(q) && /\d/.test(q)) {   // "can I afford 1500 for a concert?"
+    const amt = Number(q.match(/(\d+(?:\.\d+)?)/)[1]);
+    const item = (q.match(/(?:\d+(?:\.\d+)?)\s+(?:for\s+)?(?:a\s+|an\s+|the\s+)?([a-z][a-z ]*?)(?=\s*(?:\?|$|\btoday\b|\btomorrow\b))/) || [])[1] || 'it';
+    return { intent: 'afford', amount: amt, item: item.trim(), dayOffset: /tomorrow/.test(q) ? 1 : 0 };
+  }
   if (affordMatch) {
     // very basic day offset guess for fallback
     const daysMap = { 'monday':1, 'tuesday':2, 'wednesday':3, 'thursday':4, 'friday':5, 'saturday':6, 'sunday':7, 'tomorrow':1, 'today':0 };
@@ -48,9 +56,9 @@ function parseCommandBarFallback(text) {
   }
 
   // b. Ask ("how much on food this week?")
-  if (q.startsWith('how much')) {
-    const catMatch = q.match(/on\s+([a-z]+)/i);
-    return { intent: 'ask', categoryName: catMatch ? catMatch[1] : null, period: 'this week' }; // naive fallback
+  if (q.startsWith('how much') || /^what did i spend/.test(q)) {
+    const catMatch = q.match(/\bon\s+([a-z]+)/i);
+    return { intent: 'ask', categoryName: catMatch ? catMatch[1] : null, period: askPeriod(q) };
   }
 
   // d. What-if ("what if I stop ordering on weekends?")
@@ -63,6 +71,22 @@ function parseCommandBarFallback(text) {
   return { intent: 'unknown' };
 }
 
+/** "today", "this month" or (default) "this week", from the words in a question. */
+function askPeriod(text) {
+  const t = String(text || '').toLowerCase();
+  return /\btoday\b/.test(t) ? 'today' : /\bmonth\b/.test(t) ? 'this month' : 'this week';
+}
+/** Only trust an AI answer that has what the next step needs; anything else goes to the on-device parser. */
+function validAiCommand(r) {
+  if (!r || typeof r !== 'object' || !['add', 'ask', 'afford', 'whatif', 'budget'].includes(r.intent)) return false;
+  const amt = Number(r.amount);
+  if (['add', 'afford', 'budget'].includes(r.intent) && !(Number.isFinite(amt) && amt > 0)) return false;
+  if (r.intent === 'add' && !(typeof r.note === 'string' && r.note.trim())) return false;
+  if (r.intent === 'budget' && !(typeof r.categoryName === 'string' && r.categoryName.trim())) return false;
+  r.amount = Number.isFinite(amt) ? amt : r.amount;
+  return true;
+}
+
 /* =========================================================
    COMMAND BAR LOGIC
    ========================================================= */
@@ -70,7 +94,7 @@ let isRecording = false;
 
 function commandBarHTML() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const micBtn = SpeechRecognition ? `<button type="button" class="btn icon-btn" id="cb-mic" aria-label="Use voice" title="Use voice (English, Hindi, Telugu)">🎤</button>` : '';
+  const micBtn = SpeechRecognition ? `<button type="button" class="btn icon-btn" id="cb-mic" aria-label="Use voice" title="Use voice">🎤</button>` : '';
   
   return `<div class="card mb cb-card" id="command-bar">
     <div class="cb-input-row">
@@ -114,8 +138,10 @@ Return JSON strictly with:
   "dayOffset": number (days from today, for afford),
   "reductionAmount": number (daily amount reduced for whatif)
 }`;
-      const aiRes = await aiCall('command', prompt);
-      if (aiRes && aiRes.intent) parsed = aiRes;
+      const slow = setTimeout(() => { if (res.querySelector('.cb-loading')) res.innerHTML = '<div class="cb-loading"><span class="status-dot"></span> Slow connection, nearly there…</div>'; }, 2000);
+      const aiRes = await aiCall('command', prompt, 4000);   // after 4s the on-device parser answers instead
+      clearTimeout(slow);
+      if (validAiCommand(aiRes)) parsed = aiRes;
     }
 
     if (!parsed || !parsed.intent) {
@@ -165,7 +191,9 @@ Return JSON strictly with:
       mic.classList.remove('recording');
       mic.innerHTML = '🎤';
       inp.placeholder = "Ask AI: 'can I afford a 1500 concert on Saturday?'";
-      toast('Voice recognition failed or blocked.');
+      toast(event.error === 'no-speech' ? 'Didn’t catch that. Tap the mic and try again.'
+        : event.error === 'not-allowed' || event.error === 'service-not-allowed' ? 'YOKO! can’t use the mic. Allow it in your browser, or just type.'
+        : 'Voice isn’t working right now. You can type it instead.', 4000);
     };
 
     recognition.onend = () => {
@@ -176,10 +204,12 @@ Return JSON strictly with:
     };
 
     mic.addEventListener('click', () => {
-      if (isRecording) {
-        recognition.stop();
-      } else {
-        recognition.start();
+      try {
+        if (isRecording) recognition.stop();
+        else recognition.start();
+      } catch (e) {   // start() throws if a previous session is still closing
+        console.warn('Speech start failed', e);
+        try { recognition.abort(); } catch (x) { /* ignore */ }
       }
     });
   }
@@ -192,21 +222,28 @@ function renderCommandResult(parsed, originalText, container) {
   let html = '';
   
   if (parsed.intent === 'add') {
+    if (!state.budget.categories.length) { container.innerHTML = '<p>Set up your budget first, then I can log expenses for you.</p>'; return; }
     const cat = guessCategory(parsed.note) || state.budget.categories[0];
     const catName = cat ? state.budget.categories.find(c => c.id === cat.id).name : 'Budget';
     const hrs = fmtHours(parsed.amount);
+    const freeze = typeof getActiveCategoryFreeze === 'function' && cat ? getActiveCategoryFreeze(cat.id) : null;
     html = `<div class="cb-card-confirm">
-      <p>I'll log <strong>${fmt(parsed.amount)}</strong>${hrs ? ` <span class="small muted">(= ${hrs})</span>` : ''} for <strong>${esc(parsed.note)}</strong> in ${esc(catName)}.</p>
-      ${parsed.split && parsed.withPerson ? `<p class="small muted">And I'll split it with ${esc(parsed.withPerson)} (they owe you ${fmt(parsed.amount/2)}).</p>` : ''}
+      <p>I’ll log <strong>${fmt(parsed.amount)}</strong>${hrs ? ` <span class="small muted">(= ${hrs})</span>` : ''} for <strong>${esc(parsed.note)}</strong> in ${esc(catName)}.</p>
+      ${freeze ? `<p class="alert alert-warn" style="margin-top:6px">❄️ <strong>${esc(catName)}</strong> is frozen (${plural(freeze.daysLeft, 'day')} left). Logging will break your challenge.</p>` : ''}
+      ${parsed.split && parsed.withPerson ? `<p class="small muted">And I’ll split it with ${esc(parsed.withPerson)} (they owe you ${fmt(parsed.amount/2)}).</p>` : ''}
       <button type="button" class="btn btn-primary btn-sm mt" id="cb-confirm-btn">Confirm and Save</button>
     </div>`;
     container.innerHTML = html;
     container.querySelector('#cb-confirm-btn').addEventListener('click', () => {
-      undoable(`Added ${fmt(parsed.amount)} for ${esc(parsed.note)}`, () => {
+      undoable(`Added ${fmt(parsed.amount)} for ${parsed.note}`, () => {
         addExpense({ categoryId: cat.id, amount: parsed.amount, date: todayISO(), note: parsed.note });
         if (parsed.split && parsed.withPerson) {
-          state.wallet.ious.push({ id: uid(), person: parsed.withPerson.slice(0, 60), dir: 'owed', amount: parsed.amount/2, date: todayISO(), due: '', note: parsed.note, settled: false, settledAt: '' });
+          const typed = String(parsed.withPerson).trim().slice(0, 60);
+          const known = state.wallet.ious.find(x => x.person.toLowerCase() === typed.toLowerCase());
+          const person = known ? known.person : typed.charAt(0).toUpperCase() + typed.slice(1);
+          state.wallet.ious.push({ id: uid(), person, dir: 'owed', amount: Math.round(parsed.amount / 2 * 100) / 100, date: todayISO(), due: '', note: parsed.note, settled: false, settledAt: '' });
         }
+        if (freeze && typeof triggerPetReaction === 'function') triggerPetReaction('freeze-broken');
         commit();
       });
       container.innerHTML = `<p class="success-text">✓ Saved.</p>`;
@@ -238,17 +275,22 @@ function renderCommandResult(parsed, originalText, container) {
 
   } else if (parsed.intent === 'ask') {
     const t = todayDate();
-    const startOfWeek = F.toISO(F.addDays(t, -t.getDay() + 1));
-    const cat = state.budget.categories.find(c => c.name.toLowerCase().includes((parsed.categoryName || '').toLowerCase()));
-    const exps = state.budget.expenses.filter(e => e.date >= startOfWeek && (!cat || e.categoryId === cat.id));
+    const period = parsed.period && /today|month|week/.test(parsed.period) ? parsed.period : askPeriod(originalText);
+    const from = period === 'today' ? todayISO() : period === 'this month' ? todayISO().slice(0, 7) + '-01'
+      : F.toISO(F.addDays(t, -((t.getDay() + 6) % 7)));   // weeks start on Monday
+    const want = (parsed.categoryName || '').toLowerCase().trim();
+    let cat = want ? state.budget.categories.find(c => c.name.toLowerCase().includes(want)) : null;
+    if (want && !cat) { const g = guessCategory(want); if (g && g.source !== 'guess') cat = state.budget.categories.find(c => c.id === g.id); }
+    const exps = state.budget.expenses.filter(e => e.date >= from && e.date <= todayISO() && (!cat || e.categoryId === cat.id));
     const total = sum(exps, e => e.amount);
     
-    container.innerHTML = `<p>You've spent <strong>${fmt(total)}</strong> on ${esc(cat ? cat.name : 'everything')} this week.</p>`;
+    container.innerHTML = `<p>You’ve spent <strong>${fmt(total)}</strong> on ${esc(cat ? cat.name : 'everything')} ${period}${exps.length ? ` (${plural(exps.length, 'expense')})` : ''}.</p>`;
     
   } else if (parsed.intent === 'afford') {
     const sts = studentSafeToSpend();
-    const next = nextPayInfo();
-    const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(todayDate()));
+    const al = allowanceLeft();
+    const next = al.byPayday || nextPayInfo() ? al : null;
+    const daysLeft = al.daysLeft;
     
     // Find top flexible category
     const dailyAvgs = categoryDailyAverages(30);
@@ -257,33 +299,37 @@ function renderCommandResult(parsed, originalText, container) {
       if (c.type === 'wants' && dailyAvgs[c.name] > topCost) { topCost = dailyAvgs[c.name]; topName = c.name; }
     }
 
+    const offset = Math.max(0, Math.round(Number(parsed.dayOffset) || 0));
+    const afterPay = !!next && offset >= daysLeft;   // the allowance arrives before the event
     const aff = F.affordCheck({
-      balance: sts.available,
-      daysLeft,
+      balance: afterPay ? sts.available + monthlyIncome() : sts.available,
+      daysLeft: afterPay ? daysLeft + 30 : daysLeft,
       amount: parsed.amount,
-      eventDayOffset: parsed.dayOffset || 0,
+      eventDayOffset: offset,
       dailySpend: sts.baselineDaily,
       monthlyAllowance: monthlyIncome(),
       topCategory: topName ? { name: topName, dailyCost: topCost } : null
     });
+
+    if (aff.verdict === 'no' && typeof triggerPetReaction === 'function') {
+      triggerPetReaction('afford-no', `Concert/purchase of ${fmt(parsed.amount)} is over budget.`);
+    }
 
     const hrs = fmtHours(parsed.amount);
     html = `<div class="cb-card-confirm">
       ${aff.verdict === 'yes' ? `<p class="tone-success-text" style="font-weight:bold">Yes, you can afford it.</p>` : 
         aff.verdict === 'tight' ? `<p class="tone-warn-text" style="font-weight:bold">It's tight.</p>` : 
         `<p class="tone-danger-text" style="font-weight:bold">No, you can't afford it right now.</p>`}
-      <p class="small">${fmt(parsed.amount)}${hrs ? ` (= <strong>${hrs}</strong>)` : ''} would leave you with <strong>${fmt(aff.perDayAfter)}/day</strong> for the remaining ${plural(aff.daysAfter, 'day')}.</p>
+      <p class="small">${afterPay ? `That’s after your next allowance (${daysLabel(daysLeft).toLowerCase()}). ` : ''}${fmt(parsed.amount)}${hrs ? ` (= <strong>${hrs}</strong>)` : ''} would leave you <strong>${fmt(aff.perDayAfter)} a day</strong> for the ${plural(aff.daysAfter, 'day')} after it.</p>
       ${aff.fix ? `<p class="mt" style="font-style:italic">💡 ${esc(aff.fix)}.</p>` : ''}
     </div>`;
     container.innerHTML = html;
 
   } else if (parsed.intent === 'whatif') {
-    const next = nextPayInfo();
-    const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(todayDate()));
+    const al = allowanceLeft();
+    const daysLeft = al.daysLeft;
     const dailyAvgs = categoryDailyAverages(30);
-    const inc = monthlyIncome();
-    const b = budgetTotals();
-    const currentBal = Math.max(0, inc > 0 ? (inc - b.actual) : (state.settings.cashOnHand || 0) - b.actual);
+    const currentBal = Math.max(0, al.balance);
     
     let adj = {};
     if (parsed.categoryName && parsed.reductionAmount) {
@@ -314,39 +360,60 @@ function renderCommandResult(parsed, originalText, container) {
 /* =========================================================
    BUDGET AUTOPILOT
    ========================================================= */
+/** What each category cost in a typical recent month: the average of up to 3 finished months that have expenses.
+ *  Whole months, so a monthly fee like the mess bill counts once (a 60-day window can catch it twice). */
+function autopilotMonthlySpend() {
+  const t = todayDate(), exps = state.budget.expenses || [];
+  const months = [1, 2, 3].map(k => F.toISO(new Date(t.getFullYear(), t.getMonth() - k, 1)).slice(0, 7))
+    .filter(m => exps.some(x => (x.date || '').slice(0, 7) === m));
+  if (!months.length) {   // no finished month yet: fall back to the daily pace so far
+    const avg = categoryDailyAverages(60), out = {};
+    state.budget.categories.forEach(c => { out[c.id] = (avg[c.name] || 0) * 30; });
+    return { byCat: out, reason: 'From your spending so far.' };
+  }
+  const byCat = {};
+  state.budget.categories.forEach(c => {
+    byCat[c.id] = sum(exps.filter(x => x.categoryId === c.id && months.includes((x.date || '').slice(0, 7))), x => x.amount) / months.length;
+  });
+  return { byCat, reason: months.length === 1 ? 'What you spent last month.' : `Your average over the last ${months.length} months.` };
+}
 function budgetAutopilotModal() {
+  if (!state.budget.categories.length) { toast('Add a budget category first.'); return; }
   const inc = monthlyIncome();
-  const dailyAvgs = categoryDailyAverages(60);
+  const hist = autopilotMonthlySpend();
   let totalProposed = 0;
   
   const proposals = state.budget.categories.map(c => {
-    let prop = (dailyAvgs[c.name] || 0) * 30;
-    let reason = "Based on your 60-day average.";
+    let prop = hist.byCat[c.id] || 0;
+    let reason = hist.reason;
     if (prop === 0) {
-      if (c.type === 'savings') { prop = inc * 0.10; reason = "Rule of thumb: save 10%."; }
-      else { prop = 500; reason = "A small baseline to start."; }
+      if (c.type === 'savings') { prop = c.planned > 0 ? c.planned : inc * 0.10; reason = c.planned > 0 ? 'Kept your savings target.' : 'Rule of thumb: save 10%.'; }
+      else if (c.planned > 0) { prop = c.planned; reason = 'No spending here yet, so your plan stays.'; }
+      else { prop = 500; reason = 'A small amount to start with.'; }
+    } else if (c.type === 'savings' && c.planned > prop) {   // never talk someone out of saving
+      prop = c.planned; reason = 'Kept your savings target.';
     } else if (c.type === 'wants' && inc > 0 && (totalProposed + prop) > inc) {
       prop = prop * 0.8;
-      reason = "Trimmed by 20% to fit your allowance.";
+      reason = 'Trimmed by 20% to fit your allowance.';
     }
     
-    prop = Math.round(prop / 50) * 50; // round to nearest 50
+    prop = Math.ceil(prop / 50) * 50; // round up to the next 50, so a typical month fits under the budget
     totalProposed += prop;
     
     return { id: c.id, name: c.name, proposed: prop, reason };
   });
 
   let fields = proposals.map((p, i) => ({
-    name: `prop_${i}`, label: `${p.name} <br><span class="small muted" style="font-weight:normal">${p.reason}</span>`, kind: 'money', value: p.proposed, positive: true
+    name: `prop_${i}`, label: p.name, help: p.reason, kind: 'money', value: p.proposed
   }));
 
   formModal({
-    title: 'Autopilot Budgets',
-    submitLabel: 'Apply Budgets',
+    title: 'Set my budgets for me',
+    submitLabel: 'Use these budgets',
     values: proposals.reduce((acc, p, i) => { acc[`prop_${i}`] = p.proposed; return acc; }, {}),
     fields: fields,
     onSave: v => {
-      undoable('Budgets generated via autopilot', () => {
+      undoable('Budgets set from your spending', () => {
         proposals.forEach((p, i) => {
           const c = state.budget.categories.find(x => x.id === p.id);
           if (c) c.planned = Number(v[`prop_${i}`]) || 0;

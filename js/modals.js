@@ -297,16 +297,37 @@ function expenseForm(exp) {
       });
     },
     live: v => {
-      if (!(v.amount > 0)) return '';
+      const freeze = typeof getActiveCategoryFreeze === 'function' ? getActiveCategoryFreeze(v.categoryId) : null;
+      const fzWarn = freeze ? `<div class="alert alert-warn">❄️ <strong>${esc(freeze.catName)}</strong> is frozen (${plural(freeze.daysLeft, 'day')} left). Adding this will break your challenge.</div>` : '';
+      if (!(v.amount > 0)) return fzWarn;
       const ru = state.settings.roundUp, g = ru.enabled ? state.goals.find(x => x.id === ru.goalId) : null;
       const up = g ? F.roundUpAmount(v.amount, ru.to) : 0;
       const fl = feelsLike(v.amount);
-      return (fl ? `<div class="alert alert-info" style="flex-wrap:wrap">That’s ${fl}</div>` : '') + (up > 0 ? `<div class="alert alert-success">🫙 ${fmt(up)} spare change goes to ${esc(g.name)}</div>` : '');
+      return fzWarn + (fl ? `<div class="alert alert-info" style="flex-wrap:wrap">That’s ${fl}</div>` : '') + (up > 0 ? `<div class="alert alert-success">🫙 ${fmt(up)} spare change goes to ${esc(g.name)}</div>` : '');
     },
     onSave: v => {
-      const r = addExpense({ categoryId: v.categoryId, amount: v.amount, date: v.date, note: v.note });
-      commit(); expenseToast(v.amount, r);
-      const pf = takePriceFlags(); if (pf) setTimeout(() => toast(`${pf}. Update it under Wallet → Subscriptions`, 4500), 2800);
+      const freeze = typeof getActiveCategoryFreeze === 'function' ? getActiveCategoryFreeze(v.categoryId) : null;
+      const doSave = () => {
+        const r = addExpense({ categoryId: v.categoryId, amount: v.amount, date: v.date, note: v.note });
+        commit(); expenseToast(v.amount, r);
+        if (freeze && typeof triggerPetReaction === 'function') triggerPetReaction('freeze-broken');
+        const pf = takePriceFlags(); if (pf) setTimeout(() => toast(`${pf}. Update it under Wallet → Subscriptions`, 4500), 2800);
+      };
+      if (freeze) {
+        openModal({
+          title: 'Category is frozen',
+          body: `<p><strong>${esc(freeze.catName)}</strong> is currently frozen for <strong>${plural(freeze.daysLeft, 'more day')}</strong> (Day ${freeze.daysIn} of ${freeze.daysTotal} of your challenge).</p>
+            <p class="muted small">Logging an expense in this category will break your no-spend challenge streak.</p>`,
+          submitLabel: 'Log anyway',
+          cancelLabel: 'Keep freeze',
+          onSubmit: () => {
+            doSave();
+            return true;
+          }
+        });
+        return;
+      }
+      doSave();
     }
   });
 }

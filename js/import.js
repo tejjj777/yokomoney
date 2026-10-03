@@ -13,13 +13,36 @@ function catByLooseName(name) {
     Subscriptions: /subscri|ott|stream/i, Rent: /rent|housing/i, Fun: /fun|shop|entertain|leisure|want/i };
   return findByName(state.budget.categories, name) || (syn[name] ? state.budget.categories.find(c => syn[name].test(c.name)) : null) || null;
 }
+/** Everyday student words → the kind of category they belong in (checked against the user's own category names). */
+const STUDENT_WORDS = [
+  [/\b(chai|tea|coffee|cafe|canteen|snacks?|maggi|samosa|nescafe|bun|juice|cold coffee)\b/, /chai|canteen|snack|cafe|coffee/],
+  [/\b(mess|hostel|pg|rent|warden)\b/, /mess|hostel|rent|pg\b/],
+  [/\b(metro|auto|cab|uber|ola|rapido|bus|train|petrol|fuel|station|travel|bike)\b/, /trans|travel|metro|auto|commute/],
+  [/\b(books?|bookstore|xerox|print(ing|out)?|stationery|notebooks?|lab|record|course|exam)\b/, /study|book|college|supplies/],
+  [/\b(jio|airtel|vi|bsnl|recharge|wifi|wi-fi|internet|broadband|phone|mobile|data pack)\b/, /phone|wifi|mobile|internet/],
+  [/\b(swiggy|zomato|pizza|biryani|burger|dominos?|kfc|mcdonald'?s|blinkit|zepto|food delivery|takeout)\b/, /deliver|zomato|swiggy|takeout|food/],
+  [/\b(movies?|pvr|inox|cinema|concert|party|outing|dinner|bowling|gaming|fest|club)\b/, /outing|movie|fun|entertain/],
+  [/\b(netflix|spotify|prime|hotstar|jiohotstar|youtube|subscription|icloud|gym)\b/, /subscri|ott|stream|gym/]
+];
+const NAME_STOP = new Set(['and', 'the', 'fees', 'fee', 'fund', 'plan', 'bills', 'bill', 'other', 'money', 'spend', 'spending']);
 function guessCategory(text) {
   const cats = state.budget.categories;
   if (!cats.length) return null;
   const r = F.categorize(text, state.rules.map(x => [x.match, x.categoryId]));
   if (r && r.source === 'rule' && cats.some(c => c.id === r.name)) return { id: r.name, source: 'rule' };
+  const t = String(text || '').toLowerCase();
+  const spendCats = cats.filter(c => c.type !== 'savings' || /\b(save|saving|savings|fund|goal)\b/.test(t));
+  // 1. student words ("chai" → Chai & Canteen, "rapido" → Transport & Metro)
+  for (const [words, catRe] of STUDENT_WORDS) if (words.test(t)) { const c = spendCats.find(k => catRe.test(k.name.toLowerCase())); if (c) return { id: c.id, source: 'auto' }; }
+  // 2. a word that appears in a category's own name ("bookstore" → Study & Books)
+  const tw = t.split(/[^a-z]+/).filter(w => w.length >= 4 && !NAME_STOP.has(w));
+  for (const c of spendCats) {
+    const cw = c.name.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 4 && !NAME_STOP.has(w));
+    if (tw.some(w => cw.some(k => w === k || w.startsWith(k) || k.startsWith(w)))) return { id: c.id, source: 'auto' };
+  }
+  // 3. the general merchant list
   if (r && r.source !== 'rule') { const c = catByLooseName(r.name); if (c) return { id: c.id, source: 'auto' }; }
-  const fb = cats.find(c => /other|misc|shopping|fun/i.test(c.name)) || cats.find(c => c.type === 'wants') || cats[0];
+  const fb = cats.find(c => /\b(other|misc|shopping|fun)\b/i.test(c.name)) || cats.find(c => c.type === 'wants') || cats[0];
   return { id: fb.id, source: 'guess' };
 }
 function isDuplicate(t) { return state.budget.expenses.some(e => e.date === t.date && Math.abs(e.amount - t.amount) < 0.01); }
@@ -50,40 +73,83 @@ function impSmsStage(form) {
 function impFileStage(form) {
   form.querySelector('button[type="submit"]').hidden = true;
   const st = form.querySelector('#imp-stage');
-  st.innerHTML = `<div class="dropzone" id="imp-drop"><p class="dz-icon" aria-hidden="true">🏦</p><p><strong>Drop a bank statement here</strong></p><p class="small muted">CSV (best) or PDF</p>
-      <button type="button" class="btn btn-primary" id="imp-pick">${ICON.upload}<span>Choose a file</span></button>
-      <input type="file" id="imp-file" accept=".csv,.txt,.pdf,text/csv,application/pdf" class="sr-only" tabindex="-1" aria-label="Statement file">
-      <p class="small muted">Read on this device. Most banks let you download your statement as CSV or Excel.</p></div>
+  st.innerHTML = `<div class="dropzone" id="imp-drop"><p class="dz-icon" aria-hidden="true">🏦</p><p><strong>Drop bank statements or UPI screenshots here</strong></p><p class="small muted">CSV, PDF, or UPI screenshots (PNG / JPG)</p>
+      <div class="row" style="justify-content:center;margin-top:8px">
+        <button type="button" class="btn btn-primary" id="imp-pick">${ICON.upload}<span>Choose files</span></button>
+        <button type="button" class="btn" id="imp-demo-shots">📱 Try 15 sample UPI screenshots</button>
+      </div>
+      <input type="file" id="imp-file" accept=".csv,.txt,.pdf,text/csv,application/pdf,image/*,.png,.jpg,.jpeg" multiple class="sr-only" tabindex="-1" aria-label="Statement file">
+      <p class="small muted">Read privately on this device.</p></div>
     <div id="ps-status" aria-live="polite"></div><div id="ps-pass" class="field" hidden></div>`;
   const input = st.querySelector('#imp-file');
   st.querySelector('#imp-pick').addEventListener('click', () => input.click());
-  input.addEventListener('change', () => { if (input.files[0]) impHandleFile(form, input.files[0]); });
-  bindDrop(st.querySelector('#imp-drop'), f => impHandleFile(form, f));
+  input.addEventListener('change', () => { if (input.files && input.files.length) impHandleFiles(form, Array.from(input.files)); });
+  bindDrop(st.querySelector('#imp-drop'), f => impHandleFiles(form, [f]));
+  st.querySelector('#imp-demo-shots').addEventListener('click', () => {
+    const t = todayDate();
+    const ago = n => F.toISO(F.addDays(t, -n));
+    const sampleTxns = [
+      { amount: 240, type: 'debit', merchant: 'SWIGGY', date: ago(5), raw: 'Paid to SWIGGY Rs 240' },
+      { amount: 40, type: 'debit', merchant: 'CHAI POINT', date: ago(5), raw: 'Paid to CHAI POINT Rs 40' },
+      { amount: 120, type: 'debit', merchant: 'CAMPUS CANTEEN', date: ago(4), raw: 'Paid to CAMPUS CANTEEN Rs 120' },
+      { amount: 350, type: 'debit', merchant: 'RAHUL VERMA', date: ago(4), raw: 'Paid to RAHUL VERMA (WiFi Split) Rs 350' },
+      { amount: 380, type: 'debit', merchant: 'ZOMATO', date: ago(3), raw: 'Paid to ZOMATO Rs 380' },
+      { amount: 50, type: 'debit', merchant: 'METRO SMART CARD', date: ago(3), raw: 'Paid to METRO SMART CARD Rs 50' },
+      { amount: 450, type: 'debit', merchant: 'COLLEGE BOOKSTORE', date: ago(2), raw: 'Paid to COLLEGE BOOKSTORE Rs 450' },
+      { amount: 60, type: 'debit', merchant: 'NESCAFE KIOSK', date: ago(2), raw: 'Paid to NESCAFE KIOSK Rs 60' },
+      { amount: 4500, type: 'debit', merchant: 'HOSTEL MESS', date: ago(1), raw: 'Paid to HOSTEL MESS Rs 4500' },
+      { amount: 180, type: 'debit', merchant: 'RAPIDO AUTO', date: ago(1), raw: 'Paid to RAPIDO AUTO Rs 180' },
+      { amount: 649, type: 'debit', merchant: 'NETFLIX INDIA', date: ago(1), raw: 'Paid to NETFLIX INDIA Rs 649' },
+      { amount: 119, type: 'debit', merchant: 'SPOTIFY INDIA', date: todayISO(), raw: 'Paid to SPOTIFY INDIA Rs 119' },
+      { amount: 299, type: 'debit', merchant: 'JIO PREPAID', date: todayISO(), raw: 'Paid to JIO PREPAID Rs 299' },
+      { amount: 150, type: 'debit', merchant: 'XEROX & PRINT SHOP', date: todayISO(), raw: 'Paid to XEROX & PRINT SHOP Rs 150' },
+      { amount: 600, type: 'debit', merchant: 'PVR CINEMAS', date: todayISO(), raw: 'Paid to PVR CINEMAS Rs 600' }
+    ];
+    impReview(form, sampleTxns, 'import', '15 Sample UPI Screenshots');
+  });
 }
-async function impHandleFile(form, file) {
+async function impHandleFiles(form, files) {
+  if (!files || !files.length) return;
   const status = form.querySelector('#ps-status');
   const say = (html, cls = 'alert-info') => { if (status) status.innerHTML = `<div class="alert ${cls}" role="status">${html}</div>`; };
-  const name = file.name || 'statement';
   try {
-    if (file.size > 30e6) { say('That file is over 30 MB, which is too big for a statement.', 'alert-danger'); return; }
-    let txns;
-    if (/\.pdf$/i.test(name) || file.type === 'application/pdf') {
-      say(`Reading <strong>${esc(name)}</strong>…`);
-      const lib = await loadPdfJs();
-      const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false });
-      task.onPassword = (update, reason) => psAskPassword(form, update, reason);
-      const pdf = await task.promise;
-      const lines = await pdfToLines(pdf, 40);
-      try { pdf.destroy(); } catch (e) { /* ignore */ }
-      txns = F.parseStatementLines(lines);
-    } else if (/\.(csv|txt|tsv)$/i.test(name) || /text|csv/.test(file.type)) {
-      txns = F.parseStatementCsv(await file.text());
-    } else if (/\.xlsx?$/i.test(name)) { say('Excel files don’t work here. Open it in Excel, save it as CSV, then import that.', 'alert-warn'); return; }
-    else { say('Choose a CSV or PDF statement.', 'alert-danger'); return; }
-    if (!txns.length) { say(`Couldn’t find any transactions in <strong>${esc(name)}</strong>. A CSV from your bank usually works better.`, 'alert-warn'); return; }
-    impReview(form, txns, 'import', name);
+    const allTxns = [];
+    const imageFiles = files.filter(isImageFile);
+    if (imageFiles.length > 0) {
+      say(`Reading ${plural(imageFiles.length, 'screenshot')}…`);
+      for (const file of imageFiles) {
+        const lines = await ocrLines([file]);
+        const parsed = F.parseSmsBatch(lines.join('\n'), todayISO());
+        if (parsed.length) allTxns.push(...parsed);
+        else {
+          const rc = F.parseReceipt(lines);
+          if (rc.total > 0) allTxns.push({ amount: rc.total, type: 'debit', merchant: rc.merchant || 'UPI Payment', date: rc.date || todayISO(), raw: lines.join(' ') });
+        }
+      }
+    }
+    const docFiles = files.filter(f => !isImageFile(f));
+    for (const file of docFiles) {
+      const name = file.name || 'statement';
+      if (/\.pdf$/i.test(name) || file.type === 'application/pdf') {
+        say(`Reading <strong>${esc(name)}</strong>…`);
+        const lib = await loadPdfJs();
+        const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false });
+        task.onPassword = (update, reason) => psAskPassword(form, update, reason);
+        const pdf = await task.promise;
+        const lines = await pdfToLines(pdf, 40);
+        try { pdf.destroy(); } catch (e) { /* ignore */ }
+        allTxns.push(...F.parseStatementLines(lines));
+      } else if (/\.(csv|txt|tsv)$/i.test(name) || /text|csv/.test(file.type)) {
+        allTxns.push(...F.parseStatementCsv(await file.text()));
+      }
+    }
+    if (!allTxns.length) {
+      say('Couldn’t extract transactions from the selected files. Try CSV or paste messages instead.', 'alert-warn');
+      return;
+    }
+    impReview(form, allTxns, 'import', `${plural(files.length, 'file')}`);
   } catch (err) {
-    console.error('Statement import failed', err);
+    console.error('Import processing failed', err);
     say(`Couldn’t read that file (${esc((err && err.message) || 'unknown error')}).`, 'alert-danger');
   }
 }
@@ -122,7 +188,6 @@ function impReview(form, txns, src, fileName = '') {
   };
   st.addEventListener('change', e => {
     if (e.target.classList.contains('imp-cat')) {
-      // same merchant elsewhere in the list follows the new choice
       const r = debits[+e.target.dataset.i], key = merchantKey(r.merchant);
       if (key) st.querySelectorAll('.imp-cat').forEach(sel => { const o = debits[+sel.dataset.i]; if (sel !== e.target && merchantKey(o.merchant) === key && o.source !== 'rule') sel.value = e.target.value; });
     }
@@ -150,7 +215,7 @@ function impApply(form) {
     const seen = new Set();
     imp.rows.forEach((r, i) => {
       const key = merchantKey(r.merchant), chosen = catChoice(i);
-      if (!key || seen.has(key) || chosen === r.cat) return;   // only learn what you changed
+      if (!key || seen.has(key) || chosen === r.cat) return;
       seen.add(key);
       const ex = state.rules.find(x => x.match === key);
       if (ex) { if (ex.categoryId !== chosen) { ex.categoryId = chosen; learned++; } }
@@ -161,6 +226,8 @@ function impApply(form) {
   commit(); playSound('coin');
   const pf = takePriceFlags();
   toast(`Added ${plural(picked.length, 'expense')} (${fmt(total)})${learned ? `. Remembered ${plural(learned, 'shop')}` : ''}${pf ? `. ${pf}` : ''}`, 4500);
+  if (typeof triggerPetReaction === 'function') triggerPetReaction('import', `Imported ${picked.length} expenses. Dashboard updated!`);
+  if (typeof checkBudgetNudges === 'function') checkBudgetNudges();
   if (findRecurringCharges().some(x => !x.snoozed)) setTimeout(() => subSuggestModal(false), 700);
   return true;
 }

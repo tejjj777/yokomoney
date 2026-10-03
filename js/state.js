@@ -54,7 +54,8 @@ function defaultState() {
     wallet: { cash: [], ious: [], transport: [], taxes: [], deadlines: [], taxYearStart: ci.fy, taxEstimate: 0, upiIds: {} },
     payslips: [],
     student: { allowance: 0, arrivalDay: 1, living: 'hostel', partTimeAmount: 0, partTimeHours: 0, semester: { start: '', end: '', heavyMonths: [] } },
-    recurring: [], history: [], rules: [], wishlist: [], challenges: [], xp: { total: 0 }, yearlyBills: [], incomeLog: []
+    recurring: [], history: [], rules: [], wishlist: [], challenges: [], xp: { total: 0 }, yearlyBills: [], incomeLog: [],
+    groups: [], groupData: {}
   };
 }
 
@@ -213,6 +214,13 @@ function normalizeMore(s, raw) {
   s.meta.xpBackup = date(rm.xpBackup);
   s.meta.subCheckSkip = typeof rm.subCheckSkip === 'string' ? rm.subCheckSkip.slice(0, 7) : '';
   s.meta.tourVersion = nn(rm.tourVersion);
+  // budget alerts already sent (kept for this month and last, so they don't repeat on every open)
+  s.meta.nudges = {};
+  const nowD = todayDate(), keepYm = [F.toISO(nowD).slice(0, 7), F.toISO(new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1)).slice(0, 7)];
+  if (rm.nudges && typeof rm.nudges === 'object') for (const [k, v] of Object.entries(rm.nudges)) {
+    if (typeof k === 'string' && k.length < 80 && keepYm.some(m => k.includes(m)) && (v === true || typeof v === 'string')) s.meta.nudges[k] = v;
+  }
+  s.meta.notifPromptDismissed = rm.notifPromptDismissed === true;
   s.meta.tourChapters = {};
   if (rm.tourChapters && typeof rm.tourChapters === 'object') for (const k of Object.keys(rm.tourChapters)) if (rm.tourChapters[k] === true) s.meta.tourChapters[k] = true;
   // keep links from expenses to recurring payments / debt payments / imports
@@ -251,6 +259,10 @@ function normalizeMore(s, raw) {
       })).filter(h => h.amount > 0)
     }
   };
+  s.groups = arr(raw.groups).map(g => ({
+    id: str(g.id), name: str(g.name, 'Group', 80), joinCode: str(g.joinCode), myMemberId: str(g.myMemberId)
+  })).filter(g => g.id && g.joinCode);
+  s.groupData = raw.groupData && typeof raw.groupData === 'object' ? raw.groupData : {};
   return s;
 }
 
@@ -278,156 +290,157 @@ let state = loadState();
 const ui = { open: {} };   // non-persistent UI state (open <details>, etc.)
 
 /** Sample data with dates relative to today, so it always looks current. */
+/** Sample data with dates relative to today, so it always looks current. */
 function sampleState() {
   const t = todayDate();
   const iso = d => F.toISO(d);
-  const nextFirst = new Date(t.getFullYear(), t.getMonth() + 1, 1);
   const s = defaultState();
-  s.currency = state.currency;
-  s.income = { mode: 'net', net: 85000, gross: 0, deductions: defaultDeductions(), freq: 'monthly', nextPayDate: iso(nextFirst),
-    others: [{ id: uid(), name: 'Freelance design', amount: 12000, freq: 'monthly' }], configured: true };
-  const B = (role, name, mode, value) => ({ id: uid(), role, name, mode, value });
-  s.split.buckets = [B('bills', 'Bills', 'percent', 32), B('debt', 'Debt', 'percent', 20), B('goals', 'Savings Goals', 'percent', 15),
-    B('gifts', 'Gifts', 'percent', 2), B('spending', 'Spending', 'percent', 25), B('custom', 'Family support', 'amount', 5100)];
-  const D = (name, balance, startBalance, rate, minPayment, extra = {}) => Object.assign({ id: uid(), name, balance, startBalance, rate, minPayment, defeatedAt: '', payments: [] }, extra);
-  s.debts = [
-    D('Credit card', 65000, 90000, 36, 3250),
-    D('Personal loan', 240000, 300000, 14, 8000),
-    D('Bike loan', 55000, 80000, 10.5, 2900),
-    D('Phone EMI', 0, 24000, 0, 2000, { defeatedAt: iso(F.addDays(t, -3)), payments: [{ id: uid(), date: iso(F.addDays(t, -3)), amount: 2000 }] })
-  ];
-  s.debtSettings = { extra: 2850, strategy: 'avalanche' };   // 20% of 85,000 − 14,150 minimums
-  const C = (name, type, planned, actual) => ({ id: uid(), name, type, planned, actual });
-  s.budget.categories = [C('Rent', 'needs', 22000, 0), C('Food', 'needs', 11000, 0), C('Transport', 'needs', 3500, 0),
-    C('Bills', 'needs', 5000, 0), C('Loans & debt', 'needs', 17000, 0), C('Subscriptions', 'wants', 1500, 0),
-    C('Fun', 'wants', 5000, 0), C('Savings', 'savings', 12750, 0)];
-  s.budget.expenses = [];   // filled in by sampleSpending() once recurring payments exist
-  const G = (name, occasion, days, budget, idea, status, customOccasion = '') => ({ id: uid(), name, occasion, customOccasion, date: iso(F.addDays(t, days)), budget, idea, status });
-  s.gifts = [
-    G('Mom', 'Birthday', 12, 3000, 'Silk saree', 'Idea'),
-    G('Family', 'Diwali', 40, 8000, 'Sweets & gift hampers', 'Idea'),
-    G('Priya (Secret Santa)', 'Christmas', F.daysBetween(t, F.nextAnnualOccurrence(new Date(t.getFullYear(), 11, 25), t)), 1000, 'Book + mug', 'Idea'),
-    G('Parents', 'Anniversary', 95, 5000, 'Dinner voucher', 'Idea'),
-    G('Dad', 'Birthday', 150, 2500, 'Smartwatch strap', 'Idea'),
-    G('Sister', 'Raksha Bandhan', 310, 2000, 'Earrings', 'Idea'),
-    G('Arjun', 'Custom', 60, 1500, 'Board game', 'Bought', 'Housewarming')
-  ];
-  const goal = (name, target, saved, months, rate, contributions) => ({ id: uid(), name, target, saved, deadline: iso(F.addMonths(t, months)), rate, planMonthly: null, contributions });
-  s.goals = [
-    goal('Emergency fund', 300000, 120000, 18, 6.5, [{ id: uid(), date: iso(F.addMonths(t, -2)), amount: 60000, note: 'Bonus' }, { id: uid(), date: iso(F.addMonths(t, -1)), amount: 60000, note: '' }]),
-    goal('New laptop', 120000, 35000, 8, 0, [{ id: uid(), date: iso(F.addMonths(t, -1)), amount: 35000, note: '' }]),
-    goal('Beach trip', 45000, 9000, 5, 0, [{ id: uid(), date: iso(F.addDays(t, -14)), amount: 9000, note: '' }])
-  ];
-  s.subscriptions = [
-    { id: uid(), name: 'Netflix', amount: 649, cycle: 'monthly' }, { id: uid(), name: 'Spotify', amount: 119, cycle: 'monthly' },
-    { id: uid(), name: 'iCloud+', amount: 75, cycle: 'monthly' }, { id: uid(), name: 'Amazon Prime', amount: 1499, cycle: 'yearly' },
-    { id: uid(), name: 'Gym', amount: 1500, cycle: 'monthly' }
-  ];
-  // Round-ups on this month's sample expenses go to the Beach trip jar
-  sampleSpending(s, t);
-  s.budget.expenses.forEach(x => {
-    if (x.date.slice(0, 7) !== iso(t).slice(0, 7) || x.recurringId || !/food|transport|fun/i.test((s.budget.categories.find(c => c.id === x.categoryId) || {}).name || '')) return;
-    const up = F.roundUpAmount(x.amount, 100);
-    if (up <= 0) return;
-    const cid = uid(), cat = s.budget.categories.find(c => c.id === x.categoryId);
-    s.goals[2].saved += up;
-    s.goals[2].contributions.push({ id: cid, date: x.date, amount: up, note: `Round-up · ${cat.name}`, roundup: true });
-    x.roundup = { goalId: s.goals[2].id, cid, amount: up };
-  });
-  // Wallet sample
-  const ago = n => iso(F.addDays(t, -n)), ahead = n => iso(F.addDays(t, n));
-  s.wallet.cash = [
-    { id: uid(), date: ago(20), type: 'in', amount: 5000, note: 'ATM withdrawal', expenseId: null },
-    { id: uid(), date: ago(18), type: 'out', amount: 60, note: 'Chai & samosa', expenseId: null },
-    { id: uid(), date: ago(11), type: 'out', amount: 340, note: 'Vegetable market', expenseId: null },
-    { id: uid(), date: ago(10), type: 'out', amount: 2000, note: 'Settled with Arjun', expenseId: null },
-    { id: uid(), date: ago(4), type: 'out', amount: 150, note: 'Auto fare', expenseId: null }
-  ];
-  s.wallet.ious = [
-    { id: uid(), person: 'Rahul', dir: 'owed', amount: 1500, date: ago(15), due: ahead(10), note: 'Concert ticket', settled: false, settledAt: '' },
-    { id: uid(), person: 'Priya', dir: 'owe', amount: 800, date: ago(8), due: ahead(3), note: 'Dinner split', settled: false, settledAt: '' },
-    { id: uid(), person: 'Arjun', dir: 'owe', amount: 2000, date: ago(40), due: '', note: 'Bike repair', settled: true, settledAt: ago(10) }
-  ];
-  const T = (daysAgo, mode, amount, note, km = null) => ({ id: uid(), date: ago(daysAgo), mode, amount, note, km, expenseId: null });
-  s.wallet.transport = [T(26, 'fuel', 1500, 'Full tank', 320), T(22, 'metro', 40, 'Office'), T(16, 'cab', 320, 'Airport run', 18), T(12, 'metro', 40, 'Office'),
-    T(9, 'parking', 60, 'Mall'), T(5, 'auto', 120, 'Market'), T(3, 'fuel', 1200, 'Top-up', 250), T(1, 'cab', 260, 'Late night')];
-  const fyS = F.taxYear(t, countryInfo(state.settings.country).fy);
-  s.wallet.taxes = [];
-  for (let d = new Date(fyS.start); d < new Date(t.getFullYear(), t.getMonth(), 1); d = F.addMonths(d, 1)) {
-    const end = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)), lbl = `Payslip · ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-    s.wallet.taxes.push({ id: uid(), date: end, type: 'Withheld from pay', amount: 6200, note: lbl, payslipId: null });
-    s.wallet.taxes.push({ id: uid(), date: end, type: PAYROLL_TAX, amount: 200, note: lbl, payslipId: null });
-  }
-  s.wallet.taxEstimate = 76800;
-  s.payslips = [1, 2].map(k => { const m = F.addMonths(new Date(t.getFullYear(), t.getMonth(), 1), -k);
-    return { id: uid(), month: iso(m).slice(0, 7), employer: 'Acme Technologies Pvt Ltd', gross: 100000, net: 85000, tax: 6200, pf: 7200, pt: 200, esi: 0, other: 1400, fileName: '', addedAt: iso(new Date(m.getFullYear(), m.getMonth() + 1, 0)) }; });
-  s.settings = JSON.parse(JSON.stringify(state.settings));
-  s.settings.cashOnHand = 40000;
-  s.settings.roundUp = { enabled: true, to: 100, goalId: s.goals[2].id };
+  s.currency = 'INR';
+  s.settings.country = 'IN';
+  
+  // 2nd-year engineering student living in hostel
   s.student = {
     allowance: 12000,
-    arrivalDay: 1,
+    arrivalDay: 5,
     living: 'hostel',
-    partTimeAmount: 3000,
-    partTimeHours: 10,
+    partTimeAmount: 4000,
+    partTimeHours: 8,
     semester: {
       start: iso(F.addMonths(t, -2)).slice(0, 7) + '-01',
-      end: iso(F.addMonths(t, 3)).slice(0, 7) + '-01',
+      end: iso(F.addMonths(t, 4)).slice(0, 7) + '-01',
       heavyMonths: [
-        { id: uid(), month: iso(F.addMonths(t, 1)).slice(0, 7), name: 'Semester Exam & Tech Fest', amount: 8000 },
-        { id: uid(), month: iso(F.addMonths(t, 3)).slice(0, 7), name: 'Next Semester Registration', amount: 25000 }
+        { id: uid(), month: iso(F.addMonths(t, 1)).slice(0, 7), name: 'Tech Fest & Project Supplies', amount: 5000 },
+        { id: uid(), month: iso(F.addMonths(t, 3)).slice(0, 7), name: 'Semester Exam Fees', amount: 8000 }
       ]
     }
   };
-  s.meta = { startedAt: iso(F.addDays(t, -45)), tourDone: state.meta.tourDone };
-  sampleMore(s, t);
-  s.meta.isSample = true;   // shows the "Remove sample data" banner on Home
+  
+  const anchorPay = new Date(t.getFullYear(), t.getMonth(), 5);
+  // ₹12,000 allowance + ₹4,000 tutoring, both in by the 5th: split as one ₹16,000 month so the buckets add up
+  s.income = {
+    mode: 'net', net: 16000, gross: 0, deductions: defaultDeductions(), freq: 'monthly',
+    nextPayDate: iso(anchorPay > t ? anchorPay : F.addMonths(anchorPay, 1)),
+    others: [],
+    configured: true
+  };
+  
+  const B = (role, name, mode, value) => ({ id: uid(), role, name, mode, value });
+  s.split.buckets = [
+    B('bills', 'Hostel & Mess', 'amount', 5300),
+    B('spending', 'Daily Spending', 'amount', 6500),
+    B('goals', 'Trip & Savings', 'amount', 3000),
+    B('custom', 'Study & Tech', 'amount', 1200)
+  ];
+  const [bkHostel, bkDaily, bkTrip, bkStudy] = s.split.buckets;
+  
+  const C = (name, type, planned, actual) => ({ id: uid(), name, type, planned, actual });
+  const catMess = C('Hostel & Mess', 'needs', 4500, 0);
+  const catStudy = C('Study & Books', 'needs', 1200, 0);
+  const catTrans = C('Transport & Metro', 'needs', 1000, 0);
+  const catWifi = C('Phone & WiFi', 'needs', 800, 0);
+  const catZomato = C('Food delivery & Zomato', 'wants', 2000, 0); // Frozen category!
+  const catChai = C('Chai & Canteen', 'wants', 1200, 0);
+  const catFun = C('Outings & Movies', 'wants', 1500, 0);
+  const catSubs = C('Subscriptions', 'wants', 800, 0);
+  const catSave = C('Semester Trip Fund', 'savings', 2000, 0);
+  
+  s.budget.categories = [catMess, catStudy, catTrans, catWifi, catZomato, catChai, catFun, catSubs, catSave];
+  [[catMess, bkHostel], [catWifi, bkHostel], [catStudy, bkStudy], [catTrans, bkDaily], [catZomato, bkDaily], [catChai, bkDaily], [catFun, bkDaily], [catSubs, bkDaily], [catSave, bkTrip]]
+    .forEach(([c, b]) => { c.bucketId = b.id; });
+  
+  // Active Category Freeze on Food delivery & Zomato (Day 4 of 7, 3 days left)
+  s.challenges = [
+    { id: uid(), type: 'nocat', start: iso(F.addDays(t, -3)), days: 7, categoryId: catZomato.id, cap: 0, unit: 10, deposits: [], rewarded: false, failed: false }
+  ];
+  
+  const goal = (name, target, saved, months, rate, contributions) => ({ id: uid(), name, target, saved, deadline: iso(F.addMonths(t, months)), rate, planMonthly: null, contributions });
+  s.goals = [
+    goal('Goa Semester Trip', 15000, 6500, 4, 0, [{ id: uid(), date: iso(F.addMonths(t, -1)), amount: 3500, note: 'Saved from allowance' }, { id: uid(), date: iso(F.addDays(t, -10)), amount: 3000, note: 'Tutoring income' }]),
+    goal('Mechanical Keyboard', 8000, 3200, 3, 0, [{ id: uid(), date: iso(F.addDays(t, -15)), amount: 3200, note: 'Project stipend' }])
+  ];
+  
+  s.subscriptions = [
+    { id: uid(), name: 'Netflix', amount: 649, cycle: 'monthly' },
+    { id: uid(), name: 'Spotify', amount: 119, cycle: 'monthly' },
+    { id: uid(), name: 'Gym', amount: 1500, cycle: 'monthly' }
+  ];
+  
+  // Wallet sample with 2 Roommates (Rahul & Aarav) and UPI IDs
+  const ago = n => iso(F.addDays(t, -n)), ahead = n => iso(F.addDays(t, n));
+  s.wallet.cash = [
+    { id: uid(), date: ago(15), type: 'in', amount: 2000, note: 'ATM withdrawal', expenseId: null },
+    { id: uid(), date: ago(12), type: 'out', amount: 80, note: 'Chai & samosa', expenseId: null },
+    { id: uid(), date: ago(6), type: 'out', amount: 120, note: 'Canteen lunch', expenseId: null }
+  ];
+  s.wallet.ious = [
+    { id: uid(), person: 'Rahul', dir: 'owed', amount: 450, date: ago(3), due: ahead(5), note: 'WiFi & Pizza split', settled: false, settledAt: '', upiId: 'rahul.verma@okaxis' },
+    { id: uid(), person: 'Aarav', dir: 'owe', amount: 320, date: ago(2), due: ahead(4), note: 'Mess groceries split', settled: false, settledAt: '', upiId: 'aarav.patel@okhdfcbank' }
+  ];
+  s.wallet.upiIds = { Rahul: 'rahul.verma@okaxis', Aarav: 'aarav.patel@okhdfcbank' };   // what Settle up reads
+  
+  const T = (daysAgo, mode, amount, note, km = null) => ({ id: uid(), date: ago(daysAgo), mode, amount, note, km, expenseId: null });
+  s.wallet.transport = [
+    T(20, 'metro', 50, 'Campus to City Center'),
+    T(14, 'auto', 120, 'Railway Station'),
+    T(8, 'metro', 50, 'Library run'),
+    T(2, 'cab', 180, 'Late night hostel return')
+  ];
+  
+  s.settings = JSON.parse(JSON.stringify(state.settings));
+  s.settings.cashOnHand = 8500;
+  s.settings.roundUp = { enabled: true, to: 50, goalId: s.goals[0].id };
+  s.meta = { startedAt: iso(F.addDays(t, -45)), tourDone: state.meta.tourDone, isSample: true };
+  
+  sampleSpending(s, t);
   linkSampleRecurring(s, t);
-  s.yearlyBills = [{ id: uid(), name: 'Car insurance', amount: 18000, due: iso(F.addMonths(t, 4)) }, { id: uid(), name: 'Domain and hosting', amount: 4800, due: iso(F.addMonths(t, 7)) }];
-  s.subscriptions.forEach((x, i) => {   // a couple of months of "did you use it?" answers
+  
+  s.subscriptions.forEach((x) => {
     const p = prevYM(iso(t).slice(0, 7)), p2 = prevYM(p);
     x.since = ''; x.kept = '';
-    x.usage = x.name === 'Gym' ? { [p2]: false, [p]: false } : x.name === 'iCloud+' ? { [p2]: true, [p]: true } : { [p2]: true };
+    x.usage = x.name === 'Gym' ? { [p2]: false, [p]: false } : { [p2]: true, [p]: true };
   });
+  
   return localizeSample(s);
 }
 
-/** A believable month of spending: all of last month, and this month up to today. */
+/** A believable month of student spending: last month and this month up to today. */
 function sampleSpending(s, t) {
   const cat = re => s.budget.categories.find(c => re.test(c.name));
   const plan = [
-    [/rent/i, [[1, 22000, 'Rent', 'rent']]],
-    [/food/i, [[2, 1850, 'Groceries'], [6, 640, 'Dinner out'], [9, 2100, 'Groceries'], [13, 420, 'Lunch with the team'], [16, 1900, 'Groceries'], [19, 780, 'Takeout'], [23, 2050, 'Groceries'], [27, 560, 'Café']]],
-    [/transport/i, [[3, 600, 'Metro card'], [8, 500, 'Fuel'], [11, 400, 'Cab'], [18, 350, 'Cab'], [24, 600, 'Metro card'], [28, 320, 'Cab']]],
-    [/^bills/i, [[7, 999, 'Internet'], [10, 2150, 'Electricity'], [15, 499, 'Phone bill'], [21, 900, 'Water and gas']]],
-    [/loan|debt/i, [[3, 8000, 'Personal loan payment'], [5, 2900, 'Bike loan EMI', 'bike'], [20, 6100, 'Credit card payment']]],
-    [/subscri/i, [[12, 649, 'Netflix', 'netflix'], [18, 119, 'Spotify'], [22, 75, 'iCloud+']]],
-    [/fun/i, [[4, 450, 'Bowling'], [14, 1200, 'Movie night'], [17, 900, 'Concert'], [26, 1500, 'Weekend away']]],
-    [/saving/i, [[1, 12750, 'Moved to savings']]]
+    [/mess/i, [[1, 4500, 'Hostel Mess Fee', 'mess']]],
+    [/study|book/i, [[4, 450, 'Notebooks & Engineering Textbooks'], [18, 250, 'Lab Record & Xerox']]],
+    [/trans/i, [[3, 200, 'Metro Smart Card Recharge'], [12, 120, 'Auto to Exam Center'], [22, 180, 'Cab to Station']]],
+    [/wifi|phone/i, [[6, 299, 'Jio Mobile Plan'], [15, 399, 'Hostel WiFi Contribution']]],
+    [/delivery|zomato/i, [[2, 380, 'Zomato Biryani Night'], [7, 240, 'Swiggy Snack Order']]],
+    [/chai|canteen/i, [[2, 40, 'Canteen Chai & Bun'], [5, 120, 'Maggie & Cold Coffee'], [9, 60, 'Chai Point with Rahul'], [14, 110, 'Canteen Lunch with Aarav'], [20, 80, 'Evening Snacks'], [25, 60, 'Chai']]],
+    [/outing|movie/i, [[10, 450, 'Weekend Movie at PVR'], [21, 600, 'Dinner out with Roommates']]],
+    [/subscri/i, [[12, 649, 'Netflix', 'netflix'], [18, 119, 'Spotify']]],
+    [/trip|save/i, [[5, 1000, 'Moved to Goa Trip Fund']]]
   ];
   const prevFirst = new Date(t.getFullYear(), t.getMonth() - 1, 1), thisFirst = new Date(t.getFullYear(), t.getMonth(), 1);
   const out = [];
-  [[prevFirst, 1.04], [thisFirst, 1]].forEach(([first, f], mi) => {
+  [[prevFirst, 1], [thisFirst, 1]].forEach(([first], mi) => {
     const dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     plan.forEach(([re, items]) => {
       const c = cat(re); if (!c) return;
-      items.forEach(([day, amount, note, rec], k) => {
+      items.forEach(([day, amount, note, rec]) => {
         const d = new Date(first.getFullYear(), first.getMonth(), Math.min(day, dim));
         if (d > t) return;
-        const treat = mi === 1 && /takeout|café|dinner|movie/i.test(note) ? 1.7 : 1;   // this month: more eating out, so "Where did it go?" has a story
-        const amt = rec || /saving|loan|debt/i.test(c.name) ? amount : Math.round(amount * (mi === 0 ? f + ((k % 3) - 1) * 0.06 : treat) / 10) * 10;
-        out.push({ id: uid(), date: F.toISO(d), categoryId: c.id, amount: amt, note, rec: rec || '' });
+        // Keep frozen category inactive in recent 3 days of this month so freeze remains intact
+        if (mi === 1 && /delivery|zomato/i.test(c.name) && F.daysBetween(d, t) <= 3) return;
+        out.push({ id: uid(), date: F.toISO(d), categoryId: c.id, amount, note, rec: rec || '' });
       });
     });
   });
   s.budget.expenses = out.sort((a, b) => a.date.localeCompare(b.date));
 }
-/** Point the sample's recurring payments at the expenses they "posted", and file last month from the log. */
+
+/** Point the sample's recurring payments at the expenses they "posted". */
 function linkSampleRecurring(s, t) {
-  const byKey = { rent: /^rent$/i, bike: /bike/i, netflix: /netflix/i };
+  const byKey = { mess: /mess/i, netflix: /netflix/i };
   s.budget.expenses.forEach(x => {
     if (!x.rec) { delete x.rec; return; }
-    const r = s.recurring.find(k => byKey[x.rec].test(k.name));
+    const r = s.recurring.find(k => byKey[x.rec] && byKey[x.rec].test(k.name));
     if (r) { x.recurringId = r.id; x.note = `🔁 ${r.name}`; }
     delete x.rec;
   });
@@ -438,7 +451,7 @@ function linkSampleRecurring(s, t) {
     if (c) hc.actual = sum(s.budget.expenses.filter(x => x.categoryId === c.id && x.date.slice(0, 7) === prev), x => x.amount);
   });
   const buckets = s.split.buckets;
-  s.budget.categories.forEach(c => { c.bucketId = guessBucket(c, buckets); });
+  s.budget.categories.forEach(c => { if (!buckets.some(b => b.id === c.bucketId)) c.bucketId = guessBucket(c, buckets); });
   s.meta.periodStart = F.toISO(t).slice(0, 7) + '-01'; s.meta.closedEarly = '';
 }
 
@@ -557,12 +570,28 @@ function goalInfo(g) {
 }
 
 /* ---------- Student finance helpers ---------- */
-function studentSafeToSpend() {
-  const inc = monthlyIncome();
-  const b = budgetTotals();
+/**
+ * Money left from the current allowance, and how many days it has to last.
+ * Counts spending since the last payday, so an allowance on the 5th isn't counted before it arrives
+ * (with the allowance on the 1st this is the same as the calendar month).
+ */
+function allowanceLeft() {
+  const inc = monthlyIncome(), b = budgetTotals(), t = todayDate(), today = F.toISO(t);
   const next = nextPayInfo();
+  const p = inc > 0 && !state.income.irregular && state.income.freq === 'monthly' ? F.payPeriod(state.income.nextPayDate, 'monthly', t) : null;
+  if (p) {
+    const spent = sum(state.budget.expenses.filter(x => x.date >= p.start && x.date <= today), x => x.amount);
+    return { balance: inc - spent, spent, income: inc, daysLeft: p.daysLeft, start: p.start, end: p.end, byPayday: true };
+  }
+  const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(t));
+  const end = next ? F.toISO(next.date) : F.toISO(F.addDays(t, daysLeft));
+  const balance = inc > 0 ? inc - b.actual : Math.max(0, (state.settings.cashOnHand || 0) - b.actual);
+  return { balance, spent: b.actual, income: inc, daysLeft, start: today.slice(0, 7) + '-01', end, byPayday: false };
+}
+function studentSafeToSpend() {
+  const al = allowanceLeft();
   const t = todayDate();
-  const until = next && next.d ? F.toISO(next.d) : F.toISO(F.addDays(t, Math.max(1, F.daysLeftInMonth(t))));
+  const until = al.end;
   const after = F.toISO(t);
   let upcoming = 0;
   (state.recurring || []).filter(r => r.active).forEach(r => {
@@ -572,10 +601,8 @@ function studentSafeToSpend() {
   (state.yearlyBills || []).forEach(y => {
     if (y.due > after && y.due <= until) upcoming += y.amount;
   });
-  const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(t));
-  const currentBal = (inc > 0 ? (inc - b.actual) : Math.max(0, (state.settings.cashOnHand || 0) - b.actual));
-  const allowance = (state.student && state.student.allowance) || inc;
-  return F.safeToSpend({ balance: currentBal, upcomingBills: upcoming, daysLeft, monthlyAllowance: allowance });
+  const allowance = (state.student && state.student.allowance) || al.income;
+  return F.safeToSpend({ balance: al.balance, upcomingBills: upcoming, daysLeft: al.daysLeft, monthlyAllowance: allowance });
 }
 
 function categoryDailyAverages(daysBack = 30) {
@@ -603,15 +630,11 @@ function categoryDailyAverages(daysBack = 30) {
 }
 
 function studentRunOutForecast(sliderAdjustments = {}) {
-  const next = nextPayInfo();
-  const daysLeft = next ? Math.max(1, next.days) : Math.max(1, F.daysLeftInMonth(todayDate()));
+  const al = allowanceLeft();
   const dailyAvgs = categoryDailyAverages(30);
-  const inc = monthlyIncome();
-  const b = budgetTotals();
-  const currentBal = Math.max(0, inc > 0 ? (inc - b.actual) : (state.settings.cashOnHand || 0) - b.actual);
   return F.forecastRunOut({
-    currentBalance: currentBal,
-    daysLeft,
+    currentBalance: Math.max(0, al.balance),
+    daysLeft: al.daysLeft,
     dailySpendByCategory: dailyAvgs,
     sliderAdjustments,
     startDate: todayISO()
@@ -658,6 +681,7 @@ function personBalances() {
         upiId: (state.wallet.upiIds && state.wallet.upiIds[key]) || ''
       };
     }
+    if (!map[key].upiId && typeof x.upiId === 'string') map[key].upiId = x.upiId;
     if (x.dir === 'owed') {
       map[key].owedToMe += x.amount;
     } else {

@@ -214,7 +214,11 @@ function fmtExact(v) {
   if (Math.abs(v) < 0.005) v = 0;
   return getFmt(NO_DECIMALS.has(state.currency) ? 0 : 2).format(v);
 }
-function fmtCompact(v) { return Number.isFinite(v) ? getFmt(1, true).format(v) : '—'; }
+function fmtCompact(v) {
+  if (!Number.isFinite(v)) return '—';
+  const s = getFmt(1, true).format(v);
+  return CURRENCIES[state.currency].locale === 'en-IN' ? s.replace(/(\d)\s?T$/, '$1K') : s;   // en-IN writes thousands as “T”, which reads as trillions
+}
 function fmtPct(p) {
   if (!Number.isFinite(p)) return '—';
   const a = Math.abs(p);

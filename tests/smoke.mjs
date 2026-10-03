@@ -18,8 +18,8 @@ const server = http.createServer((req, res) => {
 }).listen(0);
 const BASE = `http://localhost:${server.address().port}/`;
 fs.mkdirSync(OUT, { recursive: true });
-const TABS = { dashboard: ['overview', 'calendar', 'charts'], debt: ['debts', 'plan', 'emi'], budget: ['plan', 'spending', 'yearly', 'history'],
-  wallet: ['cash', 'ious', 'subs', 'transport', 'taxes', 'payslips'], goals: ['goals', 'gifts', 'wishlist', 'challenges'] };
+const TABS = { dashboard: ['overview', 'forecast', 'semester', 'calendar', 'charts'], spend: ['log', 'categories', 'insights', 'recurring', 'cash'],
+  budget: ['plan', 'where', 'yearly', 'history'], split: ['ious', 'groups', 'history'], goals: ['goals', 'wishlist', 'challenges', 'gifts'] };
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const errors = [], overflow = [];
@@ -59,7 +59,7 @@ ctx = await b.newContext({ viewport: { width: 360, height: 640 } }); p = await c
 await p.goto(BASE + 'index.html'); await p.evaluate(() => navigator.serviceWorker.ready); await p.waitForTimeout(2000);
 await ctx.setOffline(true); await p.reload(); await p.waitForTimeout(1500);
 const off = await p.evaluate(() => ({ ok: !!document.querySelector('.view:not([hidden])') && typeof runSelfTests === 'function', title: document.title }));
-for (const x of ['#budget/plan', '#wallet/cash', '#goals/goals', '#debt/debts']) { await p.evaluate(y => { location.hash = y; }, x); await p.waitForTimeout(300); }
+for (const x of ['#budget/plan', '#spend/log', '#split/ious', '#goals/goals']) { await p.evaluate(y => { location.hash = y; }, x); await p.waitForTimeout(300); }
 await p.screenshot({ path: `${OUT}/offline.png` });
 await ctx.close(); await b.close(); server.close();
 

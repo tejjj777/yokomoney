@@ -251,6 +251,22 @@ const FinMath = (() => {
   /** Rule of 72: approximate years for money to double at an annual %. */
   function ruleOf72(annualPct) { return annualPct > 0 ? 72 / annualPct : Infinity; }
   /** Days left in the month, counting today. */
+  /**
+   * The allowance period `today` is in: from the last payday up to (not including) the next one.
+   * On payday itself the new period starts that day. Monthly, weekly and fortnightly pay only; otherwise null.
+   * Returns { start, end } as ISO dates and `daysLeft` (days until the next payday, at least 1).
+   */
+  function payPeriod(anchor, freq, today) {
+    const a = anchor instanceof Date ? startOfDay(anchor) : parseDate(anchor);
+    const t = today instanceof Date ? startOfDay(today) : parseDate(today);
+    if (!a || !t || !['monthly', 'weekly', 'biweekly'].includes(freq)) return null;
+    const back = d => (freq === 'monthly' ? addMonths(d, -1) : addDays(d, freq === 'weekly' ? -7 : -14));
+    let next = startOfDay(nextPayday(a, freq, t)), start;
+    if (+next === +t) { start = t; next = startOfDay(nextPayday(a, freq, addDays(t, 1))); }   // payday: a new period starts today
+    else start = startOfDay(back(next));
+    if (start > t) start = t;   // first period after a brand-new setup
+    return { start: toISO(start), end: toISO(next), daysLeft: Math.max(1, daysBetween(t, next)) };
+  }
   function daysLeftInMonth(today) { return new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate() + 1; }
   /** No-spend streaks from `start` to `today` (inclusive). `spendDays` = Set of ISO dates with "want" spending. */
   function streaks(spendDays, start, today) {
@@ -1359,8 +1375,9 @@ const FinMath = (() => {
    * @returns {{ days: Array<{ date: Date, iso: string, dayOfWeek: number, amount: number, level: number, expenses: Array }>, maxDaily: number, totalSpent: number }}
    */
   function calculateDailyHeatmap(expenses = [], startDate = null, endDate = null) {
-    const start = startDate ? (parseDate(startDate) || new Date()) : new Date();
-    const end = endDate ? (parseDate(endDate) || new Date()) : new Date();
+    const asDate = v => (v instanceof Date && !isNaN(v) ? startOfDay(v) : parseDate(v));   // ISO text or a Date
+    const start = (startDate && asDate(startDate)) || startOfDay(new Date());
+    const end = (endDate && asDate(endDate)) || startOfDay(new Date());
     const totalDays = Math.max(1, daysBetween(start, end) + 1);
 
     const spendByDay = {};
@@ -1429,7 +1446,7 @@ const FinMath = (() => {
     safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast,
     parseBillItems, splitBillExact, buildUpiUrl, generateTopUpDraft,
     calculateGhostSpending, calculateTimeOfDayBands, calculateSpendingPersonality,
-    calculateCategoryComparison, calculateDailyHeatmap
+    calculateCategoryComparison, calculateDailyHeatmap, payPeriod
   };
 })();
 

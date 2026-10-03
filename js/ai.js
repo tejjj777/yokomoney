@@ -13,9 +13,10 @@ const AI_URL = 'https://qmcwczyqhymyoesfsrzh.supabase.co/functions/v1/ai';
  * @param {string|object} input - Text or JSON payload for the task
  * @returns {Promise<any>} The AI response object or null on failure (handled by caller fallback)
  */
-async function aiCall(task, input) {
+async function aiCall(task, input, timeoutMs = 5000) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;   // offline: go straight to the on-device fallback
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);   // a slow network never leaves the user waiting long
 
   try {
     const res = await fetch(AI_URL, {
@@ -38,7 +39,7 @@ async function aiCall(task, input) {
     clearTimeout(timeout);
     // e.g. network error, abort, CORS, etc.
     if (err.name === 'AbortError') {
-      console.warn('AI call timed out after 8 seconds.');
+      console.warn(`AI call timed out after ${timeoutMs / 1000} seconds.`);
     } else {
       console.warn('AI call failed:', err.message);
     }

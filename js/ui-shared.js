@@ -9,7 +9,7 @@ const TABS = {
   dashboard: [['overview', 'Overview'], ['forecast', 'Run-out forecast'], ['semester', 'Semester'], ['calendar', 'Calendar'], ['charts', 'Charts']],
   spend: [['log', 'Expense log'], ['categories', 'Categories'], ['insights', 'Insights & Heatmap'], ['recurring', 'Recurring'], ['cash', 'Cash']],
   budget: [['plan', 'Plan'], ['where', 'Where did it go?'], ['yearly', 'Yearly / Semester fees'], ['history', 'History']],
-  split: [['ious', 'IOUs & Roommates'], ['history', 'Settled']],
+  split: [['ious', 'IOUs & Roommates'], ['groups', 'Live Groups'], ['history', 'Settled']],
   goals: [['goals', 'Goals'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges'], ['gifts', 'Gifts']],
   debt: [['debts', 'Debts'], ['plan', 'Payoff plan'], ['emi', 'Loan calculator']],
   wallet: [['cash', 'Cash'], ['ious', 'IOUs'], ['subs', 'Subscriptions'], ['transport', 'Transport']]
@@ -73,9 +73,10 @@ function toggleMoreMenu(btn) {
 }
 
 function viewHeader(id, title, sub, actions = '', extra = []) {
+  const sampleItem = state && state.meta && state.meta.isSample ? mi('Remove demo data', 'remove-sample') : mi('Load demo data', 'load-sample');
   return `<div class="view-head">
     <div><h1 id="h-${id}">${title}</h1><p class="muted">${sub}</p></div>
-    <div class="view-actions no-print">${actions}${moreMenu([...extra, mi('Tour this page', 'tour-page', { chapter: id }), mi('Print or save as PDF', 'print')], 'More: tour, print')}</div>
+    <div class="view-actions no-print">${actions}${moreMenu([...extra, sampleItem, mi('Tour this page', 'tour-page', { chapter: id }), mi('Print or save as PDF', 'print')], 'More: tour, demo, print')}</div>
   </div>`;
 }
 function stat(label, value, sub = '', cls = '') {

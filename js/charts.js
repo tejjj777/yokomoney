@@ -32,7 +32,8 @@ function setupChartDefaults() {
   D.color = css('--muted');
   D.borderColor = css('--grid');
   D.maintainAspectRatio = false;
-  D.animation.duration = 650;
+  // no chart animation with reduced motion, or when printing (paper would catch it half drawn)
+  D.animation.duration = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.theme === 'print' ? 0 : 650;
   D.plugins.legend.position = 'bottom';
   D.plugins.legend.labels.usePointStyle = true;
   D.plugins.legend.labels.boxWidth = 8;
