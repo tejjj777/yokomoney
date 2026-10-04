@@ -1136,3 +1136,16 @@ main td { overflow-wrap: break-word; }
 
 .upi-apps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .upi-apps .btn { justify-content: center; text-align: center; }
+
+/* Live group: who pays who */
+.gb-list { display: grid; gap: 8px; }
+.gb-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface, var(--bg)); }
+.gb-row.gb-owe { border-color: var(--danger, #e5484d); }
+.gb-row.gb-owed { border-color: var(--primary-dark); }
+.gb-who { font-size: 15px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.gb-amt { font-size: 18px; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gb-owe .gb-amt { color: var(--danger-text); }
+.gb-owed .gb-amt { color: var(--success-text); }
+.gb-act { grid-column: 1 / -1; }
+.gb-act .btn { width: 100%; justify-content: center; }
+.gb-even { padding: 12px 14px; border: 1px dashed var(--border); border-radius: 12px; }

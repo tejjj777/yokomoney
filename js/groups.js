@@ -248,6 +248,22 @@ function groupBalances(groupId) {
   }).sort((a, b) => b.net - a.net);
 }
 
+/** Fewest payments that settle a group: biggest debtor pays biggest creditor, repeat. */
+function groupTransfers(balances) {
+  const cr = balances.filter(b => b.net > 0.004).map(b => ({ m: b, left: b.net })).sort((a, b) => b.left - a.left);
+  const db = balances.filter(b => b.net < -0.004).map(b => ({ m: b, left: -b.net })).sort((a, b) => b.left - a.left);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < db.length && j < cr.length) {
+    const amt = Math.round(Math.min(db[i].left, cr[j].left) * 100) / 100;
+    if (amt > 0.004) out.push({ from: db[i].m, to: cr[j].m, amount: amt });
+    db[i].left -= amt; cr[j].left -= amt;
+    if (db[i].left < 0.005) i++;
+    if (cr[j].left < 0.005) j++;
+  }
+  return out;
+}
+
 const GROUP_ACTIONS = {
   'create-group': () => {
     formModal({
@@ -311,26 +327,22 @@ const GROUP_ACTIONS = {
           <div class="row" style="gap:6px;flex-wrap:nowrap"><input id="grp-my-upi" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(state.settings.myUpiId || '')}" style="min-width:0">
           <button type="button" class="btn btn-sm" data-action="group-share-upi">Share</button></div></div>
         
-        <h3 style="margin-top:10px">Balances</h3>
-        <div class="table-wrap mb"><table>
-          <thead><tr><th>Person</th><th>Paid</th><th>Share</th><th>Net</th><th></th></tr></thead>
-          <tbody>
-            ${balances.map(b => {
-              const myId = g.myMemberId;
-              let settleBtn = '';
-              if (b.id !== myId && b.net !== 0) {
-                // b.net > 0 means they paid more than their share (so someone owes them)
-                // Wait, our groupBalances: net = paid - share. 
-                // So if b.net > 0, they are owed money. If I'm paying them, I "owe" them.
-                const dir = b.net > 0 ? 'owe' : 'owed'; // from my perspective, if they are owed money, I owe them
-                settleBtn = `<button type="button" class="btn btn-sm btn-primary" data-action="group-settle" data-group-id="${groupId}" data-person="${esc(b.name)}" data-amount="${Math.abs(b.net)}" data-dir="${dir}">${dir === 'owe' ? 'Pay with UPI' : 'Ask to pay'}</button>`;
-              }
-              return `<tr><td>${esc(b.name)}</td><td>${fmt(b.paid)}</td><td>${fmt(b.share)}</td>
-              <td class="num ${b.net > 0 ? 'tone-success-text' : b.net < 0 ? 'tone-danger-text' : ''}">${b.net > 0 ? '+' : ''}${fmt(b.net)}</td>
-              <td class="actions no-print">${settleBtn}</td></tr>`;
-            }).join('')}
-          </tbody>
-        </table></div>
+        <h3 style="margin-top:10px">Who pays who</h3>
+        ${(() => {
+          const myId = g.myMemberId, tx = groupTransfers(balances);
+          if (!tx.length) return '<p class="gb-even mb">All square. Nobody owes anything.</p>';
+          return `<div class="gb-list mb">${tx.map(t => {
+            const mine = t.from.id === myId ? 'owe' : t.to.id === myId ? 'owed' : '';
+            const other = mine === 'owe' ? t.to : t.from;
+            const who = mine === 'owe' ? `You pay <strong>${esc(t.to.name)}</strong>` : mine === 'owed' ? `<strong>${esc(t.from.name)}</strong> pays you` : `<strong>${esc(t.from.name)}</strong> pays <strong>${esc(t.to.name)}</strong>`;
+            const btn = mine ? `<button type="button" class="btn btn-sm ${mine === 'owe' ? 'btn-primary' : ''}" data-action="group-settle" data-group-id="${groupId}" data-person="${esc(other.name)}" data-amount="${t.amount}" data-dir="${mine}">${mine === 'owe' ? 'Pay with UPI' : 'Ask to pay'}</button>` : '';
+            return `<div class="gb-row ${mine === 'owe' ? 'gb-owe' : mine === 'owed' ? 'gb-owed' : ''}"><div class="gb-who">${who}</div><div class="gb-amt">${fmtExact(t.amount)}</div>${btn ? `<div class="gb-act no-print">${btn}</div>` : ''}</div>`;
+          }).join('')}</div>`;
+        })()}
+        <details class="collapsible mb"><summary>Paid vs share for each person</summary><div class="details-body"><div class="gb-list">
+          ${balances.map(b => `<div class="gb-row"><div class="gb-who"><strong>${esc(b.name)}</strong>${b.id === g.myMemberId ? ' (you)' : ''}<br><span class="small muted">Paid ${fmtExact(b.paid)} · Share ${fmtExact(b.share)}</span></div>
+            <div class="gb-amt ${b.net > 0.004 ? 'tone-success-text' : b.net < -0.004 ? 'tone-danger-text' : ''}">${b.net > 0.004 ? 'gets back ' + fmtExact(b.net) : b.net < -0.004 ? 'owes ' + fmtExact(-b.net) : 'even'}</div></div>`).join('')}
+        </div></div></details>
 
         <h3 style="margin-top:10px">Expenses</h3>
         ${data.expenses.length ? `<ul class="plain-list mb">${data.expenses.slice().reverse().map(ex => {
