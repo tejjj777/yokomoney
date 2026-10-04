@@ -70,6 +70,7 @@ const CHAPTERS = [
   { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Debt, savings and exact amounts.', hidden: true, steps: [
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Exact safe to spend', text: 'Now shows exactly what is left for today, after bills, debt payments and what you already spent.' },
     { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'See how much you save each month and your savings rate.' },
+    { route: 'dashboard/overview', target: ['[data-action="scan-receipt"]'], title: 'Scan a receipt', text: 'Snap a bill right from Home and it logs the expense for you.' },
     { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Debt is back', text: 'Track loans and money you owe, with a payoff plan.' },
     { route: 'dashboard/overview', target: ['#command-bar'], title: 'Say amounts your way', text: 'Type or say “2 lakh”, “50k” or “two thousand”. The AI understands.' }
   ] }
@@ -310,6 +311,7 @@ function showWhatsNew() {
         <li><strong>Safe to spend fixed:</strong> it now counts today’s spending, bills and debt payments correctly.</li>
         <li><strong>Amount words:</strong> “2 lakh”, “50k” and “two thousand” now work in the AI bar.</li>
         <li><strong>Live groups:</strong> creating a group works the first time.</li>
+        <li><strong>Scan receipt on Home:</strong> one tap from the Home page.</li>
         <li><strong>Simpler:</strong> roast mode and round-ups are gone. Full tutorial is on Home.</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
