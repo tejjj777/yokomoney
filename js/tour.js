@@ -46,7 +46,8 @@ const CHAPTERS = [
   ] },
   { id: 'split', icon: '👥', title: 'Split & Roommates', blurb: 'Bill photo splitter, running balances, and UPI settle-up.', route: 'split/ious', tryIt: ['Split a bill', () => billSplitterModal()], steps: [
     { route: 'split/ious', target: ['#view-split .stats-grid'], title: 'Shared expenses', text: 'Track money you owe friends and money friends owe you for food, trips and shared hostel groceries.' },
-    { route: 'split/ious', target: ['#w-balances'], title: 'Running balances', text: 'See who owes whom. Tap Settle up: if you owe them, Pay opens your UPI app. If they owe you, add your UPI ID and they scan your QR.' },
+    { route: 'split/groups', target: ['#view-split .view-head'], title: 'Pay in live groups', text: 'Open a group and tap Pay with UPI next to anyone you owe. It opens GPay, PhonePe or Paytm.' },
+    { route: 'split/ious', target: ['#w-balances'], title: 'Running balances', text: 'See who owes whom. Tap Settle up: if you owe them, Pay opens your UPI app. Pick GPay, PhonePe or Paytm. If they owe you, send them your UPI ID.' },
     { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Bill photo splitter', text: 'Upload or snap a bill receipt to automatically extract items, taxes and service charges, then assign items to friends with proportional tax math.' }
   ] },
   { id: 'budget', icon: '📊', title: 'Budget', blurb: 'Plan categories and track month-to-month changes.', route: 'budget/plan', steps: [
@@ -312,6 +313,7 @@ function showWhatsNew() {
         <li><strong>Amount words:</strong> “2 lakh”, “50k” and “two thousand” now work in the AI bar.</li>
         <li><strong>Live groups:</strong> creating a group works the first time.</li>
         <li><strong>Scan receipt on Home:</strong> one tap from the Home page.</li>
+        <li><strong>UPI pay:</strong> pick GPay, PhonePe or Paytm. Works in Live Groups too. QR codes removed.</li>
         <li><strong>Simpler:</strong> roast mode and round-ups are gone. Full tutorial is on Home.</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`

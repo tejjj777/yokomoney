@@ -301,7 +301,7 @@ const GROUP_ACTIONS = {
                 // Wait, our groupBalances: net = paid - share. 
                 // So if b.net > 0, they are owed money. If I'm paying them, I "owe" them.
                 const dir = b.net > 0 ? 'owe' : 'owed'; // from my perspective, if they are owed money, I owe them
-                settleBtn = `<button type="button" class="btn btn-sm btn-primary" data-action="group-settle" data-group-id="${groupId}" data-person="${esc(b.name)}" data-amount="${Math.abs(b.net)}" data-dir="${dir}">Settle</button>`;
+                settleBtn = `<button type="button" class="btn btn-sm btn-primary" data-action="group-settle" data-group-id="${groupId}" data-person="${esc(b.name)}" data-amount="${Math.abs(b.net)}" data-dir="${dir}">${dir === 'owe' ? 'Pay with UPI' : 'Ask to pay'}</button>`;
               }
               return `<tr><td>${esc(b.name)}</td><td>${fmt(b.paid)}</td><td>${fmt(b.share)}</td>
               <td class="num ${b.net > 0 ? 'tone-success-text' : b.net < 0 ? 'tone-danger-text' : ''}">${b.net > 0 ? '+' : ''}${fmt(b.net)}</td>

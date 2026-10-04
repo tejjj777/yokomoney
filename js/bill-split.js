@@ -547,8 +547,8 @@ function upiAppLinks(upiUrl) {
 
 /**
  * The UPI part of a settle-up dialog.
- * You owe them: their UPI ID, a Pay button that opens your UPI app, and a QR.
- * They owe you: YOUR UPI ID and a QR for them to scan.
+ * You owe them: their UPI ID and one Pay button per UPI app.
+ * They owe you: YOUR UPI ID to send them. (No QR: an app-made QR was not useful.)
  * @param {{dir:'owe'|'owed', person:string, amount:number, note:string}} o
  */
 function upiSectionHTML(o) {
@@ -570,14 +570,13 @@ function upiSectionHTML(o) {
         ${owed ? '' : `<p class="small" style="margin:4px 0 0"><strong>Pay ${fmtExact(o.amount)} with</strong></p>
         <div class="upi-apps">${upiAppLinks(url).map((a, i) => `<a href="${esc(a.href)}" ${i === 0 ? 'id="su-pay" ' : ''}class="btn ${i === 0 ? 'btn-primary' : ''} su-pay-app" style="text-decoration:none">${esc(a.name)}</a>`).join('')}</div>
         <p class="small muted" id="su-pay-hint">Nothing opens? That app isn’t installed. Try another, or copy the UPI ID.</p>`}
-        <div class="su-qr-frame" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">${QRCode.toSvg(url, 160)}</div>
-        <p class="small muted">${owed ? `${esc(o.person)} scans this in GPay, PhonePe, Paytm or BHIM` : 'Or scan this from another phone'}</p>
+        ${owed ? `<p class="small muted">Send ${esc(o.person)} your UPI ID so they can pay you.</p>` : ''}
         <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
           <button type="button" class="btn" id="su-copy-upi" data-upi="${esc(id)}">Copy UPI ID</button>
         </div>
 
       </div>` : `
-      <div class="alert alert-info small" style="margin-bottom:12px">${owed ? 'Add your UPI ID to get a QR code they can scan.' : `Add ${esc(o.person)}’s UPI ID to pay them in one tap.`}</div>`}`;
+      <div class="alert alert-info small" style="margin-bottom:12px">${owed ? 'Add your UPI ID so they know where to pay you.' : `Add ${esc(o.person)}’s UPI ID to pay them in one tap.`}</div>`}`;
 }
 
 /** Wire up the UPI section. rerender() redraws the dialog after the UPI ID is saved. */
