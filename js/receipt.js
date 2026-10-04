@@ -59,6 +59,11 @@ async function rcHandleFile(form, file) {
     rcReviewStage(form, { total: null, date: null, merchant: '', found: {} }, [], false);
   }
 }
+/** Receipt dates outside this budget period (old bills, misread years, future dates) default to today, so the spend shows up in Budget and Where did it go. */
+function rcDate(d) {
+  const t = todayISO(), from = periodRange().from;
+  return d && F.parseDate(d) && d >= from && d <= t ? d : t;
+}
 function rcReviewStage(form, r, lines, ocr) {
   form.querySelector('button[type="submit"]').hidden = false;
   const st = form.querySelector('#rc-stage');
@@ -69,7 +74,7 @@ function rcReviewStage(form, r, lines, ocr) {
     <div class="form-grid two">
       <div class="field"><label for="rc-merchant">Where ${tag('merchant')}</label><input id="rc-merchant" class="input" maxlength="120" value="${esc(r.merchant || '')}" placeholder="Shop name"></div>
       <div class="field"><label for="rc-amount">Total ${tag('total')}</label><div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="rc-amount" class="input" inputmode="decimal" value="${r.total ? numStr(r.total) : ''}" aria-describedby="rc-amount-err"></div><p class="field-error" id="rc-amount-err"></p></div>
-      <div class="field"><label for="rc-date">Date ${tag('date')}</label><input id="rc-date" class="input" type="date" value="${r.date || todayISO()}"></div>
+      <div class="field"><label for="rc-date">Date ${tag('date')}</label><input id="rc-date" class="input" type="date" value="${rcDate(r.date)}">${r.date && rcDate(r.date) !== r.date ? `<p class="help">The receipt says ${esc(fmtDate(F.parseDate(r.date)))}. Set to today so it counts in this month’s budget. Change it if you want.</p>` : ''}</div>
       <div class="field"><label for="rc-cat">Category</label><select id="rc-cat" class="select">${cats.map(c => `<option value="${c.id}" ${g && c.id === g.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     </div>
     ${lines.length ? `<details class="collapsible"><summary>See the text it read</summary><div class="details-body"><pre class="ps-text">${esc(lines.slice(0, 60).join('\n'))}</pre></div></details>` : ''}

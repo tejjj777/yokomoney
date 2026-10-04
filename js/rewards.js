@@ -5,7 +5,7 @@
 function awardXP(n, why, quiet) {
   if (!(n > 0)) return;
   if (why === 'expense') {
-    const d = state.meta.xpDay;
+    const d = state.meta.xpDay || (state.meta.xpDay = { date: '', n: 0 });   // sample data and old saves had no xpDay, which crashed every expense save
     if (d.date !== todayISO()) { d.date = todayISO(); d.n = 0; }
     if (d.n >= 10) return;   // XP for up to 10 expenses a day
     d.n++;
