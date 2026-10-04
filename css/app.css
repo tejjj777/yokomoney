@@ -149,7 +149,7 @@ main:focus { box-shadow: none; }
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--bg); border-top: 1px solid var(--border);
@@ -1099,3 +1099,37 @@ main td { overflow-wrap: break-word; }
 @media (max-width: 480px) {
   .split-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 36px; grid-template-areas: "name name del" "mode value value" "amt amt amt" "err err err"; }
 }
+
+/* Exact amounts on Spend */
+.exact-card { padding: 12px 14px; }
+.exact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.exact-grid .stat-label { margin: 0 0 2px; font-size: 12px; }
+.exact-val { margin: 0; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 420px) { .exact-val { font-size: 15px; } }
+
+/* Savings card */
+.savings-card .exact-grid { margin-bottom: 10px; }
+.sv-up { color: var(--primary-dark); }
+.sv-chart { position: relative; height: 160px; margin: 6px 0 12px; }
+.sv-goals { display: grid; gap: 10px; }
+.sv-goal-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 14px; flex-wrap: wrap; }
+
+/* Cleaner settings */
+.set-panel { display: grid; gap: 12px; padding-top: 12px; }
+.set-panel .settings-group { border: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 14px; padding: 14px; gap: 8px; background: var(--bg); }
+.set-panel .settings-group:last-child { border-bottom: 1px solid var(--border); }
+.set-panel .settings-group h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.set-panel .settings-group > p.small.muted { margin: 0; }
+.set-panel .form-grid.two { gap: 10px; }
+.set-panel .field { margin: 0; }
+.set-panel .settings-group .row .btn { flex: 1 1 auto; min-width: 0; }
+.set-details summary { cursor: pointer; color: var(--muted); }
+.set-details[open] summary { margin-bottom: 8px; }
+@media (max-width: 420px) { .set-panel .form-grid.two { grid-template-columns: 1fr; } }
+
+.exact-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+.exact-val { font-size: clamp(14px, 4.2vw, 18px); white-space: nowrap; }
+.set-tabs .subtabs-inner { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.set-tabs .subtabs-inner::-webkit-scrollbar { display: none; }
+.set-tabs .subtab { flex: 0 0 auto; }
+@media (max-width: 420px) { .set-tabs .subtab { padding: 8px 10px; } .tab-link { font-size: 10.5px; } }

@@ -48,7 +48,7 @@ function defaultState() {
     goals: [],
     goalSettings: { selectedGoalId: null },
     subscriptions: [],
-    settings: { theme: 'yoko', sound: true, workHours: 176, unit: { name: 'chai', plural: 'chais', emoji: '☕', price: 20 }, cashOnHand: 0, roundUp: { enabled: false, to: roundUpFor(ci.currency), goalId: null }, privacy: false, roast: 'nice', petName: 'Yoko', country: ci.code },
+    settings: { theme: 'yoko', sound: true, workHours: 176, unit: { name: 'chai', plural: 'chais', emoji: '☕', price: 20 }, cashOnHand: 0, roundUp: { enabled: false, to: roundUpFor(ci.currency), goalId: null }, privacy: false, roast: 'nice', petName: 'Yoko', country: ci.code, myUpiId: '' },
     badges: {},
     meta: { startedAt: todayISO(), tourDone: false, budgetMonth: todayISO().slice(0, 7), periodStart: todayISO().slice(0, 7) + '-01', closedEarly: '', lastBackup: '', backupSnooze: '', skippedTotal: 0, streakRewarded: 0, xpDay: { date: '', n: 0 }, xpBackup: '', tourVersion: 0, tourChapters: {} },
     wallet: { cash: [], ious: [], transport: [], taxes: [], deadlines: [], taxYearStart: ci.fy, taxEstimate: 0, upiIds: {} },
@@ -140,7 +140,7 @@ function normalizeState(raw) {
     workHours: clamp(nn(rs.workHours) || 176, 1, 744),
     unit: { name: unitName, plural: str(un.plural, unitName + 's', 20), emoji: str(un.emoji, '☕', 8), price: nn(un.price) || 20 },
     cashOnHand: nn(rs.cashOnHand),
-    roundUp: { enabled: !!ru.enabled, to: ROUND_TO.includes(+ru.to) ? +ru.to : roundUpFor(s.currency), goalId: str(ru.goalId, null) }
+    roundUp: { enabled: false, to: ROUND_TO.includes(+ru.to) ? +ru.to : roundUpFor(s.currency), goalId: str(ru.goalId, null) }
   };
   s.badges = {};
   if (raw.badges && typeof raw.badges === 'object') for (const [k, v] of Object.entries(raw.badges)) if (date(v)) s.badges[k] = v;
@@ -196,8 +196,9 @@ function normalizeMore(s, raw) {
   s.xp = { total: nn(raw.xp && raw.xp.total) };
   const rs = raw.settings || {};
   s.settings.privacy = !!rs.privacy;
-  s.settings.roast = ['off', 'nice', 'savage'].includes(rs.roast) ? rs.roast : 'nice';
+  s.settings.roast = 'off';
   s.settings.petName = str(rs.petName, 'Yoko', 20);
+  s.settings.myUpiId = str(rs.myUpiId, '', 60);   // the student's own UPI ID, for 'they owe you' QR codes
   s.settings.country = COUNTRIES[rs.country] ? rs.country : countryFromCurrency(s.currency);
   const rm = raw.meta || {};
   s.meta.budgetMonth = ym(rm.budgetMonth) || todayISO().slice(0, 7);
@@ -388,7 +389,7 @@ function sampleState() {
   
   s.settings = JSON.parse(JSON.stringify(state.settings));
   s.settings.cashOnHand = 8500;
-  s.settings.roundUp = { enabled: true, to: 50, goalId: s.goals[0].id };
+  s.settings.roundUp = { enabled: false, to: 50, goalId: null };
   s.meta = { startedAt: iso(F.addDays(t, -45)), tourDone: state.meta.tourDone, isSample: true };
   
   sampleSpending(s, t);
@@ -601,8 +602,22 @@ function studentSafeToSpend() {
   (state.yearlyBills || []).forEach(y => {
     if (y.due > after && y.due <= until) upcoming += y.amount;
   });
+  // Debt minimums still unpaid this period
+  let debtDue = 0;
+  (state.debts || []).filter(d => d.balance > 0 && d.minPayment > 0).forEach(d => {
+    const paid = sum((d.payments || []).filter(x => x.date >= al.start && x.date <= after), x => x.amount);
+    debtDue += Math.min(d.balance, Math.max(0, d.minPayment - paid));
+  });
+  // Today's daily limit is fixed at the start of the day; spending today comes out of it
+  const spentToday = sum(state.budget.expenses.filter(x => x.date === after), x => x.amount);
   const allowance = (state.student && state.student.allowance) || al.income;
-  return F.safeToSpend({ balance: al.balance, upcomingBills: upcoming, daysLeft: al.daysLeft, monthlyAllowance: allowance });
+  const r = F.safeToSpend({ balance: al.balance + spentToday, upcomingBills: upcoming + debtDue, daysLeft: al.daysLeft, monthlyAllowance: allowance });
+  r.upcomingBills = upcoming; r.debtDue = debtDue; r.spentToday = spentToday;
+  r.balanceNow = al.balance;
+  r.dailyLimit = Math.max(0, r.perDay);
+  r.leftToday = Math.max(0, r.perDay - spentToday);
+  r.overToday = Math.max(0, spentToday - r.perDay);
+  return r;
 }
 
 function categoryDailyAverages(daysBack = 30) {

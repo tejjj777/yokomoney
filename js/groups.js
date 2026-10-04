@@ -15,9 +15,11 @@ const GroupSync = {
     if (!this.loading) {
       const load = window.supabase ? Promise.resolve() : loadScript(SUPABASE_JS);
       const timer = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs));
-      this.loading = Promise.race([load, timer]).then(() => {
+      this.loading = Promise.race([load, timer]).then(async () => {
         if (!window.supabase) return false;
         this.init();
+        // Wait for the sign-in to finish. Without this the first create ran with no session and failed.
+        try { await this.authReady; } catch (e) { console.warn('Group sign-in failed', e); }
         return !!this.client;
       }).catch(err => { console.warn('Live groups unavailable:', err.message); this.loading = null; return false; });
     }
@@ -26,7 +28,7 @@ const GroupSync = {
   init() {
     if (!window.supabase || this.client) return;
     this.client = window.supabase.createClient(SYNC_URL, SYNC_KEY);
-    this.signIn().catch(err => console.warn('Group sign-in failed', err));
+    this.authReady = this.signIn();
     
     window.addEventListener('online', () => this.processQueue());
     
@@ -37,9 +39,18 @@ const GroupSync = {
 
   async signIn() {
     const { data: { session } } = await this.client.auth.getSession();
-    if (!session) {
-      await this.client.auth.signInAnonymously();
-    }
+    if (session && session.user) return session;
+    const { data, error } = await this.client.auth.signInAnonymously();
+    if (error) throw error;
+    return data.session;
+  },
+  /** A signed-in session, signing in again if it went missing. */
+  async session() {
+    if (this.authReady) { try { await this.authReady; } catch (e) { /* retried below */ } }
+    let { data: { session } } = await this.client.auth.getSession();
+    if (!session || !session.user) { this.authReady = this.signIn(); session = await this.authReady; }
+    if (!session || !session.user) throw new Error('Could not sign in to live groups');
+    return session;
   },
 
   queueAction(action) {
@@ -124,13 +135,14 @@ const GroupSync = {
   },
 
   async createGroup(name, myName) {
-    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const session = await this.session();
+    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase().padEnd(6, '7');
     const { data: group, error } = await this.client.from('groups').insert({ name, join_code: joinCode }).select().single();
     if (error) throw error;
     
     const { data: member, error: memberErr } = await this.client.from('group_members').insert({
       group_id: group.id,
-      user_id: (await this.client.auth.getSession()).data.session.user.id,
+      user_id: session.user.id,
       name: myName
     }).select().single();
     if (memberErr) throw memberErr;
@@ -142,6 +154,7 @@ const GroupSync = {
   },
 
   async joinGroup(joinCode, myName) {
+    await this.session();
     const { data: groupId, error } = await this.client.rpc('join_group', { code: joinCode.toUpperCase(), member_name: myName });
     if (error) throw error;
     
@@ -335,16 +348,13 @@ const GROUP_ACTIONS = {
     const amount = Number(el.dataset.amount);
     const dir = el.dataset.dir; // 'owe' or 'owed'
 
-    const note = `Settle up for group`;
-    let currentUpi = (state.wallet.upiIds && state.wallet.upiIds[personName]) || '';
+    const opts = { dir: dir === 'owed' ? 'owed' : 'owe', person: personName, amount, note: 'Settle up for group' };
 
-    const buildModalContent = (upiId) => {
-      const upiUrl = upiId ? F.buildUpiUrl({ pa: upiId, pn: personName, am: amount, cu: 'INR', tn: note }) : '';
-      const qrSvg = upiUrl ? QRCode.toSvg(upiUrl, 160) : '';
-
+    const buildModalContent = () => {
+      const myUpi = state.settings.myUpiId || '';
       const shareMsg = dir === 'owed'
-        ? `Hey ${personName}, please settle ₹${amount} for our group. UPI: ${upiId || '<your-upi-id>'}`
-        : `Hey ${personName}, I'm ready to pay my group share of ₹${amount}.`;
+        ? `Hey ${personName}, please send ₹${amount} for our group.${isUpiId(myUpi) ? ` My UPI: ${myUpi}` : ''}`
+        : `Hey ${personName}, sending my group share of ₹${amount} now.`;
 
       return `
         <div class="stack" id="su-wrap" style="text-align:center">
@@ -353,25 +363,7 @@ const GROUP_ACTIONS = {
             <p class="stat-value">${fmt(amount)}</p>
           </div>
 
-          <div class="field" style="text-align:left;margin-bottom:14px">
-            <label for="su-upi-input" class="small"><strong>${esc(personName)}'s UPI ID:</strong></label>
-            <div class="row" style="gap:6px">
-              <input type="text" id="su-upi-input" class="input" value="${esc(upiId)}">
-              <button type="button" class="btn btn-sm" id="su-save-upi">Save</button>
-            </div>
-          </div>
-
-          ${upiUrl ? `
-            <div class="card mb" style="padding:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:10px">
-              <div class="su-qr-frame" style="background:#fff;padding:8px;border-radius:8px;">${qrSvg}</div>
-              <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
-                <a href="${upiUrl}" class="btn btn-primary" target="_blank" rel="noopener">⚡ Pay via UPI App</a>
-                <button type="button" class="btn" id="su-copy-link" data-url="${esc(upiUrl)}">Copy Link</button>
-              </div>
-            </div>
-          ` : `
-            <div class="alert alert-info small" style="margin-bottom:12px">Enter a UPI ID above to generate a QR code.</div>
-          `}
+          ${upiSectionHTML(opts)}
 
           <div class="card mb" style="padding:10px;text-align:left;background:var(--surface-2)">
             <p class="small font-bold" style="margin-bottom:4px">Share message:</p>
@@ -390,36 +382,15 @@ const GROUP_ACTIONS = {
       title: `Settle up with ${esc(personName)}`,
       hideSubmit: true,
       cancelLabel: 'Close',
-      body: buildModalContent(currentUpi),
+      body: buildModalContent(),
       onMount: form => {
-        const bind = (upi) => {
-          const upiInp = form.querySelector('#su-upi-input');
-          const saveBtn = form.querySelector('#su-save-upi');
-          const copyLinkBtn = form.querySelector('#su-copy-link');
+        const bind = () => {
+          const body = form.querySelector('.modal-body');
+          bindUpiSection(body, opts, () => { body.innerHTML = buildModalContent(); bind(); });
           const copyMsgBtn = form.querySelector('#su-copy-msg');
           const settleBtn = form.querySelector('#su-mark-settled');
 
-          const persistUpi = () => {
-            const val = upiInp.value.trim();
-            state.wallet.upiIds = state.wallet.upiIds || {};
-            state.wallet.upiIds[personName] = val;
-            commit();
-            toast(`Saved UPI ID`);
-            form.querySelector('.modal-body').innerHTML = buildModalContent(val);
-            bind(val);
-          };
-
-          if (saveBtn) saveBtn.addEventListener('click', persistUpi);
-          if (copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', () => {
-              navigator.clipboard.writeText(copyLinkBtn.dataset.url).then(() => toast('Copied!'));
-            });
-          }
-          if (copyMsgBtn) {
-            copyMsgBtn.addEventListener('click', () => {
-              navigator.clipboard.writeText(copyMsgBtn.dataset.msg).then(() => toast('Copied!'));
-            });
-          }
+          if (copyMsgBtn) copyMsgBtn.addEventListener('click', () => copyText(copyMsgBtn.dataset.msg, 'Message copied'));
           if (settleBtn) {
             settleBtn.addEventListener('click', () => {
               // Record settlement as a group expense where the payer pays the payee
@@ -446,7 +417,7 @@ const GROUP_ACTIONS = {
             });
           }
         };
-        bind(currentUpi);
+        bind();
       }
     });
   }

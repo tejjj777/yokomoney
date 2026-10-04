@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 13;   // bumped for student edition session 9
+const TOUR_VERSION = 15;   // bumped: debt, savings, exact amounts, onboarding currency
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'polish', icon: '🐾', title: 'Live Pet, Freeze & Demo', blurb: 'Pet reactions, category freeze warnings, subscription catcher and demo data.', route: 'dashboard/overview', steps: [
@@ -17,7 +17,7 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#side-nav', '.topbar'], title: 'Student Demo Dataset', text: 'Load a complete 2nd-year engineering student profile with roommates, semester milestones, and sample UPI screenshots from the ⋯ menu.' }
   ] },
   { id: 'ai', icon: '✨', title: 'AI Command Bar & Voice', blurb: 'Ask questions, add expenses by voice, test what-ifs.', route: 'dashboard/overview', steps: [
-    { route: 'dashboard/overview', target: ['#command-bar'], title: 'Your AI Assistant', text: 'Use the command bar at the top of Home to do math, log expenses, and see what-if scenarios.' },
+    { route: 'dashboard/overview', target: ['#command-bar'], title: 'Your AI Assistant', text: 'Log a spend, ask “can I afford this?”, or ask anything about your money, like “why am I broke by the 20th?”. It answers with your real numbers.' },
     { route: 'dashboard/overview', target: ['#cb-mic'], title: 'Voice commands', text: 'Tap the mic and say it out loud. Try: “Can I afford a 1500 concert this Saturday?” or “Spent 120 on chai, split it with Rahul”.' },
     { route: 'budget/plan', target: ['[data-action="budget-autopilot"]'], title: 'Budget Autopilot', text: 'Tap "Set my budgets for me" on the Budget tab to let AI build a plan based on your recent habits.' }
   ] },
@@ -31,8 +31,9 @@ const CHAPTERS = [
     { target: ['#privacy-btn'], title: 'Hide your numbers', text: 'Tap the eye icon whenever friends or roommates are looking over your shoulder.' }
   ] },
   { id: 'dashboard', icon: '🏠', title: 'Home', blurb: 'Safe-to-spend, forecast, semester view and pet.', route: 'dashboard/overview', tryIt: ['See my Money Wrapped', () => openWrapped()], steps: [
-    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Safe to spend', text: 'Updates instantly on every change. Green when your daily rate is above 65% of baseline allowance, amber when below, red when balance runs out before next allowance.' },
+    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Safe to spend', text: 'What you can still spend today, to the paisa. Bills, debt payments due and what you spent today are already taken out.' },
     { route: 'dashboard/overview', target: ['#forecast-card .slider-panel'], title: 'Live habit sliders', text: 'Drag the food delivery and outings sliders to see how skipping 2 orders a week extends your runway by days.' },
+    { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'Total saved, this month, your savings rate and how it compares to last month.' },
     { route: 'dashboard/overview', target: ['#semester-card'], title: 'Semester milestones', text: 'Mark heavy months and track whether your current savings rate covers upcoming spikes.' },
     { route: 'dashboard/overview', target: ['#pet-card'], title: 'Your money pet', text: 'Gains XP and levels up as you log expenses, stick to your budget, and win challenges.' },
     { route: 'dashboard', target: ['[data-action="open-wrapped"]'], title: 'Money Wrapped', text: 'A visual summary of your monthly spending, streaks and habits to share or download.' }
@@ -45,29 +46,35 @@ const CHAPTERS = [
   ] },
   { id: 'split', icon: '👥', title: 'Split & Roommates', blurb: 'Bill photo splitter, running balances, and UPI settle-up.', route: 'split/ious', tryIt: ['Split a bill', () => billSplitterModal()], steps: [
     { route: 'split/ious', target: ['#view-split .stats-grid'], title: 'Shared expenses', text: 'Track money you owe friends and money friends owe you for food, trips and shared hostel groceries.' },
-    { route: 'split/ious', target: ['#w-balances'], title: 'Running balances', text: 'See the net total owed per person across all open bills with 1-tap UPI settle up.' },
+    { route: 'split/ious', target: ['#w-balances'], title: 'Running balances', text: 'See who owes whom. Tap Settle up: if you owe them, Pay opens your UPI app. If they owe you, add your UPI ID and they scan your QR.' },
     { route: 'split/ious', target: ['[data-action="split-bill"]'], title: 'Bill photo splitter', text: 'Upload or snap a bill receipt to automatically extract items, taxes and service charges, then assign items to friends with proportional tax math.' }
   ] },
   { id: 'budget', icon: '📊', title: 'Budget', blurb: 'Plan categories and track month-to-month changes.', route: 'budget/plan', steps: [
     { route: 'budget/plan', target: ['#cat-card'], title: 'Category plans', text: 'Set a target for each student category. What you spend fills in automatically from your expense log.' },
     { route: 'budget/where', target: ['#where-card'], title: 'Where did my money go?', text: 'Compares your spending against the same point last month to show what increased or decreased.' }
   ] },
-  { id: 'goals', icon: '🎯', title: 'Goals & Wishlist', blurb: 'Saving up, 48h wishlist cooldown and challenges.', route: 'goals/goals', tryIt: ['Try “Should I buy it?”', () => shouldIBuy()], steps: [
+  { id: 'debt', icon: '💳', title: 'Debt', blurb: 'Loans, money you owe, and the fastest way to pay it off.', route: 'debt/debts', steps: [
+    { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Add what you owe', text: 'Education loan, credit card, money from family. Add the balance, interest and monthly payment.' },
+    { route: 'debt/plan', target: ['#view-debt .view-head'], title: 'Payoff plan', text: 'See when you will be debt-free and how much interest you save by paying a little extra.' },
+    { route: 'debt/emi', target: ['#view-debt .view-head'], title: 'Loan calculator', text: 'Check the monthly payment before you take a loan.' }
+  ] },
+  { id: 'goals', icon: '🎯', title: 'Goals & Savings', blurb: 'Your savings, goals, wishlist and challenges.', route: 'goals/goals', tryIt: ['Try “Should I buy it?”', () => shouldIBuy()], steps: [
+    { route: 'goals/savings', target: ['#savings-card'], title: 'How much you save', text: 'Your total saved, this month, savings rate and a 6-month chart.' },
     { route: 'goals/goals', target: ['.goal-card'], title: 'Savings goals', text: 'Save up for a new laptop, bike, trip or emergency fund.' },
     { route: 'goals/wishlist', target: ['#wishlist-card'], title: '48-hour impulse cooldown', text: 'Want to buy something expensive? Put it on the wishlist and wait 48 hours to decide if you truly need it.' },
     { route: 'goals/challenges', target: ['#challenges-card'], title: 'Money challenges', text: 'Take on no-spend streaks or category fasts to build disciplined money habits and earn bonus XP.' }
   ] },
-  { id: 'settings', icon: '⚙️', title: 'Settings', blurb: 'Themes, sound, unit prices and backups.', tryIt: ['Open Settings', () => openSettings()], steps: [
-    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings & customization', text: 'Switch themes, adjust pet roast mode, set chai unit price, and manage local backups.' }
+  { id: 'settings', icon: '⚙️', title: 'Settings', blurb: 'Country, currency, theme, sync and backups.', tryIt: ['Open Settings', () => openSettings()], steps: [
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings & customization', text: 'Set your country and currency, theme, account sync and backups.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Fixes and polish.', hidden: true, steps: [
-    { title: 'Smoother and steadier', text: 'Lots of small fixes. YOKO! opens fast on slow Wi-Fi, works offline, and no longer shows test alerts when it starts.' },
-    { route: 'spend/insights', target: ['#w-spending-heatmap'], title: 'Full-month heatmap', text: 'The heatmap now shows every day of the month on the right weekday. Tap a day to see what you spent.' },
-    { route: 'split/ious', target: ['#w-balances'], title: 'Settle up in one tap', text: 'Saved UPI IDs fill in by themselves, so the payment QR shows straight away.' },
-    { route: 'budget/plan', target: ['[data-action="budget-autopilot"]'], title: 'Smarter budgets for you', text: '“Set my budgets for me” now looks at whole months, so a monthly fee like the mess bill counts once.' }
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Debt, savings and exact amounts.', hidden: true, steps: [
+    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Exact safe to spend', text: 'Now shows exactly what is left for today, after bills, debt payments and what you already spent.' },
+    { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'See how much you save each month and your savings rate.' },
+    { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Debt is back', text: 'Track loans and money you owe, with a payoff plan.' },
+    { route: 'dashboard/overview', target: ['#command-bar'], title: 'Say amounts your way', text: 'Type or say “2 lakh”, “50k” or “two thousand”. The AI understands.' }
   ] }
 ];
-const CHAPTER_ORDER = ['ai', 'quick', 'dashboard', 'spend', 'split', 'budget', 'goals', 'settings'];
+const CHAPTER_ORDER = ['ai', 'quick', 'dashboard', 'spend', 'split', 'budget', 'goals', 'debt', 'settings'];
 const chapterById = id => CHAPTERS.find(c => c.id === id);
 let tour = null;
 
@@ -88,7 +95,14 @@ function showOnboarding(opts = {}) {
     submitLabel: 'Build my student budget',
     cancelLabel: 'Skip',
     body: `<img class="welcome-logo" src="${LOGO_URI}" alt="YOKO! Student">
-      <p class="small muted">Three quick questions to set your student budget and daily safe-to-spend allowance.</p>
+      <p class="small muted">Pick your country and currency, then three quick questions to set your budget and daily safe-to-spend.</p>
+
+      <div class="form-grid two">
+        <div class="field"><label for="ob-country">Country</label>
+          <select id="ob-country" class="select" style="font-size:16px">${Object.keys(COUNTRIES).map(k => [k, countryInfo(k).name]).sort((a, b) => (a[0] === 'OTHER') - (b[0] === 'OTHER') || a[1].localeCompare(b[1])).map(([k, n]) => `<option value="${k}" ${ctry === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+        <div class="field"><label for="ob-currency">Currency</label>
+          <select id="ob-currency" class="select" style="font-size:16px">${Object.entries(CURRENCIES).map(([code, c]) => `<option value="${code}" ${state.currency === code ? 'selected' : ''}>${esc(c.symbol)} ${code}</option>`).join('')}</select></div>
+      </div>
 
       <div class="field">
         <label for="ob-allowance">1. Monthly allowance or pocket money</label>
@@ -158,6 +172,11 @@ function showOnboarding(opts = {}) {
         ptWrap.hidden = !e.target.checked;
       });
 
+      const curSel = form.querySelector('#ob-currency');
+      const setSym = () => { const c = CURRENCIES[curSel.value]; form.querySelectorAll('.affix-sym').forEach(el => { el.textContent = c ? c.symbol : ''; }); };
+      form.querySelector('#ob-country').addEventListener('change', e => { const cur = countryInfo(e.target.value).currency; if (CURRENCIES[cur]) { curSel.value = cur; setSym(); } });
+      curSel.addEventListener('change', setSym);
+
       form.querySelector('#ob-allowance').focus();
     },
 
@@ -174,6 +193,10 @@ function showOnboarding(opts = {}) {
       form.querySelector('#ob-allowance-err').textContent = ra.error || '';
       allowInput.toggleAttribute('aria-invalid', !!ra.error);
       if (ra.error) { allowInput.focus(); return false; }
+
+      const obCur = form.querySelector('#ob-currency').value, obCountry = form.querySelector('#ob-country').value;
+      if (CURRENCIES[obCur]) state.currency = obCur;
+      if (COUNTRIES[obCountry]) { const ci = countryInfo(obCountry); state.settings.country = ci.code; state.wallet.taxYearStart = ci.fy; applyCountry(); }
 
       let arrivalDay = 1;
       let isIrregular = false;
@@ -280,13 +303,14 @@ function showWhatsNew() {
   markTourSeen();
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
-    body: `<p>Fixes and polish:</p><ul class="whats-new">
-        <li><strong>Heatmap:</strong> shows the whole month, each day on the right weekday.</li>
-        <li><strong>Settle up:</strong> saved UPI IDs fill in, so the QR shows straight away.</li>
-        <li><strong>Set my budgets for me:</strong> uses whole months, so the mess bill counts once.</li>
-        <li><strong>Budget alerts:</strong> “Enable alerts” and “Not now” work, and an alert doesn’t repeat every time you open the app.</li>
-        <li><strong>Live groups:</strong> the buttons work, and tell you when you need internet.</li>
-        <li><strong>Steadier:</strong> opens fast on slow Wi-Fi and works offline.</li></ul>
+    body: `<p>New and fixed:</p><ul class="whats-new">
+        <li><strong>Debt:</strong> track loans and money you owe, with a payoff plan.</li>
+        <li><strong>Savings:</strong> see what you save each month and your savings rate.</li>
+        <li><strong>Exact amounts:</strong> safe to spend and money left now show to the paisa.</li>
+        <li><strong>Safe to spend fixed:</strong> it now counts today’s spending, bills and debt payments correctly.</li>
+        <li><strong>Amount words:</strong> “2 lakh”, “50k” and “two thousand” now work in the AI bar.</li>
+        <li><strong>Live groups:</strong> creating a group works the first time.</li>
+        <li><strong>Simpler:</strong> roast mode and round-ups are gone. Full tutorial is on Home.</li></ul>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
   });

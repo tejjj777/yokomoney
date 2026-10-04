@@ -1103,7 +1103,7 @@ const FinMath = (() => {
     const cleanCu = String(cu || 'INR').trim();
     const cleanTn = String(tn || '').trim();
 
-    return `upi://pay?pa=${encodeURIComponent(cleanPa)}&pn=${encodeURIComponent(cleanPn)}&am=${encodeURIComponent(cleanAm)}&cu=${encodeURIComponent(cleanCu)}&tn=${encodeURIComponent(cleanTn)}`;
+    return `upi://pay?pa=${encodeURIComponent(cleanPa).replace(/%40/g, '@')}&pn=${encodeURIComponent(cleanPn)}&am=${encodeURIComponent(cleanAm)}&cu=${encodeURIComponent(cleanCu)}&tn=${encodeURIComponent(cleanTn)}`;
   }
 
   /**
@@ -1435,6 +1435,81 @@ const FinMath = (() => {
     };
   }
 
+
+  /* ---------- Spoken and written amounts ---------- */
+  const NUM_WORDS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+    thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fourty: 40,
+    fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+  const SCALE_WORDS = { thousand: 1e3, thousands: 1e3, k: 1e3, grand: 1e3, lakh: 1e5, lakhs: 1e5, lac: 1e5, lacs: 1e5,
+    million: 1e6, millions: 1e6, mn: 1e6, crore: 1e7, crores: 1e7, cr: 1e7, billion: 1e9, billions: 1e9, bn: 1e9 };
+  const SUFFIX_SCALE = { k: 1e3, l: 1e5, lac: 1e5, lakh: 1e5, lakhs: 1e5, cr: 1e7, crore: 1e7, m: 1e6, mn: 1e6, b: 1e9, bn: 1e9 };
+  /**
+   * Rewrite amounts written in words or with scale words as plain numbers, leaving the rest of the text alone.
+   * "2 lakh" → "200000", "two lakh fifty thousand" → "250000", "1.5 cr" → "15000000", "50k" → "50000", "₹2,00,000" → "₹200000".
+   */
+  function normalizeAmounts(text) {
+    const words = String(text == null ? '' : text).trim().split(/\s+/).filter(Boolean).map(p => {
+      const m = /^([₹$€£¥]|rs\.?|inr)?(.*?)([,.!?;:)]*)$/i.exec(p);
+      return { raw: p, lead: m[1] || '', core: m[2], trail: m[3] || '' };
+    });
+    const kind = (t, next) => {
+      if (!t) return null;
+      const c = t.core.toLowerCase();
+      if (/^\d[\d,]*(\.\d+)?$/.test(c)) return { type: 'num', v: Number(c.replace(/,/g, '')), digit: true };
+      const sm = /^(\d[\d,]*(?:\.\d+)?)(k|l|lac|lakhs?|cr|crore|m|mn|b|bn)$/i.exec(c);
+      if (sm) return { type: 'numScale', v: Number(sm[1].replace(/,/g, '')) * SUFFIX_SCALE[sm[2].toLowerCase()] };
+      if (Object.prototype.hasOwnProperty.call(NUM_WORDS, c)) return { type: 'num', v: NUM_WORDS[c], word: true };
+      const hy = /^(twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety)-(one|two|three|four|five|six|seven|eight|nine)$/.exec(c);
+      if (hy) return { type: 'num', v: NUM_WORDS[hy[1]] + NUM_WORDS[hy[2]], word: true };
+      if (c === 'hundred' || c === 'hundreds') return { type: 'hundred' };
+      if (Object.prototype.hasOwnProperty.call(SCALE_WORDS, c)) return { type: 'scale', v: SCALE_WORDS[c] };
+      if ((c === 'a' || c === 'an') && next && !next.lead && !t.trail) { const n = next.core.toLowerCase(); if (Object.prototype.hasOwnProperty.call(SCALE_WORDS, n) || n === 'hundred') return { type: 'num', v: 1, word: true }; }
+      if (c === 'and') return { type: 'and' };
+      return null;
+    };
+    const out = [];
+    let i = 0;
+    while (i < words.length) {
+      const k0 = kind(words[i], words[i + 1]);
+      if (!k0 || k0.type === 'and' || k0.type === 'hundred' || k0.type === 'scale') { out.push(words[i].raw); i++; continue; }
+      let total = 0, cur = 0, j = i, special = false, lastTens = false, lastHundred = false, end = i;
+      while (j < words.length) {
+        const t = words[j], k = kind(t, words[j + 1]);
+        if (!k) break;
+        if (j > i && t.lead) break;
+        if (j > i && words[j - 1].trail) break;   // punctuation ends the number
+        if (k.type === 'and') {
+          const nk = kind(words[j + 1], words[j + 2]);
+          if (!nk || nk.type !== 'num' || !nk.word || cur === 0 && total === 0) break;
+          j++; continue;
+        }
+        if (k.type === 'num') {
+          if (k.digit && cur !== 0) break;
+          if (k.word && cur !== 0 && !(lastTens && k.v < 10) && !lastHundred) break;
+          if (k.digit && j > i && !special) break;
+          cur += k.v; if (k.word) special = true;
+          lastTens = !!k.word && k.v >= 20 && k.v < 100 && k.v % 10 === 0; lastHundred = false;
+        } else if (k.type === 'numScale') {
+          if (cur !== 0) break;
+          total += k.v; special = true; lastTens = lastHundred = false;
+        } else if (k.type === 'hundred') {
+          cur = (cur || 1) * 100; special = true; lastHundred = true; lastTens = false;
+        } else if (k.type === 'scale') {
+          total += (cur || 1) * k.v; cur = 0; special = true; lastTens = lastHundred = false;
+        }
+        end = j; j++;
+      }
+      if (!special) {   // plain digits: just drop thousands separators
+        const t = words[i];
+        out.push(t.lead + (/^\d{1,3}(,\d{2,3})+(\.\d+)?$/.test(t.core) ? t.core.replace(/,/g, '') : t.core) + t.trail);
+        i++; continue;
+      }
+      out.push(words[i].lead + String(Math.round((total + cur) * 100) / 100) + words[end].trail);
+      i = end + 1;
+    }
+    return out.join(' ');
+  }
+
   return {
     PAY_FREQUENCIES, MAX_MONTHS,
     toMonthly, netFromGross, monthlyRate, emi, amortizationSchedule, neverPaysOff, monthsToPayoff,
@@ -1446,7 +1521,7 @@ const FinMath = (() => {
     safeToSpend, forecastRunOut, semesterPlan, affordCheck, whatIfForecast,
     parseBillItems, splitBillExact, buildUpiUrl, generateTopUpDraft,
     calculateGhostSpending, calculateTimeOfDayBands, calculateSpendingPersonality,
-    calculateCategoryComparison, calculateDailyHeatmap, payPeriod
+    calculateCategoryComparison, calculateDailyHeatmap, payPeriod, normalizeAmounts
   };
 })();
 

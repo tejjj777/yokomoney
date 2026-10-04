@@ -69,7 +69,7 @@ function localizeSample(s) {
   // round-ups again, in the new currency
   const to = roundUpFor(cur), jar = s.goals[2], ym = F.toISO(todayDate()).slice(0, 7);
   s.budget.expenses.forEach(x => {
-    if (x.date.slice(0, 7) !== ym) return;
+    return;   // round-ups removed
     const up = F.roundUpAmount(x.amount, to);
     if (!(up > 0.004)) return;
     const cid = uid(), cat = s.budget.categories.find(c => c.id === x.categoryId);

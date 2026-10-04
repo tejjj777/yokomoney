@@ -508,7 +508,7 @@ function splitExpenseForm(pre = {}) {
       const sid = uid();
       const made = parts.map(p => addExpense({ categoryId: p.cat, amount: p.amount, date, note, noRoundup: true }));
       made.forEach(m => { m.exp.splitId = sid; if (pre.src) m.exp.src = pre.src; });
-      const ru = state.settings.roundUp, g = ru.enabled && state.goals.find(x => x.id === ru.goalId);
+      const ru = state.settings.roundUp, g = false && state.goals.find(x => x.id === ru.goalId);
       const up = g ? F.roundUpAmount(r.total.value, ru.to) : 0;
       if (g && up > 0.004) { const cid = uid(); g.saved += up; g.contributions.push({ id: cid, date, amount: up, note: 'Round-up · split expense', roundup: true }); made[0].exp.roundup = { goalId: g.id, cid, amount: up }; }
       commit();

@@ -78,6 +78,10 @@ function runSelfTests() {
   check('addMonths clamps Jan 31 → Feb 28', FinMath.toISO(F.addMonths(new Date(2027, 0, 31), 1)) === '2027-02-28');
 
   // Fun-layer helpers
+  [['2 lakh', '200000'], ['2.5 lakh', '250000'], ['two lakh', '200000'], ['1 crore', '10000000'], ['1.5 cr', '15000000'], ['50 thousand', '50000'], ['50k', '50000'],
+   ['2 lakh 50 thousand', '250000'], ['1 million', '1000000'], ['3.2M', '3200000'], ['₹2,00,000', '₹200000'], ['2,000,000', '2000000'], ['five hundred', '500'], ['1 bn', '1000000000'],
+   ['spent 2 lakh on a bike', 'spent 200000 on a bike'], ['I have 2 cats and 3 dogs', 'I have 2 cats and 3 dogs']]
+    .forEach(([a, b]) => check(`Amount words: "${a}" → ${b}`, F.normalizeAmounts(a) === b));
   check('Round-up: 1,850 → next 100 = 50', close(F.roundUpAmount(1850, 100), 50, 1e-9));
   check('Round-up: already round = 0', F.roundUpAmount(1900, 100) === 0);
   check('Round-up: 1,234.50 → next 10 = 5.50', close(F.roundUpAmount(1234.5, 10), 5.5, 1e-9));
@@ -248,7 +252,7 @@ function runSelfTests() {
     cu: 'INR',
     tn: 'Hostel Dinner / Friday Split & Snacks'
   });
-  check('UPI URL: correct scheme and parameters', upiUrl.startsWith('upi://pay?pa=rahul.sharma%40okaxis&pn=Rahul%20%26%20Friends%20%2B%20Co&am=340.50&cu=INR&tn=Hostel%20Dinner%20%2F%20Friday%20Split%20%26%20Snacks'));
+  check('UPI URL: correct scheme and parameters', upiUrl.startsWith('upi://pay?pa=rahul.sharma@okaxis&pn=Rahul%20%26%20Friends%20%2B%20Co&am=340.50&cu=INR&tn=Hostel%20Dinner%20%2F%20Friday%20Split%20%26%20Snacks'));
   check('UPI URL: spaces and symbols properly encoded', !upiUrl.includes(' ') && upiUrl.includes('%20%26%20') && upiUrl.includes('%2F'));
 
   // Student Money Wrapped & Insights: Ghost spending

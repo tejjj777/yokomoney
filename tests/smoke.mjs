@@ -19,7 +19,7 @@ const server = http.createServer((req, res) => {
 const BASE = `http://localhost:${server.address().port}/`;
 fs.mkdirSync(OUT, { recursive: true });
 const TABS = { dashboard: ['overview', 'forecast', 'semester', 'calendar', 'charts'], spend: ['log', 'categories', 'insights', 'recurring', 'cash'],
-  budget: ['plan', 'where', 'yearly', 'history'], split: ['ious', 'groups', 'history'], goals: ['goals', 'wishlist', 'challenges', 'gifts'] };
+  budget: ['plan', 'where', 'yearly', 'history'], split: ['ious', 'groups', 'history'], goals: ['savings', 'goals', 'wishlist', 'challenges', 'gifts'], debt: ['debts', 'plan', 'emi'] };
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const errors = [], overflow = [];

@@ -78,6 +78,7 @@ function askPeriod(text) {
 }
 /** Only trust an AI answer that has what the next step needs; anything else goes to the on-device parser. */
 function validAiCommand(r) {
+  if (r && typeof r === 'object' && r.intent === 'chat') return typeof r.reply === 'string' && !!r.reply.trim();
   if (!r || typeof r !== 'object' || !['add', 'ask', 'afford', 'whatif', 'budget'].includes(r.intent)) return false;
   const amt = Number(r.amount);
   if (['add', 'afford', 'budget'].includes(r.intent) && !(Number.isFinite(amt) && amt > 0)) return false;
@@ -85,6 +86,29 @@ function validAiCommand(r) {
   if (r.intent === 'budget' && !(typeof r.categoryName === 'string' && r.categoryName.trim())) return false;
   r.amount = Number.isFinite(amt) ? amt : r.amount;
   return true;
+}
+
+/** The student's real numbers, so AI answers are about their money. Rounded; no names, notes or UPI IDs. */
+function aiContext() {
+  try {
+    const al = allowanceLeft(), sts = studentSafeToSpend(), r = Math.round;
+    const spent = spentByCategory(al.start, todayISO());
+    const next = nextPayInfo();
+    return {
+      currency: state.currency || 'INR',
+      safeToSpendToday: Math.round((sts.leftToday || 0) * 100) / 100,
+      leftUntilAllowance: r(Math.max(0, al.balance)),
+      daysToAllowance: al.daysLeft,
+      nextAllowanceDate: next ? F.toISO(next.date) : null,
+      monthlyIncome: r(al.income || 0),
+      spentSincePayday: r(al.spent || 0),
+      categories: state.budget.categories.slice(0, 20).map(c => ({ name: c.name, type: c.type, planned: r(c.planned || 0), spentSincePayday: r(spent[c.id] || 0) })),
+      openIous: state.wallet.ious.filter(x => !x.settled).length,
+      goals: (state.goals || []).slice(0, 5).map(g => ({ name: g.name, target: r(g.target || 0), saved: r(g.saved || 0) }))
+    };
+  } catch (e) {
+    return {};
+  }
 }
 
 /* =========================================================
@@ -115,38 +139,28 @@ function bindCommandBar() {
   const mic = bar.querySelector('#cb-mic');
   const res = bar.querySelector('#cb-result');
 
-  const executeCommand = async (text) => {
-    if (!text.trim()) return;
+  const executeCommand = async (rawText) => {
+    if (!rawText.trim()) return;
+    const text = F.normalizeAmounts(rawText);   // "2 lakh" → 200000, "fifty k" → 50000
     inp.disabled = true;
     btn.disabled = true;
     res.hidden = false;
     res.innerHTML = `<div class="cb-loading"><span class="status-dot"></span> Thinking...</div>`;
 
-    // 1. Ask AI (if offline, falls back to rule-based parser)
-    let parsed = null;
+    // 1. Ask AI. Spends, "can I afford" and "how much" also work on the device, so for those we only wait a few seconds.
+    const local = parseCommandBarFallback(text);
+    let parsed = null, aiDown = false;
     if (typeof aiCall === 'function') {
-      const prompt = `Parse this finance command from an Indian university student: "${text}".
-Return JSON strictly with:
-{
-  "intent": "add" | "ask" | "afford" | "whatif" | "budget",
-  "amount": number (if applicable),
-  "note": string (for add),
-  "withPerson": string (for splits),
-  "split": boolean (for add),
-  "categoryName": string (for ask, budget, whatif),
-  "item": string (for afford),
-  "dayOffset": number (days from today, for afford),
-  "reductionAmount": number (daily amount reduced for whatif)
-}`;
-      const slow = setTimeout(() => { if (res.querySelector('.cb-loading')) res.innerHTML = '<div class="cb-loading"><span class="status-dot"></span> Slow connection, nearly there…</div>'; }, 2000);
-      const aiRes = await aiCall('command', prompt, 4000);   // after 4s the on-device parser answers instead
+      const quick = local.intent !== 'unknown';
+      const slow = setTimeout(() => { if (res.querySelector('.cb-loading')) res.innerHTML = '<div class="cb-loading"><span class="status-dot"></span> Still thinking…</div>'; }, 4000);
+      const aiRes = await aiCall('command', { text: text.slice(0, 500), context: aiContext(), today: new Date().toDateString() }, quick ? 6000 : 16000);
       clearTimeout(slow);
       if (validAiCommand(aiRes)) parsed = aiRes;
+      else aiDown = true;
     }
 
-    if (!parsed || !parsed.intent) {
-      parsed = parseCommandBarFallback(text);
-    }
+    if (!parsed || !parsed.intent) parsed = local;
+    if (parsed.intent === 'unknown' && aiDown) parsed = { intent: 'down' };
 
     // 2. Do Math & Render Reply
     renderCommandResult(parsed, text, res);
@@ -352,8 +366,17 @@ function renderCommandResult(parsed, originalText, container) {
       <p class="small">Your money would ${wi.willMakeIt ? 'last until your next allowance' : `run out on ${fmtDate(F.parseDate(wi.runOutDay))} (${wi.daysGained > 0 ? wi.daysGained + ' days later than before' : 'same as before'})`}.</p>
     </div>`;
     container.innerHTML = html;
+  } else if (parsed.intent === 'chat') {
+    container.innerHTML = `<p class="cb-reply">${esc(parsed.reply)}</p>`;
+  } else if (parsed.intent === 'down') {
+    container.innerHTML = `<p>The AI isn’t answering right now. Try again in a minute.</p>
+      <p class="small muted">I can still log spends and answer “can I afford” and “how much” questions without it.</p>`;
   } else {
     container.innerHTML = `<p>I didn't quite catch that. Try saying something like <em>"spent 200 on chai"</em>.</p>`;
+  }
+  // the AI's own words, under answers where the app already did the math
+  if (parsed.intent === 'afford' && typeof parsed.reply === 'string' && parsed.reply.trim()) {
+    container.insertAdjacentHTML('beforeend', `<p class="small muted mt cb-reply">${esc(parsed.reply)}</p>`);
   }
 }
 

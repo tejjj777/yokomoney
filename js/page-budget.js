@@ -95,9 +95,9 @@ function renderBudget() {
   const allExps = filtering ? filterExpenses(ef) : state.budget.expenses.filter(x => x.date.slice(0, 7) === ym).sort((a, b2) => b2.date.localeCompare(a.date) || b2.id.localeCompare(a.id));
   const exps = allExps.slice(0, 300);
   const olderCount = filtering ? 0 : state.budget.expenses.length - allExps.length;
-  const ru = state.settings.roundUp, ruGoal = ru.enabled ? state.goals.find(g => g.id === ru.goalId) : null;
+  const ru = state.settings.roundUp, ruGoal = false ? state.goals.find(g => g.id === ru.goalId) : null;
   const jarMonth = sum(state.goals.flatMap(g => g.contributions.filter(c => c.roundup && c.date.slice(0, 7) === ym)), c => c.amount);
-  const jarLine = ruGoal ? `🫙 Round-up jar: ${fmt(jarMonth)} saved this month → ${esc(ruGoal.name)}` : 'Round-up jar is off. You can turn it on in Settings.';
+  const jarLine = ruGoal ? `🫙 Round-up jar: ${fmt(jarMonth)} saved this month → ${esc(ruGoal.name)}` : '';
   const expCard = `<div class="card mb" id="exp-log">
     <div class="card-head"><div><h2>Expense log</h2><p class="muted small">${filtering ? `${plural(allExps.length, 'match', 'matches')} · ${fmt(sum(allExps, x => x.amount))} in total${allExps.length > exps.length ? `. Showing the newest ${exps.length}` : ''}` : `This month${olderCount ? `. Search to find the ${olderCount} older ones` : ''}`}.</p><p class="small" style="margin-top:4px">${jarLine}</p></div>
       <div class="actions no-print">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), mi('Import a bank statement', 'import-statement'), csvItem('expenses', 'expenses')])}</div></div>
@@ -152,7 +152,7 @@ function renderSpend() {
   const allExps = filtering ? filterExpenses(ef) : state.budget.expenses.filter(x => x.date.slice(0, 7) === ym).sort((a, b2) => b2.date.localeCompare(a.date) || b2.id.localeCompare(a.id));
   const exps = allExps.slice(0, 300);
   const olderCount = filtering ? 0 : state.budget.expenses.length - allExps.length;
-  const ru = state.settings.roundUp, ruGoal = ru.enabled ? state.goals.find(g => g.id === ru.goalId) : null;
+  const ru = state.settings.roundUp, ruGoal = false ? state.goals.find(g => g.id === ru.goalId) : null;
   const jarMonth = sum(state.goals.flatMap(g => g.contributions.filter(c => c.roundup && c.date.slice(0, 7) === ym)), c => c.amount);
   const jarLine = ruGoal ? `🫙 Round-up jar: ${fmt(jarMonth)} saved this month → ${esc(ruGoal.name)}` : '';
   const catName = id => { const c = cats.find(x => x.id === id); return c ? c.name : 'Deleted category'; };
@@ -179,7 +179,13 @@ function renderSpend() {
     </div>
   </div>`;
 
-  const html = head + tabbed('spend', {
+  const stsSp = monthlyIncome() > 0 ? studentSafeToSpend() : null;
+  const exactCard = stsSp ? `<div class="card mb exact-card"><div class="exact-grid">
+      <div><p class="stat-label">Left to spend today</p><p class="exact-val">${fmtExact(stsSp.leftToday)}</p></div>
+      <div><p class="stat-label">Left this period</p><p class="exact-val">${fmtExact(stsSp.balanceNow)}</p></div>
+      <div><p class="stat-label">Spent today</p><p class="exact-val">${fmtExact(stsSp.spentToday)}</p></div>
+    </div></div>` : '';
+  const html = head + exactCard + tabbed('spend', {
     log: expCard,
     categories: catBreakdown,
     insights: ghostSpendingCard() + timeOfDayCard() + spendingHeatmapCard(),

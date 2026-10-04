@@ -165,7 +165,7 @@ function addExpense({ categoryId, amount, date, note, noRoundup }) {
   const cat = state.budget.categories.find(x => x.id === categoryId);
   const exp = { id: uid(), date, categoryId, amount, note: note || '' };
   const ru = state.settings.roundUp;
-  const goal = ru.enabled && !noRoundup ? state.goals.find(g => g.id === ru.goalId) : null;
+  const goal = false && ru.enabled && !noRoundup ? state.goals.find(g => g.id === ru.goalId) : null;
   let roundup = 0;
   if (goal) {
     roundup = F.roundUpAmount(amount, ru.to);
@@ -183,7 +183,9 @@ function addExpense({ categoryId, amount, date, note, noRoundup }) {
 }
 function expenseToast(amount, r) {
   const line = roastForExpense(amount, r.cat);
-  toast(`Added ${fmt(amount)} to ${r.cat ? r.cat.name : 'budget'}${r.roundup ? ` (+${fmt(r.roundup)} to ${r.goal.name})` : ''}${line ? `. ${line}` : ''}`, line ? 3600 : 2600);
+  let left = '';
+  try { if (monthlyIncome() > 0) { const st = studentSafeToSpend(); left = ` · Left today ${fmtExact(st.leftToday)} · Left this period ${fmtExact(st.balanceNow)}`; } } catch (e) { left = ''; }
+  toast(`Added ${fmtExact(amount)} to ${r.cat ? r.cat.name : 'budget'}${left}`, 4200);
   awardXP(5, 'expense');
   if (r.roundup) playSound('coin');
 }
@@ -466,6 +468,7 @@ function findByName(list, text) {
 }
 /** Turn "250 food dinner", "save 2k trip", "pay 3000 credit" into runnable commands. */
 function parseCommand(q) {
+  q = F.normalizeAmounts(q);
   const words = q.trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
   const low = words.map(w => w.toLowerCase());
@@ -638,13 +641,7 @@ function prefsHTML() {
   </div></div>
   <div class="settings-group"><h3>Runway</h3>
     ${f('set-cash', 'Bank & savings not in a goal', `<div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="set-cash" class="input" inputmode="decimal" value="${numStr(s.cashOnHand)}" data-setting="cashOnHand" data-kind="money" aria-describedby="set-cash-err"></div>`, 'Runway is this, plus your goal savings and cash, divided by what you spend on needs and wants in a month.')}
-  </div>
-  <div class="settings-group"><h3>Round-up jar</h3><p class="small muted">Rounds each expense up and puts the change into a goal.</p>
-    <label class="check"><input type="checkbox" id="set-ru" data-setting="roundUp.enabled" data-kind="bool" ${s.roundUp.enabled ? 'checked' : ''} ${state.goals.length ? '' : 'disabled'}> Turn on round-ups</label>
-    <div class="form-grid two">
-      ${f('set-ruto', 'Round up to the next', `<select id="set-ruto" class="select" data-setting="roundUp.to" data-kind="num">${ROUND_TO.map(v => `<option value="${v}" ${s.roundUp.to === v ? 'selected' : ''}>${sym}${v}</option>`).join('')}</select>`)}
-      ${f('set-rugoal', 'Send it to', `<select id="set-rugoal" class="select" data-setting="roundUp.goalId" data-kind="select" ${state.goals.length ? '' : 'disabled'}>${goalOpts}</select>`)}
-    </div></div>`;
+  </div>`;
 }
 function bindPrefs(form) {
   const preview = () => { const el = form.querySelector('#set-preview'); if (el) el.textContent = `${fmt(1000)} = ${feelsLikeText(1000) || 'add your income first'}`; };

@@ -29,14 +29,18 @@ function safeToSpendHero() {
     </div>
     <div class="safe-hero-body">
       <p class="safe-hero-label">Safe to spend today</p>
-      <h1 class="safe-hero-amount">${fmt(sts.perDay)} <span class="safe-hero-sub">a day for the next ${plural(sts.daysLeft, 'day')}</span></h1>
-      <p class="safe-hero-reason">${esc(sts.reason)}</p>
+      <h1 class="safe-hero-amount">${fmtExact(sts.leftToday)}</h1>
+      <p class="safe-hero-reason">${sts.overToday > 0 ? `You went ${fmtExact(sts.overToday)} over today’s limit. Tomorrow’s limit adjusts.` : sts.available <= 0 ? 'Nothing left after bills. Showing 0.' : esc(sts.reason)}</p>
       <div class="safe-hero-formula small muted">
-        <span>Available: <strong>${fmt(sts.available)}</strong></span>
+        <span>Daily limit: <strong>${fmtExact(sts.dailyLimit)}</strong></span>
         <span>·</span>
-        <span>Balance: ${fmt(sts.available + (sts.upcomingBills || 0))}</span>
-        ${sts.upcomingBills > 0 ? `<span>− Bills: ${fmt(sts.upcomingBills)}</span>` : ''}
-        <span>÷ ${plural(sts.daysLeft, 'day')}</span>
+        <span>Spent today: ${fmtExact(sts.spentToday)}</span>
+      </div>
+      <div class="safe-hero-formula small muted">
+        <span>Left this period: ${fmtExact(sts.balanceNow)}</span>
+        ${sts.upcomingBills > 0 ? `<span>− Bills ${fmtExact(sts.upcomingBills)}</span>` : ''}
+        ${sts.debtDue > 0 ? `<span>− Debt ${fmtExact(sts.debtDue)}</span>` : ''}
+        <span>· ${plural(sts.daysLeft, 'day')} left</span>
       </div>
     </div>
     <div class="safe-hero-actions no-print">
@@ -152,6 +156,46 @@ function bindForecastSliders(chartId = 'dash-forecast-chart') {
   sliders.forEach(s => s.addEventListener('input', onSlide));
 }
 
+/* ---------- Savings: how much the student is saving ---------- */
+function savingsByMonth(ym) {
+  const savCats = new Set(state.budget.categories.filter(c => c.type === 'savings').map(c => c.id));
+  const goalIn = sum(state.goals.flatMap(g => g.contributions.filter(c => c.date.slice(0, 7) === ym)), c => c.amount);
+  const catIn = sum(state.budget.expenses.filter(x => x.date.slice(0, 7) === ym && savCats.has(x.categoryId)), x => x.amount);
+  return goalIn + catIn;
+}
+function savingsInfo() {
+  const t = todayDate(), months = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(t.getFullYear(), t.getMonth() - i, 1); months.push({ ym: F.toISO(d).slice(0, 7), label: SHORT_MONTHS_SAFE(d.getMonth()) }); }
+  months.forEach(m => { m.amount = savingsByMonth(m.ym); });
+  const thisM = months[5].amount, lastM = months[4].amount, inc = monthlyIncome();
+  return { months, thisM, lastM, change: thisM - lastM, rate: inc > 0 ? thisM / inc * 100 : null,
+    total: sum(state.goals, g => g.saved), goals: state.goals.filter(g => g.target > 0) };
+}
+function SHORT_MONTHS_SAFE(i) { return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]; }
+function savingsCard(chartId = 'dash-savings-chart') {
+  const s = savingsInfo();
+  const ch = s.change, chTxt = s.lastM === 0 && s.thisM === 0 ? 'Nothing saved yet' : `${ch >= 0 ? '▲' : '▼'} ${fmtExact(Math.abs(ch))} vs last month`;
+  const goals = s.goals.slice(0, 4).map(g => { const p = Math.min(100, g.saved / g.target * 100); return `<div class="sv-goal"><div class="sv-goal-top"><span>${esc(g.name)}</span><span class="small muted">${fmtExact(g.saved)} of ${fmtExact(g.target)}</span></div><div class="progress" role="progressbar" aria-valuenow="${Math.round(p)}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(g.name)}"><span style="width:${p}%"></span></div></div>`; }).join('');
+  return `<div class="card mb savings-card" id="savings-card">
+    <div class="card-head"><div><h2>Your savings</h2><p class="muted small">Goal deposits plus money put in savings categories.</p></div>
+      <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="add-goal">${ICON.plus}<span>Goal</span></button></div></div>
+    <div class="exact-grid">
+      <div><p class="stat-label">Total saved</p><p class="exact-val">${fmtExact(s.total)}</p></div>
+      <div><p class="stat-label">This month</p><p class="exact-val">${fmtExact(s.thisM)}</p><p class="small ${ch >= 0 ? 'sv-up' : 'tone-danger-text'}">${chTxt}</p></div>
+      <div><p class="stat-label">Savings rate</p><p class="exact-val">${s.rate === null ? '—' : fmtPct(s.rate)}</p><p class="small muted">of this month’s income</p></div>
+    </div>
+    <div class="sv-chart"><canvas id="${chartId}" aria-label="Savings in the last 6 months" role="img"></canvas></div>
+    ${goals ? `<div class="sv-goals">${goals}</div>` : '<p class="small muted">Add a goal to see your progress here.</p>'}
+  </div>`;
+}
+function drawSavingsChart(id) {
+  const el = document.getElementById(id); if (!el || !window.Chart) return;
+  const s = savingsInfo();
+  makeChart(id, { type: 'bar', data: { labels: s.months.map(m => m.label), datasets: [{ label: 'Saved', data: s.months.map(m => Math.round(m.amount * 100) / 100), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7ED957', borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtExact(c.parsed.y) } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => fmtCompactSafe(v) } } } } });
+}
+function fmtCompactSafe(v) { try { return fmt(v); } catch (e) { return String(v); } }
+
 function renderDashboard() {
   const t = todayDate();
   const inc = monthlyIncome();
@@ -162,7 +206,7 @@ function renderDashboard() {
   const sp = spendingSource();
 
   let html = viewHeader('dashboard', 'Home', `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`,
-    `<button type="button" class="btn" data-action="open-wrapped"><span aria-hidden="true">🎬</span><span>Money Wrapped</span></button>`);
+    `<button type="button" class="btn" data-action="tour-all"><span aria-hidden="true">🎓</span><span>Full tutorial</span></button>`, [mi('Money Wrapped', 'open-wrapped')]);
 
   if (!hasAnyData()) {
     html += emptyState('Nothing here yet', 'Set your student allowance to build your budget and daily safe-to-spend amount. Or explore with sample data.', 'open-paycheck', 'Set allowance', 'dashboard');
@@ -176,6 +220,7 @@ function renderDashboard() {
         : stat('Left this month', fmt(b.remaining), inc > 0 ? `${fmtPct(b.actual / inc * 100)} of allowance spent` : 'Track spending', b.remaining < 0 ? 'tone-danger' : '')}
       ${stat('No-spend streak', `🔥 ${plural(sk.current, 'day')}`, `Longest: ${plural(sk.longest, 'day')}`)}
     </div>` +
+    savingsCard('dash-savings-chart') +
     runOutForecastCard('dash-forecast-chart') +
     semesterCard() +
     `<div class="grid-2">${petCard()}${questsCard()}</div>`;
@@ -205,6 +250,7 @@ function renderDashboard() {
         runOutLineChart('dash-forecast-chart', fc);
         bindForecastSliders('dash-forecast-chart');
         bindCommandBar();
+        drawSavingsChart('dash-savings-chart');
       } else if (tab === 'forecast') {
         const fc = studentRunOutForecast();
         runOutLineChart('tab-forecast-chart', fc);

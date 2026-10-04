@@ -31,7 +31,8 @@ const ROUTES = [
   { id: 'spend', label: 'Spend', short: 'Spend', icon: 'wallet2' },
   { id: 'budget', label: 'Budget', short: 'Budget', icon: 'budget' },
   { id: 'split', label: 'Split', short: 'Split', icon: 'debt', long: 'Split & Roommates' },
-  { id: 'goals', label: 'Goals', short: 'Goals', icon: 'goal', long: 'Goals & Wishlist' }
+  { id: 'goals', label: 'Goals', short: 'Goals', icon: 'goal', long: 'Goals & Savings' },
+  { id: 'debt', label: 'Debt', short: 'Debt', icon: 'debt', long: 'Debt & Loans' }
 ];
 
 const svg = (p, size = 20) => `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;

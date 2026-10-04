@@ -8,7 +8,6 @@ const VIEWS = { dashboard: renderDashboard, spend: renderSpend, budget: renderBu
 /** Old links redirect to appropriate student sections. */
 function redirectOldHash() {
   if (/^#gifts(\/|$)/.test(location.hash)) history.replaceState(null, '', '#goals/gifts');
-  if (/^#debt(\/|$)/.test(location.hash)) history.replaceState(null, '', '#budget/plan');
   if (/^#wallet(\/|$)/.test(location.hash)) history.replaceState(null, '', /ious/.test(location.hash) ? '#split/ious' : '#spend/cash');
 }
 const currentRoute = () => { const h = location.hash.replace('#', '').split('/')[0]; return VIEWS[h] && ROUTES.some(r => r.id === h) ? h : 'dashboard'; };

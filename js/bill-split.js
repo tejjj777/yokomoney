@@ -517,6 +517,101 @@ function bsSaveSplit(form, data, assignments) {
    2. UPI SETTLE-UP & RUNNING BALANCES
    ========================================================= */
 
+/* ---------- UPI pay section (Settle up and group settle share it) ---------- */
+/** name@bank, e.g. rahul@okaxis or 9876543210@ybl */
+function isUpiId(v) { return /^[a-z0-9._-]{2,256}@[a-z][a-z0-9.-]{1,63}$/i.test(String(v || '').trim()); }
+
+/** Android Chrome hands intent:// links to the UPI app picker; a bare upi:// link can do nothing there. */
+function upiAppHref(upiUrl) {
+  if (!/Android/i.test(navigator.userAgent || '')) return upiUrl;
+  return 'intent://' + upiUrl.replace(/^upi:\/\//, '') + '#Intent;scheme=upi;end';
+}
+
+/**
+ * The UPI part of a settle-up dialog.
+ * You owe them: their UPI ID, a Pay button that opens your UPI app, and a QR.
+ * They owe you: YOUR UPI ID and a QR for them to scan.
+ * @param {{dir:'owe'|'owed', person:string, amount:number, note:string}} o
+ */
+function upiSectionHTML(o) {
+  const owed = o.dir === 'owed';
+  const id = owed ? (state.settings.myUpiId || '') : ((state.wallet.upiIds || {})[o.person] || '');
+  const ok = isUpiId(id);
+  const url = ok ? F.buildUpiUrl({ pa: id, pn: owed ? id.split('@')[0] : o.person, am: o.amount, cu: 'INR', tn: o.note }) : '';
+  return `
+    <div class="field" style="text-align:left;margin-bottom:12px">
+      <label for="su-upi-input" class="small"><strong>${owed ? 'Your UPI ID' : `${esc(o.person)}'s UPI ID`}</strong></label>
+      <div class="row" style="gap:6px;flex-wrap:nowrap">
+        <input type="text" id="su-upi-input" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(id)}" style="min-width:0">
+        <button type="button" class="btn btn-sm" id="su-save-upi">Save</button>
+      </div>
+      ${id && !ok ? `<p class="small tone-danger-text">That doesn’t look like a UPI ID. It should look like name@bank.</p>` : `<p class="small muted">${owed ? `So ${esc(o.person)} can pay you. Saved for next time.` : 'Saved for next time.'}</p>`}
+    </div>
+    ${ok ? `
+      <div class="card mb" style="padding:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div class="su-qr-frame" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">${QRCode.toSvg(url, 160)}</div>
+        <p class="small muted">${owed ? `${esc(o.person)} scans this in GPay, PhonePe, Paytm or BHIM` : 'Or scan this from another phone'}</p>
+        <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
+          ${owed ? '' : `<a href="${esc(upiAppHref(url))}" class="btn btn-primary" id="su-pay" style="text-decoration:none">Pay ${fmt(o.amount)} in UPI app</a>`}
+          <button type="button" class="btn" id="su-copy-upi" data-upi="${esc(id)}">Copy UPI ID</button>
+        </div>
+        ${owed ? '' : `<p class="small muted" id="su-pay-hint">Nothing opens? Copy the UPI ID and pay in your UPI app.</p>`}
+      </div>` : `
+      <div class="alert alert-info small" style="margin-bottom:12px">${owed ? 'Add your UPI ID to get a QR code they can scan.' : `Add ${esc(o.person)}’s UPI ID to pay them in one tap.`}</div>`}`;
+}
+
+/** Wire up the UPI section. rerender() redraws the dialog after the UPI ID is saved. */
+function bindUpiSection(root, o, rerender) {
+  const inp = root.querySelector('#su-upi-input');
+  const save = () => {
+    const val = inp.value.trim();
+    if (o.dir === 'owed') state.settings.myUpiId = val.slice(0, 60);
+    else { state.wallet.upiIds = state.wallet.upiIds || {}; state.wallet.upiIds[o.person] = val; }
+    commit();
+    if (isUpiId(val)) toast('UPI ID saved');
+    rerender();
+  };
+  root.querySelector('#su-save-upi').addEventListener('click', save);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+  const copy = root.querySelector('#su-copy-upi');
+  if (copy) copy.addEventListener('click', () => copyText(copy.dataset.upi, 'UPI ID copied'));
+  const pay = root.querySelector('#su-pay');
+  if (pay) pay.addEventListener('click', () => {
+    // if no UPI app takes over within 2.5 s, say what to do instead of leaving a dead button
+    let left = false;
+    const gone = () => { left = true; };
+    document.addEventListener('visibilitychange', gone, { once: true });
+    window.addEventListener('blur', gone, { once: true });
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', gone);
+      window.removeEventListener('blur', gone);
+      if (!left && document.visibilityState === 'visible') {
+        toast('No UPI app opened. Copy the UPI ID and pay in GPay or PhonePe.', 5000);
+        const hint = root.querySelector('#su-pay-hint');
+        if (hint) hint.classList.remove('muted');
+      }
+    }, 2500);
+  });
+}
+
+/** Clipboard with a fallback for browsers that block navigator.clipboard. */
+function copyText(text, msg) {
+  const done = () => toast(msg || 'Copied');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, () => legacyCopy(text) && done());
+  } else if (legacyCopy(text)) done();
+}
+function legacyCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  if (!ok) toast('Couldn’t copy. Long-press the text to copy it.');
+  return ok;
+}
+
 /**
  * Open UPI settle-up dialog for a person with QR code and deep links.
  * @param {string} personName
@@ -528,21 +623,17 @@ function settleUpModal(personName) {
     net: 0,
     dir: 'owed',
     absNet: 0,
-    ious: [],
-    upiId: (state.wallet.upiIds && state.wallet.upiIds[personName]) || ''
+    ious: []
   };
 
   const amount = info.absNet > 0 ? info.absNet : 100;
-  const note = `Settle up with ${info.person}`;
-  let currentUpi = info.upiId || (state.wallet.upiIds && state.wallet.upiIds[info.person]) || '';
+  const opts = { dir: info.dir, person: info.person, amount, note: `Settle up with ${info.person}` };
 
-  const buildModalContent = (upiId) => {
-    const upiUrl = upiId ? F.buildUpiUrl({ pa: upiId, pn: info.person, am: amount, cu: 'INR', tn: note }) : '';
-    const qrSvg = upiUrl ? QRCode.toSvg(upiUrl, 160) : '';
-
+  const buildModalContent = () => {
+    const myUpi = state.settings.myUpiId || '';
     const shareMsg = info.dir === 'owed'
-      ? `Hey ${info.person}, please settle ₹${amount} for our shared expenses. UPI: ${upiId || '<your-upi-id>'}`
-      : `Hey ${info.person}, I'm ready to pay my share of ₹${amount}.`;
+      ? `Hey ${info.person}, please send ₹${amount} for our shared expenses.${isUpiId(myUpi) ? ` My UPI: ${myUpi}` : ''}`
+      : `Hey ${info.person}, sending my share of ₹${amount} now.`;
 
     return `
       <div class="stack" id="su-wrap" style="text-align:center">
@@ -552,37 +643,11 @@ function settleUpModal(personName) {
           <p class="stat-sub">${plural(info.ious.length, 'open IOU')}</p>
         </div>
 
-        <!-- UPI ID Input (saved automatically) -->
-        <div class="field" style="text-align:left;margin-bottom:14px">
-          <label for="su-upi-input" class="small"><strong>${esc(info.person)}'s UPI ID (GPay / PhonePe / Paytm / VPA):</strong></label>
-          <div class="row" style="gap:6px">
-            <input type="text" id="su-upi-input" class="input" placeholder="e.g. name@okhdfcbank or 9876543210@paytm" value="${esc(upiId)}">
-            <button type="button" class="btn btn-sm" id="su-save-upi">Save</button>
-          </div>
-          <p class="small muted">YOKO! remembers this UPI ID for future settlements.</p>
-        </div>
-
-        ${upiUrl ? `
-          <!-- QR Code and Direct UPI Deep Link -->
-          <div class="card mb" style="padding:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:10px">
-            <div class="su-qr-frame" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
-              ${qrSvg}
-            </div>
-            <p class="small muted">Scan using Google Pay, PhonePe, Paytm, or BHIM</p>
-            <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
-              <a href="${upiUrl}" class="btn btn-primary" target="_blank" rel="noopener">⚡ Pay via UPI App</a>
-              <button type="button" class="btn" id="su-copy-link" data-url="${esc(upiUrl)}">Copy UPI Link</button>
-            </div>
-          </div>
-        ` : `
-          <div class="alert alert-info small" style="margin-bottom:12px">
-            Enter a UPI ID above to generate an instant payment QR code and 1-tap UPI deep-link.
-          </div>
-        `}
+        ${upiSectionHTML(opts)}
 
         <!-- Copyable Message / WhatsApp share -->
         <div class="card mb" style="padding:10px;text-align:left;background:var(--surface-2)">
-          <p class="small font-bold" style="margin-bottom:4px">Share message with ${esc(info.person)}:</p>
+          <p class="small font-bold" style="margin-bottom:4px">Message for ${esc(info.person)}:</p>
           <p class="small" id="su-msg-text" style="background:var(--surface);padding:8px;border-radius:6px;border:1px solid var(--border);margin-bottom:8px">${esc(shareMsg)}</p>
           <button type="button" class="btn btn-sm" id="su-copy-msg" data-msg="${esc(shareMsg)}">📋 Copy message</button>
         </div>
@@ -599,40 +664,16 @@ function settleUpModal(personName) {
     title: `Settle up with ${esc(info.person)}`,
     hideSubmit: true,
     cancelLabel: 'Close',
-    body: buildModalContent(currentUpi),
+    body: buildModalContent(),
     onMount: form => {
-      const bind = (upi) => {
-        const wrap = form.querySelector('#su-wrap');
-        const upiInp = form.querySelector('#su-upi-input');
-        const saveBtn = form.querySelector('#su-save-upi');
-        const copyLinkBtn = form.querySelector('#su-copy-link');
+      const bind = () => {
+        const body = form.querySelector('.modal-body');
+        bindUpiSection(body, opts, () => { body.innerHTML = buildModalContent(); bind(); });
+
         const copyMsgBtn = form.querySelector('#su-copy-msg');
+        if (copyMsgBtn) copyMsgBtn.addEventListener('click', () => copyText(copyMsgBtn.dataset.msg, 'Message copied'));
+
         const settleBtn = form.querySelector('#su-mark-settled');
-
-        const persistUpi = () => {
-          const val = upiInp.value.trim();
-          state.wallet.upiIds = state.wallet.upiIds || {};
-          state.wallet.upiIds[info.person] = val;
-          commit();
-          toast(`Saved UPI ID for ${info.person}`);
-          form.querySelector('.modal-body').innerHTML = buildModalContent(val);
-          bind(val);
-        };
-
-        if (saveBtn) saveBtn.addEventListener('click', persistUpi);
-        if (upiInp) upiInp.addEventListener('change', persistUpi);
-
-        if (copyLinkBtn) {
-          copyLinkBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(copyLinkBtn.dataset.url).then(() => toast('UPI payment link copied!'));
-          });
-        }
-        if (copyMsgBtn) {
-          copyMsgBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(copyMsgBtn.dataset.msg).then(() => toast('Message copied to clipboard!'));
-          });
-        }
-
         if (settleBtn) {
           settleBtn.addEventListener('click', () => {
             info.ious.forEach(x => {
@@ -647,7 +688,7 @@ function settleUpModal(personName) {
         }
       };
 
-      bind(currentUpi);
+      bind();
     }
   });
 }

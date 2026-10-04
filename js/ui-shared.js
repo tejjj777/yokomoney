@@ -10,7 +10,7 @@ const TABS = {
   spend: [['log', 'Expense log'], ['categories', 'Categories'], ['insights', 'Insights & Heatmap'], ['recurring', 'Recurring'], ['cash', 'Cash']],
   budget: [['plan', 'Plan'], ['where', 'Where did it go?'], ['yearly', 'Yearly / Semester fees'], ['history', 'History']],
   split: [['ious', 'IOUs & Roommates'], ['groups', 'Live Groups'], ['history', 'Settled']],
-  goals: [['goals', 'Goals'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges'], ['gifts', 'Gifts']],
+  goals: [['savings', 'Savings'], ['goals', 'Goals'], ['wishlist', 'Wishlist'], ['challenges', 'Challenges'], ['gifts', 'Gifts']],
   debt: [['debts', 'Debts'], ['plan', 'Payoff plan'], ['emi', 'Loan calculator']],
   wallet: [['cash', 'Cash'], ['ious', 'IOUs'], ['subs', 'Subscriptions'], ['transport', 'Transport']]
 };

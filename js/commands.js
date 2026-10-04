@@ -167,7 +167,6 @@ function moreCommands() {
     { label: state.settings.privacy ? 'Privacy mode off (show amounts)' : 'Privacy mode on (blur amounts)', keys: 'privacy blur hide amounts', run: togglePrivacy },
     { label: 'Download backup', keys: 'backup download save json', run: downloadBackup },
     ...(BK.supported ? [{ label: 'Auto-backup to a file…', keys: 'backup link file auto', run: linkBackupFile }] : []),
-    ...['off', 'nice', 'savage'].map(m => ({ label: `Roast mode: ${m}`, keys: `roast mode ${m} funny`, run: () => { state.settings.roast = m; save(); render(); toast(m === 'off' ? 'Roast mode off' : m === 'nice' ? 'Roast mode: nice' : 'Roast mode: savage'); } }))
   ];
 }
 function moreParse(q, words, low) {
@@ -193,9 +192,8 @@ function moreSettingsHTML() {
     <div class="field"><label for="set-country">Country</label><select id="set-country" class="select">${Object.keys(COUNTRIES).map(k => [k, countryInfo(k).name]).sort((a, b) => (a[0] === 'OTHER') - (b[0] === 'OTHER') || a[1].localeCompare(b[1])).map(([k, n]) => `<option value="${k}" ${state.settings.country === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><p class="help">Sets your tax year, tax dates and how dates are read.</p></div>
     <div class="field"><label for="set-currency">Currency</label><select id="set-currency" class="select">${Object.entries(CURRENCIES).map(([code, c]) => `<option value="${code}" ${state.currency === code ? 'selected' : ''}>${esc(c.symbol)} ${code}</option>`).join('')}</select><p class="help">Only changes the symbol. Amounts aren’t converted.</p></div>
   </div></div>
-  <div class="settings-group"><h3>Privacy and extras</h3><div class="form-grid two">
+  <div class="settings-group"><h3>Privacy and pet</h3><div class="form-grid two">
     <div class="field"><span class="field-label">Privacy mode</span><label class="check"><input type="checkbox" id="set-privacy" data-setting="privacy" data-kind="bool" ${s.privacy ? 'checked' : ''}> Blur all amounts</label><p class="help">Same as the eye button at the top.</p></div>
-    <div class="field"><label for="set-roast">Roast mode</label><select id="set-roast" class="select" data-setting="roast" data-kind="select">${[['off', 'Off'], ['nice', 'Nice 😇'], ['savage', 'Savage 🔥']].map(([v, l]) => `<option value="${v}" ${s.roast === v ? 'selected' : ''}>${l}</option>`).join('')}</select><p class="help">A little comment when you log stuff. Savage is mean.</p></div>
     <div class="field"><label for="set-pet">Your pet’s name</label><input id="set-pet" class="input" maxlength="20" value="${esc(s.petName)}" data-setting="petName" data-kind="text" aria-describedby="set-pet-err"><p class="field-error" id="set-pet-err"></p></div>
   </div></div>
   <div class="settings-group"><h3>Backups</h3><div id="backup-status">${backupStatusHTML()}</div></div>

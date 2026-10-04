@@ -69,7 +69,7 @@ function renderGoals() {
   const head = viewHeader('goals', 'Goals & Wishlist', 'Saving up for things, waiting before you buy, and gifts coming up.',
     `<button type="button" class="btn btn-primary" data-action="add-goal">${ICON.plus}<span>Add goal</span></button>`,
     state.goals.length ? [mi('Split the Savings bucket across goals', 'use-split-goals')] : []);
-  if (!state.goals.length) return { html: head + tabbed('goals', { goals: emptyState('No savings goals yet', 'Add a goal with a target and a deadline to see how much to save each month.', 'add-goal', 'Add goal', 'goal'), gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() }), charts() { gp.charts(); } };
+  if (!state.goals.length) return { html: head + tabbed('goals', { savings: savingsCard('goals-savings-chart'), goals: emptyState('No savings goals yet', 'Add a goal with a target and a deadline to see how much to save each month.', 'add-goal', 'Add goal', 'goal'), gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() }), charts() { gp.charts(); drawSavingsChart('goals-savings-chart'); } };
 
   const t = todayDate();
   const infos = state.goals.map(g => ({ g, i: goalInfo(g) }));
@@ -108,7 +108,7 @@ function renderGoals() {
           ${moneyInput({ id: `goal-plan-${g.id}`, bind: 'goal', dataId: g.id, field: 'planMonthly', value: g.planMonthly, kind: 'moneyOpt', placeholder: numStr(Number.isFinite(i.required) ? Math.ceil(i.required) : 0) }).replace('<span class="field-error"', '<span class="small">/month</span><span class="field-error"')}</div>
         ${rev}</div>`}
       ${g.rate > 0 && !i.reached ? `<p class="small">At ${fmtRate(g.rate)} a year, your money doubles in about ${Math.round(F.ruleOf72(g.rate))} years (rule of 72).</p>` : ''}
-      ${state.settings.roundUp.enabled && state.settings.roundUp.goalId === g.id ? `<p class="small"><span class="badge">🫙 Round-up jar</span> ${fmt(sum(g.contributions.filter(c => c.roundup), c => c.amount))} from spare change so far</p>` : ''}
+      ${false ? `<p class="small"><span class="badge">🫙 Round-up jar</span> ${fmt(sum(g.contributions.filter(c => c.roundup), c => c.amount))} from spare change so far</p>` : ''}
       <div class="goal-actions no-print">
         <button type="button" class="btn btn-sm btn-primary" data-action="add-money" data-id="${g.id}">${ICON.plus}<span>Add money</span></button>
         ${moreMenu([mi('Edit goal', 'edit-goal', { id: g.id }), mi('Delete goal', 'delete-goal', { id: g.id })], `More for ${g.name}`)}
@@ -136,12 +136,13 @@ function renderGoals() {
       <div class="table-wrap"><table><thead><tr><th scope="col">Goal</th><th class="num" scope="col">Target</th><th class="num" scope="col">Saved</th><th class="num" scope="col">Progress</th><th scope="col">Deadline</th><th class="num" scope="col">Rate</th><th class="num" scope="col">Needed / month</th></tr></thead><tbody>
       ${infos.map(({ g, i }) => `<tr><td>${esc(g.name)}</td><td class="num">${fmt(g.target)}</td><td class="num">${fmt(g.saved)}</td><td class="num">${fmtPct(i.pct)}</td><td>${i.dl ? fmtDate(i.dl) : '—'}</td><td class="num">${fmtRate(g.rate)}</td><td class="num">${i.reached ? 'Reached' : fmt(i.required)}</td></tr>`).join('')}
       </tbody></table></div></div>`;
-  const html = head + tabbed('goals', { goals: goalsPanel, gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() });
+  const html = head + tabbed('goals', { savings: savingsCard('goals-savings-chart'), goals: goalsPanel, gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() });
 
   return {
     html,
     charts() {
       gp.charts();
+      drawSavingsChart('goals-savings-chart');
       if (!document.getElementById('goal-line')) return;
       const i = goalInfo(sel);
       const pmt = sel.planMonthly !== null ? sel.planMonthly : (Number.isFinite(i.required) ? i.required : 0);
