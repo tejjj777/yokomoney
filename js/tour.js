@@ -26,7 +26,7 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Safe to spend today', text: 'The big number at the top of Home. It calculates: (Current balance − upcoming bills) ÷ days until next allowance. Green means on track, amber means tight pace, red means running dry.' },
     { route: 'dashboard/overview', target: ['#forecast-card'], title: 'Run-out forecast', text: 'Shows whether your money will last until your next allowance. Drag the sliders (food delivery, outings, chai) to test habits live.' },
     { route: 'dashboard/overview', target: ['#semester-card'], title: 'Semester view', text: 'Plan heavy semester months (exams, festival trips, fees) so they don’t catch you off guard.' },
-    { target: ['#side-nav', '#tab-nav'], title: 'Five core screens', text: 'Home, Spend, Budget, Split & Roommates, and Goals & Wishlist. Everything saves automatically to this device.' },
+    { target: ['#side-nav', '#tab-nav'], title: 'Six core screens', text: 'Home, Spend, Budget, Split, Goals & Savings, and Debt. Everything saves automatically to this device.' },
     { target: ['#quickadd-btn'], title: 'Quick add menu', text: 'Tap Add on any screen to log an expense, scan a receipt, paste a bank or UPI message, split a bill, or log income.' },
     { target: ['#privacy-btn'], title: 'Hide your numbers', text: 'Tap the eye icon whenever friends or roommates are looking over your shoulder.' }
   ] },

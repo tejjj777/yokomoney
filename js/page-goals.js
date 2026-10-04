@@ -66,7 +66,7 @@ function giftsPanel() {
    ========================================================= */
 function renderGoals() {
   const gp = giftsPanel();
-  const head = viewHeader('goals', 'Goals & Wishlist', 'Saving up for things, waiting before you buy, and gifts coming up.',
+  const head = viewHeader('goals', 'Goals & Savings', 'What you save, what you are saving for, and gifts coming up.',
     `<button type="button" class="btn btn-primary" data-action="add-goal">${ICON.plus}<span>Add goal</span></button>`,
     state.goals.length ? [mi('Split the Savings bucket across goals', 'use-split-goals')] : []);
   if (!state.goals.length) return { html: head + tabbed('goals', { savings: savingsCard('goals-savings-chart'), goals: emptyState('No savings goals yet', 'Add a goal with a target and a deadline to see how much to save each month.', 'add-goal', 'Add goal', 'goal'), gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() }), charts() { gp.charts(); drawSavingsChart('goals-savings-chart'); } };
