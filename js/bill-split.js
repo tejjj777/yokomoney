@@ -522,9 +522,27 @@ function bsSaveSplit(form, data, assignments) {
 function isUpiId(v) { return /^[a-z0-9._-]{2,256}@[a-z][a-z0-9.-]{1,63}$/i.test(String(v || '').trim()); }
 
 /** Android Chrome hands intent:// links to the UPI app picker; a bare upi:// link can do nothing there. */
-function upiAppHref(upiUrl) {
+function upiAppHref(upiUrl, pkg) {
   if (!/Android/i.test(navigator.userAgent || '')) return upiUrl;
-  return 'intent://' + upiUrl.replace(/^upi:\/\//, '') + '#Intent;scheme=upi;end';
+  return 'intent://' + upiUrl.replace(/^upi:\/\//, '') + '#Intent;scheme=upi;' + (pkg ? `package=${pkg};` : '') + 'end';
+}
+const isIOSDevice = () => /iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+/**
+ * One button per UPI app. iPhone has no "pick an app" screen for upi:// links,
+ * so each app gets its own link (GPay tez://, PhonePe phonepe://, Paytm paytmmp://).
+ * Android gets intent:// links aimed at each app, plus the system picker.
+ */
+const UPI_APPS = [
+  { name: 'GPay', ios: 'tez://upi/pay?', pkg: 'com.google.android.apps.nbu.paisa.user' },
+  { name: 'PhonePe', ios: 'phonepe://pay?', pkg: 'com.phonepe.app' },
+  { name: 'Paytm', ios: 'paytmmp://pay?', pkg: 'net.one97.paytm' }
+];
+function upiAppLinks(upiUrl) {
+  const q = upiUrl.replace(/^upi:\/\/pay\?/, '');
+  const ios = isIOSDevice(), android = /Android/i.test(navigator.userAgent || '');
+  const apps = UPI_APPS.map(a => ({ name: a.name, href: ios ? a.ios + q : android ? upiAppHref(upiUrl, a.pkg) : upiUrl }));
+  apps.push({ name: 'Other UPI app', href: android ? upiAppHref(upiUrl) : upiUrl });
+  return apps;
 }
 
 /**
@@ -549,13 +567,15 @@ function upiSectionHTML(o) {
     </div>
     ${ok ? `
       <div class="card mb" style="padding:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:10px">
+        ${owed ? '' : `<p class="small" style="margin:4px 0 0"><strong>Pay ${fmtExact(o.amount)} with</strong></p>
+        <div class="upi-apps">${upiAppLinks(url).map((a, i) => `<a href="${esc(a.href)}" ${i === 0 ? 'id="su-pay" ' : ''}class="btn ${i === 0 ? 'btn-primary' : ''} su-pay-app" style="text-decoration:none">${esc(a.name)}</a>`).join('')}</div>
+        <p class="small muted" id="su-pay-hint">Nothing opens? That app isn’t installed. Try another, or copy the UPI ID.</p>`}
         <div class="su-qr-frame" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">${QRCode.toSvg(url, 160)}</div>
         <p class="small muted">${owed ? `${esc(o.person)} scans this in GPay, PhonePe, Paytm or BHIM` : 'Or scan this from another phone'}</p>
         <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
-          ${owed ? '' : `<a href="${esc(upiAppHref(url))}" class="btn btn-primary" id="su-pay" style="text-decoration:none">Pay ${fmt(o.amount)} in UPI app</a>`}
           <button type="button" class="btn" id="su-copy-upi" data-upi="${esc(id)}">Copy UPI ID</button>
         </div>
-        ${owed ? '' : `<p class="small muted" id="su-pay-hint">Nothing opens? Copy the UPI ID and pay in your UPI app.</p>`}
+
       </div>` : `
       <div class="alert alert-info small" style="margin-bottom:12px">${owed ? 'Add your UPI ID to get a QR code they can scan.' : `Add ${esc(o.person)}’s UPI ID to pay them in one tap.`}</div>`}`;
 }
@@ -575,8 +595,7 @@ function bindUpiSection(root, o, rerender) {
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
   const copy = root.querySelector('#su-copy-upi');
   if (copy) copy.addEventListener('click', () => copyText(copy.dataset.upi, 'UPI ID copied'));
-  const pay = root.querySelector('#su-pay');
-  if (pay) pay.addEventListener('click', () => {
+  root.querySelectorAll('.su-pay-app').forEach(pay => pay.addEventListener('click', () => {
     // if no UPI app takes over within 2.5 s, say what to do instead of leaving a dead button
     let left = false;
     const gone = () => { left = true; };
@@ -586,12 +605,12 @@ function bindUpiSection(root, o, rerender) {
       document.removeEventListener('visibilitychange', gone);
       window.removeEventListener('blur', gone);
       if (!left && document.visibilityState === 'visible') {
-        toast('No UPI app opened. Copy the UPI ID and pay in GPay or PhonePe.', 5000);
+        toast('That app didn’t open. Try another one, or copy the UPI ID.', 5000);
         const hint = root.querySelector('#su-pay-hint');
         if (hint) hint.classList.remove('muted');
       }
     }, 2500);
-  });
+  }));
 }
 
 /** Clipboard with a fallback for browsers that block navigator.clipboard. */
@@ -639,7 +658,7 @@ function settleUpModal(personName) {
       <div class="stack" id="su-wrap" style="text-align:center">
         <div class="card stat stat-big ${info.dir === 'owed' ? 'tone-success' : 'tone-danger'}" style="margin-bottom:12px">
           <p class="stat-label">${info.dir === 'owed' ? `${esc(info.person)} owes you` : `You owe ${esc(info.person)}`}</p>
-          <p class="stat-value">${fmt(amount)}</p>
+          <p class="stat-value">${fmtExact(amount)}</p>
           <p class="stat-sub">${plural(info.ious.length, 'open IOU')}</p>
         </div>
 

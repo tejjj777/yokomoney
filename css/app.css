@@ -1133,3 +1133,6 @@ main td { overflow-wrap: break-word; }
 .set-tabs .subtabs-inner::-webkit-scrollbar { display: none; }
 .set-tabs .subtab { flex: 0 0 auto; }
 @media (max-width: 420px) { .set-tabs .subtab { padding: 8px 10px; } .tab-link { font-size: 10.5px; } }
+
+.upi-apps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.upi-apps .btn { justify-content: center; text-align: center; }
