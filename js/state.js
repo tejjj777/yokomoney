@@ -391,6 +391,19 @@ function sampleState() {
   s.settings.cashOnHand = 8500;
   s.settings.roundUp = { enabled: false, to: 50, goalId: null };
   s.meta = { startedAt: iso(F.addDays(t, -45)), tourDone: state.meta.tourDone, isSample: true };
+
+  // Student debts: education loan, phone on EMI, and money borrowed from family
+  const thisMonth = iso(t).slice(0, 7) + '-0' + Math.min(5, Math.max(1, t.getDate()));
+  s.debts = [
+    { id: uid(), name: 'Education loan', kind: 'student', balance: 85000, startBalance: 100000, rate: 9.5, minPayment: 1500, defeatedAt: '',
+      payments: [{ id: uid(), date: iso(F.addMonths(t, -2)).slice(0, 8) + '05', amount: 1500 }, { id: uid(), date: iso(F.addMonths(t, -1)).slice(0, 8) + '05', amount: 1500 }] },
+    { id: uid(), name: 'Phone EMI', kind: 'bnpl', balance: 9600, startBalance: 16000, rate: 15, minPayment: 1600, defeatedAt: '',
+      payments: [{ id: uid(), date: thisMonth, amount: 1600 }] },
+    { id: uid(), name: 'Borrowed from Dad', kind: 'family', balance: 4000, startBalance: 5000, rate: 0, minPayment: 500, defeatedAt: '',
+      payments: [{ id: uid(), date: iso(F.addMonths(t, -1)).slice(0, 8) + '10', amount: 1000 }] }
+  ];
+  s.debtSettings = { extra: 500, strategy: 'avalanche' };
+  s.emi = { principal: 60000, rate: 11, months: 24 };
   
   sampleSpending(s, t);
   linkSampleRecurring(s, t);
