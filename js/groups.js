@@ -116,6 +116,23 @@ const GroupSync = {
     this.fetchGroupData(groupId);
   },
 
+  /** Put my UPI ID on my member row in every group, so everyone in the group sees it. */
+  async shareMyUpi(upi) {
+    const id = String(upi || '').trim();
+    if (!(state.groups || []).length || !isUpiId(id)) return false;
+    if (!(await this.ready())) return false;
+    try { await this.session(); } catch (e) { return false; }
+    let ok = true;
+    for (const g of state.groups) {
+      if (!g.myMemberId) continue;
+      const { error } = await this.client.from('group_members').update({ upi_id: id }).eq('id', g.myMemberId);
+      if (error) { ok = false; console.warn('Could not share UPI ID', error); }
+      else this.fetchGroupData(g.id);
+    }
+    if (!ok) toast('Saved on this phone. Sharing with the group needs a quick database update (see supabase/groups-upi.sql).', 5000);
+    return ok;
+  },
+
   async fetchGroupData(groupId) {
     if (!this.client) return;
     try {
@@ -149,6 +166,7 @@ const GroupSync = {
     
     state.groups.push({ id: group.id, name: group.name, joinCode: group.join_code, myMemberId: member.id });
     save();
+    if (isUpiId(state.settings.myUpiId)) this.shareMyUpi(state.settings.myUpiId);
     this.subscribe(group.id);
     return group;
   },
@@ -163,6 +181,7 @@ const GroupSync = {
     
     if (!state.groups.find(g => g.id === groupId)) {
       state.groups.push({ id: groupId, name: group.name, joinCode: group.join_code, myMemberId: member.id });
+      if (isUpiId(state.settings.myUpiId)) setTimeout(() => this.shareMyUpi(state.settings.myUpiId), 0);
       save();
       this.subscribe(groupId);
     }
@@ -287,7 +306,10 @@ const GROUP_ACTIONS = {
       body: `<p class="small muted mb">Join code: <strong>${g.joinCode}</strong> (give this to friends)</p>
         
         <h3 style="margin-top:10px">Members</h3>
-        <ul class="plain-list mb">${data.members.map(m => `<li>${esc(m.name)} ${m.id === g.myMemberId ? '(You)' : ''}</li>`).join('')}</ul>
+        <ul class="plain-list mb">${data.members.map(m => `<li>${esc(m.name)} ${m.id === g.myMemberId ? '(You)' : ''} <span class="small muted">${isUpiId(m.upi_id) ? '· UPI ' + esc(m.upi_id) : '· no UPI ID yet'}</span></li>`).join('')}</ul>
+        <div class="field mb"><label for="grp-my-upi" class="small"><strong>Your UPI ID</strong> (everyone in the group sees it)</label>
+          <div class="row" style="gap:6px;flex-wrap:nowrap"><input id="grp-my-upi" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(state.settings.myUpiId || '')}" style="min-width:0">
+          <button type="button" class="btn btn-sm" data-action="group-share-upi">Share</button></div></div>
         
         <h3 style="margin-top:10px">Balances</h3>
         <div class="table-wrap mb"><table>
@@ -341,6 +363,13 @@ const GROUP_ACTIONS = {
       }
     });
   },
+  'group-share-upi': el => {
+    const inp = document.getElementById('grp-my-upi'); if (!inp) return;
+    const val = inp.value.trim();
+    if (!isUpiId(val)) { toast('That doesn’t look like a UPI ID. It should look like name@bank.'); return; }
+    state.settings.myUpiId = val.slice(0, 60); save();
+    GroupSync.shareMyUpi(val).then(ok => { if (ok) toast('UPI ID shared with your groups'); });
+  },
   'group-settle': el => {
     // Settle a balance within a group using the Session 4 UPI logic
     const groupId = el.dataset.groupId;
@@ -348,7 +377,8 @@ const GROUP_ACTIONS = {
     const amount = Number(el.dataset.amount);
     const dir = el.dataset.dir; // 'owe' or 'owed'
 
-    const opts = { dir: dir === 'owed' ? 'owed' : 'owe', person: personName, amount, note: 'Settle up for group' };
+    const gm = ((state.groupData[groupId] || {}).members || []).find(m => m.name === personName);
+    const opts = { dir: dir === 'owed' ? 'owed' : 'owe', person: personName, amount, note: 'Settle up for group', upi: gm && isUpiId(gm.upi_id) ? gm.upi_id : '', group: true };
 
     const buildModalContent = () => {
       const myUpi = state.settings.myUpiId || '';

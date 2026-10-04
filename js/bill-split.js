@@ -553,7 +553,7 @@ function upiAppLinks(upiUrl) {
  */
 function upiSectionHTML(o) {
   const owed = o.dir === 'owed';
-  const id = owed ? (state.settings.myUpiId || '') : ((state.wallet.upiIds || {})[o.person] || '');
+  const id = owed ? (state.settings.myUpiId || '') : (o.upi || ((state.wallet.upiIds || {})[o.person]) || '');
   const ok = isUpiId(id);
   const url = ok ? F.buildUpiUrl({ pa: id, pn: owed ? id.split('@')[0] : o.person, am: o.amount, cu: 'INR', tn: o.note }) : '';
   return `
@@ -584,7 +584,7 @@ function bindUpiSection(root, o, rerender) {
   const inp = root.querySelector('#su-upi-input');
   const save = () => {
     const val = inp.value.trim();
-    if (o.dir === 'owed') state.settings.myUpiId = val.slice(0, 60);
+    if (o.dir === 'owed') { state.settings.myUpiId = val.slice(0, 60); if (isUpiId(val) && typeof GroupSync !== 'undefined') GroupSync.shareMyUpi(val); }
     else { state.wallet.upiIds = state.wallet.upiIds || {}; state.wallet.upiIds[o.person] = val; }
     commit();
     if (isUpiId(val)) toast('UPI ID saved');
