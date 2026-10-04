@@ -541,7 +541,7 @@ function upiAppLinks(upiUrl) {
   const q = upiUrl.replace(/^upi:\/\/pay\?/, '');
   const ios = isIOSDevice(), android = /Android/i.test(navigator.userAgent || '');
   const apps = UPI_APPS.map(a => ({ name: a.name, href: ios ? a.ios + q : android ? upiAppHref(upiUrl, a.pkg) : upiUrl }));
-  apps.push({ name: 'Other UPI app', href: android ? upiAppHref(upiUrl) : upiUrl });
+  apps.push({ name: 'Other UPI app', href: upiUrl });   // plain upi:// lets Android list every UPI app; the intent:// picker came up blank on some phones
   return apps;
 }
 
