@@ -1153,3 +1153,8 @@ main td { overflow-wrap: break-word; }
 /* Settle up: part payments */
 .su-left-box { padding: 4px 0; }
 .su-left { margin: 2px 0 0; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Income log row actions */
+#income-log .cal-list li { align-items: center; }
+.inc-act { display: inline-flex; gap: 2px; margin-left: 4px; }
+.inc-act .icon-btn { width: 32px; height: 32px; }

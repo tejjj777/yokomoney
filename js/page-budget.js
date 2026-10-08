@@ -204,16 +204,17 @@ function renderSpend() {
 }
 
 /* ---------- Irregular income ---------- */
-function incomeForm() {
+function incomeForm(entry) {
   formModal({
-    title: 'Income received', submitLabel: 'Log it', values: { date: todayISO() },
+    title: entry ? 'Edit income' : 'Income received', submitLabel: entry ? 'Save changes' : 'Log it', values: entry ? { amount: entry.amount, date: entry.date, note: entry.note } : { date: todayISO() },
     fields: [
       { name: 'amount', label: 'Amount (after tax)', kind: 'money', required: true, positive: true },
       { name: 'date', label: 'Date', kind: 'date', required: true },
       { name: 'note', label: 'From', kind: 'text', max: 80, placeholder: 'e.g. Client, sales, tips', wide: true }
     ],
-    live: () => '<div class="alert alert-info">This is added on top of your usual allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>',
+    live: () => entry ? '' : '<div class="alert alert-info">This is added on top of your usual allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>',
     onSave: v => {
+      if (entry) { Object.assign(entry, { date: v.date, amount: v.amount, note: (v.note || '').slice(0, 80) }); commit(); toast('Income updated'); return; }
       state.incomeLog.push({ id: uid(), date: v.date, amount: v.amount, note: v.note || '' });
       commit(); toast(v.date.slice(0, 7) === todayISO().slice(0, 7) ? `${fmtExact(v.amount)} added to this month’s income` : `${fmtExact(v.amount)} logged`); awardXP(5, 'income', true);
     }
@@ -223,10 +224,10 @@ function incomeLogCard() {
   const ym = todayISO().slice(0, 7);
   if (!state.income.irregular && !state.incomeLog.some(x => x.date.slice(0, 7) === ym)) return '';
   const r = state.income.irregular ? irregularInfo() : null;
-  const list = state.incomeLog.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+  const list = state.incomeLog.slice().sort((a, b) => b.date.localeCompare(a.date)).filter((x, i) => x.date.slice(0, 7) === ym || i < 8);
   return `<div class="card mb" id="income-log"><div class="card-head"><div><h2>Income this month</h2><p class="muted small">${fmtExact(loggedThisMonth())} logged this month, added on top of your usual ${fmtExact(baseMonthlyIncome())}. Total: ${fmtExact(baseMonthlyIncome() + loggedThisMonth())}.</p></div>
     <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="log-income">${ICON.plus}<span>Log income</span></button></div></div>
-    ${list.length ? `<ul class="cal-list">${list.map(x => `<li><span class="cal-when">${fmtDate(F.parseDate(x.date)).replace(/ \d{4}$/, '')}</span><span aria-hidden="true">💰</span><span class="cal-what">${esc(x.note || 'Income')}${x.date.slice(0, 7) === ym ? '' : ' <span class="small muted">(earlier)</span>'}</span><span class="num tone-success-text">+${fmt(x.amount)}</span></li>`).join('')}</ul>`
+    ${list.length ? `<ul class="cal-list">${list.map(x => `<li><span class="cal-when">${fmtDate(F.parseDate(x.date)).replace(/ \d{4}$/, '')}</span><span aria-hidden="true">💰</span><span class="cal-what">${esc(x.note || 'Income')}${x.date.slice(0, 7) === ym ? '' : ' <span class="small muted">(earlier)</span>'}</span><span class="num tone-success-text">+${fmt(x.amount)}</span><span class="inc-act no-print"><button type="button" class="icon-btn" data-action="edit-income" data-id="${x.id}" aria-label="Edit ${esc(x.note || 'income')}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-income" data-id="${x.id}" aria-label="Delete ${esc(x.note || 'income')}">${ICON.trash}</button></span></li>`).join('')}</ul>`
       : '<p class="muted small">Nothing logged yet. Each time money comes in, log it here.</p>'}</div>`;
 }
 

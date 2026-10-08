@@ -78,6 +78,11 @@ const MORE_ACTIONS = {
   'delete-bucket': el => { const b = byId(state.split.buckets, el.dataset.id); if (b) undoable(`Deleted bucket “${b.name}”`, () => { state.split.buckets = state.split.buckets.filter(x => x !== b); }); },
   'delete-deadline': el => { const d = byId(state.wallet.deadlines, el.dataset.id); if (d) undoable(`Deleted “${d.title}”`, () => { state.wallet.deadlines = state.wallet.deadlines.filter(x => x !== d); }); },
   'log-income': () => incomeForm(),
+  'edit-income': el => { const x = state.incomeLog.find(k => k.id === el.dataset.id); if (x) incomeForm(x); },
+  'delete-income': el => {
+    const x = state.incomeLog.find(k => k.id === el.dataset.id); if (!x) return;
+    undoable(`Deleted ${fmt(x.amount)} income`, () => { state.incomeLog = state.incomeLog.filter(k => k !== x); });
+  },
   'add-yearly': () => yearlyForm(null),
   'edit-yearly': el => { const x = byId(state.yearlyBills, el.dataset.id); if (x) yearlyForm(x); },
   'delete-yearly': el => { const x = byId(state.yearlyBills, el.dataset.id); if (x) undoable(`Deleted “${x.name}”`, () => { state.yearlyBills = state.yearlyBills.filter(k => k !== x); }); },
