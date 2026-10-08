@@ -644,14 +644,15 @@ function settleUpModal(personName) {
     ious: []
   };
 
-  const amount = info.absNet > 0 ? info.absNet : 100;
+  const amount = info.absNet > 0 ? Math.round(info.absNet * 100) / 100 : 100;
+  let paidNow = amount;   // how much is being paid this time (can be a part payment)
   const opts = { dir: info.dir, person: info.person, amount, note: `Settle up with ${info.person}` };
 
   const buildModalContent = () => {
     const myUpi = state.settings.myUpiId || '';
     const shareMsg = info.dir === 'owed'
-      ? `Hey ${info.person}, please send ₹${amount} for our shared expenses.${isUpiId(myUpi) ? ` My UPI: ${myUpi}` : ''}`
-      : `Hey ${info.person}, sending my share of ₹${amount} now.`;
+      ? `Hey ${info.person}, please send ₹${paidNow}${paidNow < amount ? ` of the ₹${amount}` : ''} for our shared expenses.${isUpiId(myUpi) ? ` My UPI: ${myUpi}` : ''}`
+      : `Hey ${info.person}, sending ₹${paidNow}${paidNow < amount ? ` of the ₹${amount} I owe you` : ''} now.`;
 
     return `
       <div class="stack" id="su-wrap" style="text-align:center">
@@ -661,7 +662,16 @@ function settleUpModal(personName) {
           <p class="stat-sub">${plural(info.ious.length, 'open IOU')}</p>
         </div>
 
-        ${upiSectionHTML(opts)}
+        <div class="card mb su-paid" style="padding:14px;text-align:left">
+          <div class="form-grid two" style="align-items:end">
+            <div class="field" style="margin:0"><label for="su-paid">${info.dir === 'owed' ? `How much did ${esc(info.person)} pay?` : 'How much are you paying?'}</label>
+              <div class="affix"><span class="affix-sym" aria-hidden="true">${esc(CURRENCIES[state.currency].symbol)}</span><input id="su-paid" class="input" inputmode="decimal" value="${numStr(paidNow)}" aria-describedby="su-left"></div></div>
+            <div class="su-left-box"><p class="stat-label" style="margin:0">${info.dir === 'owed' ? 'They still need to pay' : 'You still need to pay'}</p><p class="su-left" id="su-left" aria-live="polite">${fmtExact(Math.max(0, amount - paidNow))}</p></div>
+          </div>
+          <p class="field-error" id="su-paid-err"></p>
+        </div>
+
+        <div id="su-upi-wrap">${upiSectionHTML(Object.assign({}, opts, { amount: paidNow }))}</div>
 
         <!-- Copyable Message / WhatsApp share -->
         <div class="card mb" style="padding:10px;text-align:left;background:var(--surface-2)">
@@ -672,7 +682,7 @@ function settleUpModal(personName) {
 
         <!-- Manual Settle Confirmation -->
         <div style="border-top:1px solid var(--border);padding-top:12px">
-          <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">✓ Mark all as settled</button>
+          <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">${paidNow >= amount - 0.005 ? '✓ Mark all as settled' : `✓ Record ${fmtExact(paidNow)} paid`}</button>
         </div>
       </div>
     `;
@@ -686,7 +696,25 @@ function settleUpModal(personName) {
     onMount: form => {
       const bind = () => {
         const body = form.querySelector('.modal-body');
-        bindUpiSection(body, opts, () => { body.innerHTML = buildModalContent(); bind(); });
+        const upiWrap = body.querySelector('#su-upi-wrap');
+        const bindUpi = () => bindUpiSection(upiWrap, Object.assign({}, opts, { amount: paidNow }), () => { body.innerHTML = buildModalContent(); bind(); });
+        bindUpi();
+        const paidInp = body.querySelector('#su-paid'), err = body.querySelector('#su-paid-err');
+        const readPaid = () => {
+          const r = validateValue('money', paidInp.value, { required: true, positive: true });
+          let msg = r.error || '';
+          if (!msg && r.value > amount + 0.005) msg = `That’s more than the ${fmtExact(amount)} owed.`;
+          err.textContent = msg; paidInp.toggleAttribute('aria-invalid', !!msg);
+          return msg ? null : Math.round(r.value * 100) / 100;
+        };
+        paidInp.addEventListener('input', () => {
+          const v = readPaid(); if (v === null) return;
+          body.querySelector('#su-left').textContent = fmtExact(Math.max(0, amount - v));
+        });
+        paidInp.addEventListener('change', () => {
+          const v = readPaid(); if (v === null || v === paidNow) return;
+          paidNow = v; body.innerHTML = buildModalContent(); bind();
+        });
 
         const copyMsgBtn = form.querySelector('#su-copy-msg');
         if (copyMsgBtn) copyMsgBtn.addEventListener('click', () => copyText(copyMsgBtn.dataset.msg, 'Message copied'));
@@ -694,14 +722,30 @@ function settleUpModal(personName) {
         const settleBtn = form.querySelector('#su-mark-settled');
         if (settleBtn) {
           settleBtn.addEventListener('click', () => {
-            info.ious.forEach(x => {
-              x.settled = true;
-              x.settledAt = todayISO();
-            });
-            commit();
-            playSound('coin');
-            closeModal();
-            toast(`Marked all IOUs with ${info.person} as settled!`);
+            const v = readPaid(); if (v === null) { paidInp.focus(); return; }
+            const today = todayISO(), left = Math.round((amount - v) * 100) / 100;
+            if (left <= 0.005) {
+              info.ious.forEach(x => { x.settled = true; x.settledAt = today; });
+              commit(); playSound('coin'); closeModal();
+              toast(`All settled with ${info.person}`);
+              return;
+            }
+            const sameDir = info.ious.every(x => x.dir === info.dir);
+            if (sameDir) {
+              // Pay off the oldest IOUs first; the next one is reduced by what's left of the payment
+              let pay = v;
+              info.ious.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(x => {
+                if (pay <= 0.005) return;
+                if (pay >= x.amount - 0.005) { pay -= x.amount; x.settled = true; x.settledAt = today; }
+                else { x.amount = Math.round((x.amount - pay) * 100) / 100; pay = 0; }
+              });
+            } else {
+              // Mixed IOUs both ways: close them and keep one IOU for what's still owed
+              info.ious.forEach(x => { x.settled = true; x.settledAt = today; });
+              state.wallet.ious.push({ id: uid(), person: info.person, dir: info.dir, amount: left, date: today, due: '', note: 'Left after a part payment', settled: false, settledAt: '' });
+            }
+            commit(); closeModal();
+            toast(`${fmtExact(v)} paid. ${info.dir === 'owed' ? `${info.person} still owes you` : 'You still owe'} ${fmtExact(left)}`, 4000);
           });
         }
       };

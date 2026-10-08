@@ -1149,3 +1149,7 @@ main td { overflow-wrap: break-word; }
 .gb-act { grid-column: 1 / -1; }
 .gb-act .btn { width: 100%; justify-content: center; }
 .gb-even { padding: 12px 14px; border: 1px dashed var(--border); border-radius: 12px; }
+
+/* Settle up: part payments */
+.su-left-box { padding: 4px 0; }
+.su-left { margin: 2px 0 0; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
