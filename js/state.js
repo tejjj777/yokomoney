@@ -482,6 +482,11 @@ function paycheckNet() {
   const inc = state.income;
   return inc.mode === 'gross' ? Math.max(0, F.netFromGross(inc.gross, inc.deductions).net) : inc.net;
 }
+/** The usual monthly amount from setup (allowance + other regular income), before anything logged. */
+function baseMonthlyIncome() {
+  const inc = state.income;
+  return F.toMonthly(paycheckNet(), inc.irregular ? 'monthly' : inc.freq) + sum(inc.others, o => F.toMonthly(o.amount, o.freq));
+}
 /** Income logged this calendar month (Income received). */
 function loggedThisMonth() {
   const ym = todayISO().slice(0, 7);
@@ -489,10 +494,8 @@ function loggedThisMonth() {
 }
 function computedMonthlyIncome() {
   const inc = state.income, others = sum(inc.others, o => F.toMonthly(o.amount, o.freq));
-  // Changes month to month: budget from the estimate until more than that has actually come in
-  if (inc.irregular) { const r = irregularInfo(); return Math.max(r.amount, r.thisMonth) + others; }
-  // Regular allowance: anything logged as Income received is extra money on top of it
-  return F.toMonthly(paycheckNet(), inc.freq) + others + loggedThisMonth();
+  // Your usual monthly amount, plus anything logged as Income received this month on top of it
+  return baseMonthlyIncome() + loggedThisMonth();
 }
 /** Income that changes month to month: budget from what came in last month. */
 function irregularInfo() {
@@ -506,7 +509,7 @@ function irregularInfo() {
 }
 function irregularLine() {
   const r = irregularInfo();
-  if (r.thisMonth > r.amount) return 'Budgeting from what came in this month';
+  return `Your usual ${fmt(baseMonthlyIncome())}${r.thisMonth > 0 ? ` + ${fmt(r.thisMonth)} logged this month` : ''}`;
   return r.basis === 'last' ? `Budgeting from ${FULL_MONTHS[+r.month.slice(5) - 1]}’s income` : r.basis === 'avg' ? 'Budgeting from your recent average' : (r.thisMonth > 0 ? 'Using your usual month until this month’s income passes it' : 'Budgeting from a typical month until you log some income');
 }
 function monthlyIncome() {

@@ -15,7 +15,7 @@ function renderBudget() {
 
   const incomeCard = `<div class="card stat">
     <p class="stat-label">Monthly income</p><p class="stat-value">${fmt(b.income)}</p>
-    <p class="stat-sub">${state.budget.incomeOverride !== null ? `Override · paycheck setup says ${fmt(auto)}` : state.income.irregular ? `${irregularLine()}. ${fmt(irregularInfo().thisMonth)} in so far this month · <button type="button" class="linklike" data-action="log-income">Log income</button>` : 'From your paycheck setup'}</p>
+    <p class="stat-sub">${state.budget.incomeOverride !== null ? `Override · paycheck setup says ${fmt(auto)}` : `${irregularLine()} · <button type="button" class="linklike" data-action="log-income">Log income</button>`}</p>
     <div class="field no-print" style="margin-top:10px">${moneyInput({ id: 'income-override', bind: 'budget', field: 'incomeOverride', value: state.budget.incomeOverride, label: 'Manual override (leave blank to use paycheck)', kind: 'moneyOpt', placeholder: 'Use paycheck', srLabel: false })}</div>
   </div>`;
   const remaining = `<div class="card stat stat-big ${b.remaining < 0 ? 'tone-danger' : 'featured'}" style="grid-column:span 2">
@@ -212,7 +212,7 @@ function incomeForm() {
       { name: 'date', label: 'Date', kind: 'date', required: true },
       { name: 'note', label: 'From', kind: 'text', max: 80, placeholder: 'e.g. Client, sales, tips', wide: true }
     ],
-    live: () => state.income.irregular ? '' : '<div class="alert alert-info">This is added on top of your allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>',
+    live: () => '<div class="alert alert-info">This is added on top of your usual allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>',
     onSave: v => {
       state.incomeLog.push({ id: uid(), date: v.date, amount: v.amount, note: v.note || '' });
       commit(); toast(v.date.slice(0, 7) === todayISO().slice(0, 7) ? `${fmtExact(v.amount)} added to this month’s income` : `${fmtExact(v.amount)} logged`); awardXP(5, 'income', true);
@@ -224,7 +224,7 @@ function incomeLogCard() {
   if (!state.income.irregular && !state.incomeLog.some(x => x.date.slice(0, 7) === ym)) return '';
   const r = state.income.irregular ? irregularInfo() : null;
   const list = state.incomeLog.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
-  return `<div class="card mb" id="income-log"><div class="card-head"><div><h2>Income this month</h2><p class="muted small">${r ? `${fmtExact(r.thisMonth)} in so far. ${irregularLine()}: ${fmtExact(Math.max(r.amount, r.thisMonth))}.` : `${fmtExact(loggedThisMonth())} extra this month, added on top of your allowance.`}</p></div>
+  return `<div class="card mb" id="income-log"><div class="card-head"><div><h2>Income this month</h2><p class="muted small">${fmtExact(loggedThisMonth())} logged this month, added on top of your usual ${fmtExact(baseMonthlyIncome())}. Total: ${fmtExact(baseMonthlyIncome() + loggedThisMonth())}.</p></div>
     <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="log-income">${ICON.plus}<span>Log income</span></button></div></div>
     ${list.length ? `<ul class="cal-list">${list.map(x => `<li><span class="cal-when">${fmtDate(F.parseDate(x.date)).replace(/ \d{4}$/, '')}</span><span aria-hidden="true">💰</span><span class="cal-what">${esc(x.note || 'Income')}${x.date.slice(0, 7) === ym ? '' : ' <span class="small muted">(earlier)</span>'}</span><span class="num tone-success-text">+${fmt(x.amount)}</span></li>`).join('')}</ul>`
       : '<p class="muted small">Nothing logged yet. Each time money comes in, log it here.</p>'}</div>`;
