@@ -79,6 +79,10 @@ const GroupSync = {
           
           const { data, error } = await this.client.from('group_expenses').insert(dbExpense).select().single();
           if (error) throw error;
+          // point the personal budget entry at the saved group expense, so it isn't added twice
+          state.budget.expenses.forEach(e => { if (e.groupExp === action.expense.id) e.groupExp = data.id; });
+          (state.meta.groupSkip = state.meta.groupSkip || []).push(data.id);
+          save();
           
           if (action.splits && action.splits.length > 0) {
             const splitsToInsert = action.splits.map(s => {
@@ -144,8 +148,10 @@ const GroupSync = {
         members: members || [],
         expenses: expenses || []
       };
+      groupBudgetSync(groupId);
       save();
       if (currentRoute() === 'split') render();
+      else scheduleRender(200);
     } catch (err) {
       console.error('Failed to fetch group data', err);
     }
@@ -187,7 +193,7 @@ const GroupSync = {
     }
   },
 
-  addExpense(groupId, description, amount, splitDetails) {
+  addExpense(groupId, description, amount, splitDetails, categoryId) {
     const group = state.groups.find(g => g.id === groupId);
     if (!group) return;
     
@@ -206,6 +212,13 @@ const GroupSync = {
     
     state.groupData[groupId] = state.groupData[groupId] || { members: [], expenses: [] };
     state.groupData[groupId].expenses.push({ ...expense, group_expense_splits: splits });
+    // your share counts as your own spending
+    const mine = Number(splitDetails[group.myMemberId]) || 0;
+    if (mine > 0.004 && !/^Settlement:/.test(description)) {
+      const r = addExpense({ categoryId: categoryId || groupCategoryId(), amount: Math.round(mine * 100) / 100, date: todayISO(), note: `${group.name}: ${description}`.slice(0, 120), noRoundup: true });
+      r.exp.groupExp = expense.id;
+      if (categoryId) state.settings.groupCat = categoryId;
+    }
     save();
     if (currentRoute() === 'split') render();
     
@@ -246,6 +259,36 @@ function groupBalances(groupId) {
     b.net = Math.round(b.net * 100) / 100;
     return b;
   }).sort((a, b) => b.net - a.net);
+}
+
+/** The budget category group spending goes into: the last one picked, else a food/outings-type category. */
+function groupCategoryId() {
+  const cats = state.budget.categories;
+  if (cats.some(c => c.id === state.settings.groupCat)) return state.settings.groupCat;
+  const c = cats.find(c => /outing|fun|food|canteen|snack|daily/i.test(c.name)) || cats.find(c => c.type === 'wants') || cats[0];
+  return c ? c.id : '';
+}
+/** Add your share of group expenses other people logged to your own spending. Runs after every group refresh. */
+function groupBudgetSync(groupId) {
+  const g = state.groups.find(x => x.id === groupId), data = state.groupData[groupId];
+  if (!g || !data || !g.myMemberId || !state.budget.categories.length) return;
+  const exps = data.expenses || [];
+  // first run after this feature arrived: don't back-fill old expenses
+  if (!Array.isArray(state.meta.groupSkip)) state.meta.groupSkip = [];
+  const skip = new Set(state.meta.groupSkip);
+  if (!state.meta.groupSeen) state.meta.groupSeen = {};
+  if (!state.meta.groupSeen[groupId]) { exps.forEach(e => { if (e.id) state.meta.groupSkip.push(String(e.id)); }); state.meta.groupSeen[groupId] = true; return; }
+  const have = new Set(state.budget.expenses.map(e => e.groupExp).filter(Boolean));
+  exps.forEach(ex => {
+    const id = String(ex.id || '');
+    if (!id || skip.has(id) || have.has(id) || /^Settlement:/.test(ex.description || '')) return;
+    const mine = sum((ex.group_expense_splits || []).filter(sp => sp.member_id === g.myMemberId), sp => Number(sp.amount) || 0);
+    state.meta.groupSkip.push(id);
+    if (!(mine > 0.004)) return;
+    const date = String(ex.created_at || '').slice(0, 10);
+    const r = addExpense({ categoryId: groupCategoryId(), amount: Math.round(mine * 100) / 100, date: F.parseDate(date) ? date : todayISO(), note: `${g.name}: ${ex.description || 'Group expense'}`.slice(0, 120), noRoundup: true });
+    r.exp.groupExp = id;
+  });
 }
 
 /** Fewest payments that settle a group: biggest debtor pays biggest creditor, repeat. */
@@ -355,23 +398,69 @@ const GROUP_ACTIONS = {
   },
   'group-add-expense': el => {
     const groupId = el.dataset.id;
-    const data = state.groupData[groupId];
-    if (!data || !data.members || !data.members.length) return;
-    
-    // Equal split form by default
-    formModal({
+    const g = state.groups.find(x => x.id === groupId), data = state.groupData[groupId];
+    if (!g || !data || !data.members || !data.members.length) return;
+    const members = data.members, sym = esc(CURRENCIES[state.currency].symbol);
+    const cats = state.budget.categories, catNow = groupCategoryId();
+    openModal({
       title: 'Add group expense', submitLabel: 'Add',
-      values: { desc: '', amount: '' },
-      fields: [
-        { name: 'desc', label: 'What for?', kind: 'text', required: true },
-        { name: 'amount', label: 'Total Amount', kind: 'money', required: true, positive: true }
-      ],
-      onSave: (v) => {
-        const perPerson = Math.round(v.amount / data.members.length * 100) / 100;
-        const splits = {};
-        data.members.forEach(m => { splits[m.id] = perPerson; });
-        GroupSync.addExpense(groupId, v.desc, v.amount, splits);
-        toast('Expense added to group');
+      body: `<div class="field"><label for="ge-desc">What for?</label><input id="ge-desc" class="input" maxlength="80" placeholder="e.g. Dinner, groceries, cab"></div>
+        <div class="field"><label for="ge-amt">Total amount</label><div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="ge-amt" class="input" inputmode="decimal" placeholder="0"></div></div>
+        <fieldset class="field ge-mode"><legend class="field-label">How to split</legend>
+          <label class="check"><input type="radio" name="ge-mode" value="equal" checked> Equally</label>
+          <label class="check"><input type="radio" name="ge-mode" value="amount"> By amount</label></fieldset>
+        <div class="ge-list">${members.map(m => `<div class="ge-row"><label class="check"><input type="checkbox" class="ge-in" data-id="${esc(m.id)}" checked> ${esc(m.name)}${m.id === g.myMemberId ? ' (you)' : ''}</label>
+          <div class="affix ge-amt-wrap" hidden><span class="affix-sym" aria-hidden="true">${sym}</span><input class="input input-sm ge-each" data-id="${esc(m.id)}" inputmode="decimal" placeholder="0" aria-label="${esc(m.name)}'s share"></div>
+          <span class="ge-eq small muted" data-id="${esc(m.id)}"></span></div>`).join('')}</div>
+        <p class="small" id="ge-status" aria-live="polite"></p>
+        ${cats.length ? `<div class="field"><label for="ge-cat">Your share goes in</label><select id="ge-cat" class="select">${cats.map(c => `<option value="${c.id}" ${c.id === catNow ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select><p class="help">Your share counts in your own budget.</p></div>` : ''}
+        <p class="field-error" id="ge-err"></p>`,
+      onMount: form => {
+        const q = sel => form.querySelector(sel), qa = sel => [...form.querySelectorAll(sel)];
+        const amt = () => { const r = validateValue('money', q('#ge-amt').value, { required: false }); return r.value > 0 ? r.value : 0; };
+        const mode = () => (q('input[name="ge-mode"]:checked') || {}).value;
+        form._shares = () => {
+          const total = amt(), ins = qa('.ge-in').filter(c => c.checked).map(c => c.dataset.id), out = {};
+          if (mode() === 'equal') {
+            if (!ins.length) return { out, left: total };
+            const cents = Math.round(total * 100), base = Math.floor(cents / ins.length);
+            ins.forEach((id, i) => { out[id] = (base + (i < cents - base * ins.length ? 1 : 0)) / 100; });
+            return { out, left: 0 };
+          }
+          let used = 0;
+          qa('.ge-each').forEach(inp => {
+            const on = qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked;
+            const r = validateValue('money', inp.value, { required: false });
+            if (on && r.value > 0) { out[inp.dataset.id] = Math.round(r.value * 100) / 100; used += out[inp.dataset.id]; }
+          });
+          return { out, left: Math.round((total - used) * 100) / 100 };
+        };
+        const draw = () => {
+          q('#ge-err').textContent = '';
+          const byAmt = mode() === 'amount', { out, left } = form._shares();
+          qa('.ge-amt-wrap').forEach(w => { w.hidden = !byAmt; });
+          qa('.ge-eq').forEach(sp => { sp.textContent = !byAmt && out[sp.dataset.id] ? fmtExact(out[sp.dataset.id]) : ''; });
+          qa('.ge-each').forEach(inp => { inp.disabled = !qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked; });
+          const st = q('#ge-status');
+          if (!amt()) st.textContent = 'Enter the total first.';
+          else if (!byAmt) st.textContent = `Split between ${plural(Object.keys(out).length, 'person', 'people')}.`;
+          else st.textContent = Math.abs(left) < 0.005 ? 'All assigned.' : left > 0 ? `${fmtExact(left)} left to assign.` : `${fmtExact(-left)} too much.`;
+          st.className = 'small ' + (byAmt && amt() && Math.abs(left) >= 0.005 ? 'tone-danger-text' : 'muted');
+        };
+        form.addEventListener('input', draw); form.addEventListener('change', draw);
+        draw(); q('#ge-desc').focus();
+      },
+      onSubmit: form => {
+        const desc = form.querySelector('#ge-desc').value.trim(), err = form.querySelector('#ge-err');
+        const r = validateValue('money', form.querySelector('#ge-amt').value, { required: true, positive: true });
+        const { out, left } = form._shares();
+        const msg = !desc ? 'Say what it was for.' : r.error ? r.error : !Object.keys(out).length ? 'Pick at least one person.' : Math.abs(left) >= 0.005 ? (left > 0 ? `${fmtExact(left)} still to assign.` : `Shares add up to ${fmtExact(-left)} more than the total.`) : '';
+        err.textContent = msg; if (msg) return false;
+        const cat = form.querySelector('#ge-cat');
+        GroupSync.addExpense(groupId, desc, r.value, out, cat ? cat.value : '');
+        commit();
+        toast(out[g.myMemberId] ? `Added. Your share ${fmtExact(out[g.myMemberId])} is in your budget` : 'Expense added to group');
+        return true;
       }
     });
   },

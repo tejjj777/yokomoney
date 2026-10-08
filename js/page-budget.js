@@ -212,7 +212,12 @@ function incomeForm(entry) {
       { name: 'date', label: 'Date', kind: 'date', required: true },
       { name: 'note', label: 'From', kind: 'text', max: 80, placeholder: 'e.g. Client, sales, tips', wide: true }
     ],
-    live: () => entry ? '' : '<div class="alert alert-info">This is added on top of your usual allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>',
+    live: v => {
+      if (entry) return '';
+      const base = paycheckNet();
+      if (v && v.amount > 0 && base > 0 && Math.abs(v.amount - base) < 0.5) return `<div class="alert alert-warn" role="alert">That’s the same as your regular allowance (${fmtExact(base)}), which is already counted. Only log it if this is extra money on top.</div>`;
+      return '<div class="alert alert-info">This is added on top of your usual allowance for this month. Don’t log your regular allowance here, it’s already counted.</div>';
+    },
     onSave: v => {
       if (entry) { Object.assign(entry, { date: v.date, amount: v.amount, note: (v.note || '').slice(0, 80) }); commit(); toast('Income updated'); return; }
       state.incomeLog.push({ id: uid(), date: v.date, amount: v.amount, note: v.note || '' });

@@ -232,7 +232,13 @@ function normalizeMore(s, raw) {
     if (x.debtPay && typeof x.debtPay === 'object') e.debtPay = { debtId: str(x.debtPay.debtId), pid: str(x.debtPay.pid), amount: nn(x.debtPay.amount) };
     if (['import', 'sms', 'receipt'].includes(x.src)) e.src = x.src;
     if (typeof x.splitId === 'string') e.splitId = x.splitId.slice(0, 40);
+    if (typeof x.groupExp === 'string') e.groupExp = x.groupExp.slice(0, 60);
   });
+  // live-group expenses that were already there before group spending counted in the budget
+  s.meta.groupSkip = Array.isArray(rm.groupSkip) ? rm.groupSkip.filter(v => typeof v === 'string').slice(-2000) : null;
+  s.meta.groupSeen = {};
+  if (rm.groupSeen && typeof rm.groupSeen === 'object') for (const k of Object.keys(rm.groupSeen).slice(0, 200)) if (rm.groupSeen[k] === true) s.meta.groupSeen[k] = true;
+  s.settings.groupCat = rs.groupCat ? String(rs.groupCat).slice(0, 40) : '';
   s.yearlyBills = arr(raw.yearlyBills).map(x => ({ id: str(x.id, uid()), name: str(x.name, 'Yearly bill', 60), amount: nn(x.amount), due: date(x.due) || todayISO() }));
   s.incomeLog = arr(raw.incomeLog).map(x => ({ id: str(x.id, uid()), date: date(x.date) || todayISO(), amount: nn(x.amount), note: str(x.note, '', 80) })).filter(x => x.amount > 0);
   // every category belongs to a paycheck bucket (or none)
@@ -414,6 +420,9 @@ function sampleState() {
     x.usage = x.name === 'Gym' ? { [p2]: false, [p]: false } : { [p2]: true, [p]: true };
   });
   
+  // the sample is written in rupees; localizeSample converts it to the user's currency
+  if (CURRENCIES[state.currency]) s.currency = state.currency;
+  if (COUNTRIES[state.settings.country]) s.settings.country = state.settings.country;
   return localizeSample(s);
 }
 

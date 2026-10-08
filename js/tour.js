@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 16;   // bumped: debt, savings, exact amounts, onboarding currency
+const TOUR_VERSION = 17;   // bumped: debt, savings, exact amounts, onboarding currency
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -70,7 +70,7 @@ const CHAPTERS = [
     { route: 'split/ious', target: ['#w-balances'], title: 'Settle up', text: 'Tap Settle up next to a name. If you owe them, pick GPay, PhonePe or Paytm and pay in one tap. If they owe you, copy your UPI ID or the ready-made message and send it. Then mark it settled.' },
     { route: 'split/ious', target: ['[data-action="split-bill"]', '#w-ious'], title: 'Split a bill from a photo', text: 'Snap the restaurant bill. YOKO! reads every item, you tap who had what, and tax and service charge get shared fairly. Your share goes into your expenses, the rest become IOUs.' },
     { route: 'split/ious', target: ['#w-ious'], title: 'IOUs', text: 'Lent someone ₹200 for an auto? Add an IOU with a due date so it doesn’t get forgotten.' },
-    { route: 'split/groups', target: ['[data-action="create-group"]', '#view-split .view-head'], title: 'Live groups', text: 'For a flat, a trip or a club. Create a group and share the 6-letter code, or join with a friend’s code. Expenses anyone adds show up for everyone straight away.' },
+    { route: 'split/groups', target: ['[data-action="create-group"]', '#view-split .view-head'], title: 'Live groups', text: 'For a flat, a trip or a club. Create a group and share the 6-letter code, or join with a friend’s code. Expenses anyone adds show up for everyone straight away, split equally or by amount, and your share lands in your own budget.' },
     { route: 'split/groups', target: ['#view-split .view-head'], title: 'Pay inside a group', text: 'Open a group to see who paid what. Add your UPI ID once and everyone in the group sees it. Tap Pay with UPI next to anyone you owe and it’s already filled in.' },
     { route: 'split/history', target: ['#w-settled', '#view-split .subtabs-inner'], title: 'Settled', text: 'Everything you’ve already settled, in case anyone says you never paid them back.' }
   ] },
@@ -100,6 +100,7 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'See how much you save each month and your savings rate.' },
     { route: 'dashboard/overview', target: ['#view-dashboard [data-action="scan-receipt"]', '#quickadd-btn'], title: 'Scan a receipt', text: 'Snap a bill right from Home and it logs the expense for you.' },
     { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Debt is back', text: 'Track loans and money you owe, with a payoff plan.' },
+    { route: 'split/groups', target: ['[data-action="create-group"]', '#view-split .view-head'], title: 'Groups count in your budget', text: 'Your share of every group expense now shows up in your own spending. Split equally or by amount.' },
     { route: 'split/groups', target: ['#view-split .view-head'], title: 'UPI in groups', text: 'Pick GPay, PhonePe or Paytm to pay. In live groups everyone sees each other’s UPI ID.' },
     { route: 'dashboard/overview', target: ['#command-bar'], title: 'Say amounts your way', text: 'Type or say “2 lakh”, “50k” or “two thousand”. The AI gets it.' }
   ] }
@@ -334,6 +335,10 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p>New and fixed:</p><ul class="whats-new">
+        <li><strong>Group spending counts:</strong> your share of live group expenses now shows up in your budget.</li>
+        <li><strong>Split by amount:</strong> live groups can split unevenly, and you pick who’s in.</li>
+        <li><strong>Settle part of it:</strong> settle up asks how much was paid and shows what’s left.</li>
+        <li><strong>Income you can edit:</strong> fix or delete logged income, and it adds on top of your allowance.</li>
         <li><strong>Debt:</strong> track loans and money you owe, with a payoff plan.</li>
         <li><strong>Savings:</strong> see what you save each month and your savings rate.</li>
         <li><strong>Exact amounts:</strong> safe to spend and money left now show to the paisa.</li>

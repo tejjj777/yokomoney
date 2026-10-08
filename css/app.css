@@ -1158,3 +1158,11 @@ main td { overflow-wrap: break-word; }
 #income-log .cal-list li { align-items: center; }
 .inc-act { display: inline-flex; gap: 2px; margin-left: 4px; }
 .inc-act .icon-btn { width: 32px; height: 32px; }
+
+/* Group expense split */
+.ge-mode { display: flex; gap: 16px; flex-wrap: wrap; border: 0; padding: 0; margin: 0; }
+.ge-list { display: grid; gap: 6px; margin: 4px 0 8px; }
+.ge-row { display: grid; grid-template-columns: 1fr minmax(0, 120px); align-items: center; gap: 8px; min-height: 40px; }
+.ge-row .ge-eq { text-align: right; font-variant-numeric: tabular-nums; }
+.ge-row .ge-amt-wrap[hidden] + .ge-eq { grid-column: 2; }
+.ge-row .ge-eq:empty { display: none; }

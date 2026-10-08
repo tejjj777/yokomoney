@@ -49,6 +49,11 @@ function localizeSample(s) {
   if (k === 1) return s;
   // scale every amount
   s.income.net = m(s.income.net); s.income.others.forEach(o => { o.amount = m(o.amount); });
+  if (s.student) {
+    s.student.allowance = m(s.student.allowance); s.student.partTimeAmount = m(s.student.partTimeAmount || 0);
+    ((s.student.semester && s.student.semester.heavyMonths) || []).forEach(h => { h.amount = m(h.amount); });
+  }
+  (s.incomeLog || []).forEach(x => { x.amount = m(x.amount); });
   s.split.buckets.forEach(b => { if (b.mode === 'amount') b.value = m(b.value); });
   s.debts.forEach(d => { d.balance = m(d.balance); d.startBalance = m(d.startBalance); d.minPayment = m(d.minPayment); d.payments.forEach(p => { p.amount = m(p.amount); }); });
   const mins = sum(s.debts.filter(d => d.balance > 0), d => d.minPayment);
