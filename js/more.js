@@ -335,7 +335,13 @@ function setupPwa() {
     const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.webmanifest'; document.head.appendChild(l);
   }
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker not registered', err));
+  if ('serviceWorker' in navigator) {
+    // When a new version takes over, reload once so the update shows straight away.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update && r.update()).catch(err => console.warn('Service worker not registered', err));
+  }
 }
 function installHTML() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;

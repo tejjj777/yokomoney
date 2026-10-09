@@ -195,7 +195,7 @@ function renderDashboard() {
   const sp = spendingSource();
 
   let html = viewHeader('dashboard', 'Home', `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`,
-    `<button type="button" class="btn btn-primary" data-action="scan-receipt">${ICON.camera}<span>Scan receipt</span></button><button type="button" class="btn" data-action="tour-all"><span>Full tutorial</span></button>`, [mi('Money Wrapped', 'open-wrapped')]);
+    `<button type="button" class="btn btn-primary" data-action="scan-receipt">${ICON.camera}<span>Scan receipt</span></button><button type="button" class="btn" data-action="tour-all"><span>Full tutorial</span></button>`, [mi('What’s new', 'whats-new'), mi('Money Wrapped', 'open-wrapped')]);
 
   if (!hasAnyData()) {
     html += emptyState('Nothing here yet', 'Set your student allowance to build your budget and daily safe-to-spend amount. Or explore with sample data.', 'open-paycheck', 'Set allowance', 'dashboard');

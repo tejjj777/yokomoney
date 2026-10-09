@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 19;   // bumped: debt, savings, exact amounts, onboarding currency
+const TOUR_VERSION = 20;   // bumped: debt, savings, exact amounts, onboarding currency
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -333,12 +333,16 @@ function showWelcome() {
 
 function showWhatsNew() {
   markTourSeen();
+  if (typeof save === 'function') save();
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
-    body: `<p>New and fixed:</p><ul class="whats-new">
+    body: `<p class="wn-tag">This update</p><ul class="whats-new">
         <li><strong>Rainbow charts:</strong> Settings, Chart colors. Every slice gets its own color.</li>
-        <li><strong>New look:</strong> fresh fonts for titles, buttons and money.</li>
-        <li><strong>Forecast fixed:</strong> one big bill like rent no longer makes it say you run out tomorrow, and the sliders are easier to grab.</li>
+        <li><strong>New look:</strong> new fonts for titles, buttons and money.</li>
+        <li><strong>Forecast fixed:</strong> one big bill like rent no longer says you run out tomorrow.</li>
+        <li><strong>Habit sliders:</strong> a bigger handle that’s easy to drag.</li>
+        <li><strong>Income list:</strong> long notes are readable now.</li></ul>
+      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
         <li><strong>Bill reminders:</strong> a heads-up the day before rent, fees or a payback is due.</li>
         <li><strong>This week:</strong> see what’s left for the week next to safe to spend.</li>
         <li><strong>Bank balance:</strong> type in your bank / UPI balance and safe to spend uses real money.</li>
@@ -360,7 +364,7 @@ function showWhatsNew() {
         <li><strong>Live groups:</strong> creating a group works the first time.</li>
         <li><strong>Scan receipt on Home:</strong> one tap from the Home page.</li>
         <li><strong>UPI pay:</strong> pick GPay, PhonePe or Paytm. Works in Live Groups too. QR codes removed.</li>
-        <li><strong>Simpler:</strong> roast mode and round-ups are gone. Full tutorial is on Home.</li></ul>
+        <li><strong>Simpler:</strong> roast mode and round-ups are gone. Full tutorial is on Home.</li></ul></details>
       <div class="welcome-actions"><button type="button" class="btn btn-primary" data-action="tour-new">Take the tour (1 min)</button>
       <button type="button" class="btn" data-action="open-tutorials">All tutorials</button></div>`
   });

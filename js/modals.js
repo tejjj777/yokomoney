@@ -564,7 +564,7 @@ function openSettings(tab = 'general') {
       <div class="settings-group"><h3>Reset</h3><p class="small muted">Deletes all income, debts, budget, gifts and goals from this browser.</p>
       <div class="row"><button type="button" class="btn btn-danger" data-action="reset-all">Reset all data</button></div></div>`;
   const helpGroups = `<div class="settings-group"><h3>Tutorials</h3><p class="small muted">The full tutorial is also on the Home page.</p>
-      <div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="tour-all">Full tutorial</button><button type="button" class="btn btn-sm" data-action="open-tutorials">Pick a page</button></div></div>
+      <div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="tour-all">Full tutorial</button><button type="button" class="btn btn-sm" data-action="open-tutorials">Pick a page</button><button type="button" class="btn btn-sm" data-action="whats-new">What’s new</button></div></div>
       <div class="settings-group"><h3>Self-tests</h3><details class="set-details"><summary class="small">For checking the app’s math</summary><p class="small muted">Checks loan payments, payoff order, goals, safe-to-spend and amount words like “2 lakh”.</p>
       <div class="row"><button type="button" class="btn btn-sm" data-action="run-tests">Run self-tests</button></div><div id="test-out"></div></details></div>`;
   const groups = (prefsHTML() + moreSettingsHTML() + accountGroupHTML() + dataGroups + helpGroups).split(/(?=<div class="settings-group">)/).filter(g => g.trim());

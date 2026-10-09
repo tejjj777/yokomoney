@@ -1206,3 +1206,9 @@ h1, h2, h3, .view-head h1, .card-head h2, .card-head h3, .btn, .tab-link, .nav-l
 .safe-status.is-green { color: var(--success-text); }
 .safe-status.is-amber { color: var(--warning-text); }
 .safe-status.is-red { color: var(--danger-text); }
+
+/* What's new */
+.wn-tag { display: block; width: fit-content; margin: 0 0 8px; padding: 4px 8px; border-radius: 6px; background: var(--primary); color: var(--on-primary, #0A0A0A); font-weight: 700; font-size: 13px; }
+.wn-earlier { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.wn-earlier summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+.wn-earlier[open] summary { margin-bottom: 8px; }

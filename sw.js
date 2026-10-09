@@ -1,7 +1,7 @@
 /* YOKO! Student service worker: makes the installed app open offline.
    The page and its own code (js/, css/) are fetched fresh when online (so updates arrive together) and fall back to the cached copy offline.
    Everything else is cache-first; the large OCR files are cached the first time they're used. */
-const CACHE = 'yoko-student-v29';   // bump the number every session
+const CACHE = 'yoko-student-v30';   // bump the number every session
 const PREFIX = 'yoko-student-';    // only ever delete our own caches (main YOKO! may share this origin)
 const CORE = [
   './', './index.html', './manifest.webmanifest', './prices.json',
@@ -62,7 +62,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(res => {
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put('./index.html', copy));
       return res;
@@ -70,7 +70,7 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (/\/(js|css)\/[^/]+\.(js|css)$/.test(new URL(req.url).pathname)) {   // app code: newest when online, saved copy offline
-    e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; }).catch(() => caches.match(req)));
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; }).catch(() => caches.match(req)));
     return;
   }
   if (/\/prices\.json$/.test(new URL(req.url).pathname)) {   // price list: newest when online, saved copy offline

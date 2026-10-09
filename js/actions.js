@@ -161,6 +161,7 @@ const ACTIONS = {
   'open-tutorials': () => openTutorialHub(),
   'tour-all': () => startTour(CHAPTER_ORDER),
   'tour-new': () => startTour(['new']),
+  'whats-new': () => { closeModal(true); showWhatsNew(); },
   'tour-chapter': el => startTour([el.dataset.chapter]),
   'tour-page': el => startTour([el.dataset.chapter]),
   'enable-notifs': () => {
