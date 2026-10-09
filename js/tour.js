@@ -155,7 +155,7 @@ function showOnboarding(opts = {}) {
           <option value="custom">Pick specific day of month...</option>
           <option value="irregular">Irregular (varies or when requested)</option>
         </select>
-        <div id="ob-custom-day-wrap" hidden style="margin-top:6px">
+        <div id="ob-custom-day-wrap" hidden style="margin-top:8px">
           <input id="ob-custom-day" class="input" type="number" min="1" max="31" placeholder="Day of month (1–31)" style="font-size:16px">
         </div>
       </div>
@@ -169,7 +169,7 @@ function showOnboarding(opts = {}) {
         </select>
       </div>
 
-      <div class="field" style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="field" style="border-top:1px solid var(--border);padding-top:12px">
         <label class="check"><input type="checkbox" id="ob-has-pt"> I have part-time / freelance income (optional)</label>
         <div id="ob-pt-wrap" hidden style="margin-top:8px">
           <div class="grid-2">
@@ -365,7 +365,6 @@ function showWhatsNew() {
 function openTutorialHub() {
   const done = state.meta.tourChapters || {};
   const list = CHAPTER_ORDER.concat(['new']).map(chapterById).map(c => `<li><button type="button" class="chapter-btn" data-action="tour-chapter" data-chapter="${c.id}">
-      <span class="chapter-icon" aria-hidden="true">${c.icon}</span>
       <span class="chapter-text"><strong>${esc(c.title)}</strong><span class="small muted">${esc(c.blurb)} · ${plural(c.steps.length, 'step')}</span></span>
       ${done[c.id] ? '<span class="badge badge-success">✓ Done</span>' : ''}</button></li>`).join('');
   openModal({

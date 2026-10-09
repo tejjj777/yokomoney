@@ -20,17 +20,15 @@ function safeToSpendHero() {
   const next = nextPayInfo() ? { days: al.daysLeft } : null;
   const t = todayDate();
   const statusLabel = sts.status === 'green' ? 'On track' : sts.status === 'amber' ? 'Tight pace' : 'Overspent';
-  const statusIcon = sts.status === 'green' ? '●' : sts.status === 'amber' ? '▲' : '■';
 
   return `<div class="card safe-hero safe-${sts.status}" id="safe-hero">
     <div class="safe-hero-header">
-      <span class="safe-badge safe-badge-${sts.status}"><span class="status-dot ${sts.status}">${statusIcon}</span> ${statusLabel}</span>
+      <p class="safe-hero-label">Safe to spend today</p>
       <span class="small muted">${next ? `Next allowance ${daysLabel(next.days).toLowerCase()}` : (state.income.irregular ? 'Irregular allowance' : `${F.daysLeftInMonth(t)} days left this month`)}</span>
     </div>
     <div class="safe-hero-body">
-      <p class="safe-hero-label">Safe to spend today</p>
       <h1 class="safe-hero-amount">${fmtExact(sts.leftToday)}</h1>
-      <p class="safe-hero-reason">${sts.overToday > 0 ? `You went ${fmtExact(sts.overToday)} over today’s limit. Tomorrow’s limit adjusts.` : sts.available <= 0 ? 'Nothing left after bills. Showing 0.' : esc(sts.reason)}</p>
+      <p class="safe-hero-reason"><span class="safe-status is-${sts.status}">${sts.status === 'green' && sts.overToday <= 0 && sts.available > 0 ? statusLabel : statusLabel + '.'}</span> ${sts.overToday > 0 ? `You went ${fmtExact(sts.overToday)} over today’s limit. Tomorrow’s limit adjusts.` : sts.available <= 0 ? 'Nothing left after bills. Showing 0.' : esc(sts.reason.replace(/^On track /, ''))}</p>
       <div class="safe-hero-formula small muted">
         <span>Daily limit: <strong>${fmtExact(sts.dailyLimit)}</strong></span>
         <span>·</span>
@@ -51,7 +49,7 @@ function safeToSpendHero() {
       <button type="button" class="btn btn-primary btn-sm" data-action="add-expense">${ICON.plus}<span>Log expense</span></button>
       <button type="button" class="btn btn-sm" data-action="set-bank">${state.settings.bank ? `Bank: ${fmtExact(bankBalanceNow())}` : 'Add bank balance'}</button>
       <button type="button" class="btn btn-sm" data-action="open-paycheck"><span>Edit allowance</span></button>
-      ${sts.status === 'red' ? `<button type="button" class="btn btn-sm btn-warn" data-action="ask-topup"><span>🙏 Ask for a top-up</span></button>` : ''}
+      ${sts.status === 'red' ? `<button type="button" class="btn btn-sm btn-warn" data-action="ask-topup"><span>Ask for a top-up</span></button>` : ''}
     </div>
   </div>`;
 }
@@ -68,7 +66,7 @@ function runOutForecastCard(chartId = 'dash-forecast-chart') {
         <p class="muted small">Projected balance until your next allowance based on 30-day average spend.</p>
       </div>
       <div id="forecast-status-badge" class="badge ${fc.willMakeIt ? 'badge-success' : 'badge-danger'}">
-        ${fc.willMakeIt ? `✓ You’ll make it with ${fmt(fc.endBalance)} left` : `⚠️ Runs out ${fc.runOutDay ? fmtDate(F.parseDate(fc.runOutDay)) : 'soon'} (${Math.max(1, days - (fc.runOutDayIndex || 0))} days before allowance)`}
+        ${fc.willMakeIt ? `You’ll make it with ${fmt(fc.endBalance)} left` : `Runs out ${fc.runOutDay ? fmtDate(F.parseDate(fc.runOutDay)) : 'soon'} (${Math.max(1, days - (fc.runOutDayIndex || 0))} days before allowance)`}
       </div>
     </div>
     <div class="chart-box" style="height:210px;position:relative"><canvas id="${chartId}"></canvas></div>
@@ -103,7 +101,7 @@ function semesterCard() {
         <p class="muted small">${startStr} – ${endStr} (${plural(sem.months, 'month')})</p>
       </div>
       <div class="actions no-print">
-        <span class="badge ${sem.onTrack ? 'badge-success' : 'badge-warn'}">${sem.onTrack ? '✓ On track' : `⚠️ Behind by ${fmt(sem.diff)}`}</span>
+        <span class="badge ${sem.onTrack ? 'badge-success' : 'badge-warn'}">${sem.onTrack ? 'On track' : `Behind by ${fmt(sem.diff)}`}</span>
         <button type="button" class="btn btn-sm" data-action="open-semester-modal">${ICON.edit}<span>Edit semester</span></button>
       </div>
     </div>
@@ -140,7 +138,7 @@ function bindForecastSliders(chartId = 'dash-forecast-chart') {
     const badge = container.querySelector('#forecast-status-badge');
     if (badge) {
       badge.className = `badge ${newFc.willMakeIt ? 'badge-success' : 'badge-danger'}`;
-      badge.textContent = newFc.willMakeIt ? `✓ You’ll make it with ${fmt(newFc.endBalance)} left` : `⚠️ Runs out ${newFc.runOutDay ? fmtDate(F.parseDate(newFc.runOutDay)) : 'soon'}`;
+      badge.textContent = newFc.willMakeIt ? `You’ll make it with ${fmt(newFc.endBalance)} left` : `Runs out ${newFc.runOutDay ? fmtDate(F.parseDate(newFc.runOutDay)) : 'soon'}`;
     }
   };
 
@@ -173,7 +171,7 @@ function savingsCard(chartId = 'dash-savings-chart') {
     <div class="exact-grid">
       <div><p class="stat-label">Total saved</p><p class="exact-val">${fmtExact(s.total)}</p></div>
       <div><p class="stat-label">This month</p><p class="exact-val">${fmtExact(s.thisM)}</p><p class="small ${ch >= 0 ? 'sv-up' : 'tone-danger-text'}">${chTxt}</p></div>
-      <div><p class="stat-label">Savings rate</p><p class="exact-val">${s.rate === null ? '—' : fmtPct(s.rate)}</p><p class="small muted">of this month’s income</p></div>
+      <div><p class="stat-label">Savings rate</p><p class="exact-val">${s.rate === null ? '-' : fmtPct(s.rate)}</p><p class="small muted">of this month’s income</p></div>
     </div>
     <div class="sv-chart"><canvas id="${chartId}" aria-label="Savings in the last 6 months" role="img"></canvas></div>
     ${goals ? `<div class="sv-goals">${goals}</div>` : '<p class="small muted">Add a goal to see your progress here.</p>'}
@@ -197,7 +195,7 @@ function renderDashboard() {
   const sp = spendingSource();
 
   let html = viewHeader('dashboard', 'Home', `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`,
-    `<button type="button" class="btn btn-primary" data-action="scan-receipt"><span aria-hidden="true">🧾</span><span>Scan receipt</span></button><button type="button" class="btn" data-action="tour-all"><span aria-hidden="true">🎓</span><span>Full tutorial</span></button>`, [mi('Money Wrapped', 'open-wrapped')]);
+    `<button type="button" class="btn btn-primary" data-action="scan-receipt">${ICON.camera}<span>Scan receipt</span></button><button type="button" class="btn" data-action="tour-all"><span>Full tutorial</span></button>`, [mi('Money Wrapped', 'open-wrapped')]);
 
   if (!hasAnyData()) {
     html += emptyState('Nothing here yet', 'Set your student allowance to build your budget and daily safe-to-spend amount. Or explore with sample data.', 'open-paycheck', 'Set allowance', 'dashboard');
@@ -209,7 +207,7 @@ function renderDashboard() {
       ${al.byPayday
         ? stat('Left until payday', fmt(al.balance), inc > 0 ? `${fmtPct(al.spent / inc * 100)} of this allowance spent` : 'Track spending', al.balance < 0 ? 'tone-danger' : '')
         : stat('Left this month', fmt(b.remaining), inc > 0 ? `${fmtPct(b.actual / inc * 100)} of allowance spent` : 'Track spending', b.remaining < 0 ? 'tone-danger' : '')}
-      ${stat('No-spend streak', `🔥 ${plural(sk.current, 'day')}`, `Longest: ${plural(sk.longest, 'day')}`)}
+      ${stat('No-spend streak', `${plural(sk.current, 'day')}`, `Longest: ${plural(sk.longest, 'day')}`)}
     </div>` +
     savingsCard('dash-savings-chart') +
     runOutForecastCard('dash-forecast-chart') +

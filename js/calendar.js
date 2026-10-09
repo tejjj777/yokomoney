@@ -67,7 +67,7 @@ function calendarCard() {
       ${moreMenu([ym !== todayISO().slice(0, 7) ? mi('Back to this month', 'cal-today') : '', mi('Add to my phone’s calendar (.ics file)', 'cal-ics')])}</div></div>
     <div class="cal-grid" role="group" aria-label="${FULL_MONTHS[mo - 1]} ${y}">${names.map(n => `<span class="cal-head" aria-hidden="true">${n}</span>`).join('')}${cells}</div>
     <div class="cal-below"><h3>${sel ? fmtDate(F.parseDate(sel)) : (ym === todayISO().slice(0, 7) ? 'Still to come this month' : `${FULL_MONTHS[mo - 1]}`)}</h3>${list}</div>
-    ${!state.recurring.length ? '<p class="small muted" style="margin-top:10px">Tip: add rent, loans and subscriptions as recurring payments (Budget → Spending) and they’ll show up here.</p>' : ''}</div>`;
+    ${!state.recurring.length ? '<p class="small muted" style="margin-top:12px">Tip: add rent, loans and subscriptions as recurring payments (Budget → Spending) and they’ll show up here.</p>' : ''}</div>`;
 }
 function downloadIcs() {
   const t = todayDate(), end = F.addMonths(t, 12);

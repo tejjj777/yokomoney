@@ -21,9 +21,9 @@ function emiCard() {
         <span class="field-error" id="emi-months-err"></span></div>
     </div>
     <div class="stats-grid" style="margin:16px 0 0">
-      <div class="stat card featured" style="grid-column:span 2"><p class="stat-label">Monthly payment</p><p class="stat-value">${ok ? fmtExact(sched.payment) : '—'}</p><p class="stat-sub">${ok ? incomeHint(sched.payment) : 'Enter loan details'}</p></div>
-      ${stat('Total interest', ok ? fmt(sched.totalInterest) : '—')}
-      ${stat('Total payment', ok ? fmt(sched.totalPaid) : '—')}
+      <div class="stat card featured" style="grid-column:span 2"><p class="stat-label">Monthly payment</p><p class="stat-value">${ok ? fmtExact(sched.payment) : '-'}</p><p class="stat-sub">${ok ? incomeHint(sched.payment) : 'Enter loan details'}</p></div>
+      ${stat('Total interest', ok ? fmt(sched.totalInterest) : '-')}
+      ${stat('Total payment', ok ? fmt(sched.totalPaid) : '-')}
     </div>
     ${ok ? `<details class="collapsible" data-open-key="emi-table" ${openAttr('emi-table')}><summary>Amortization schedule (${e.months} months)</summary>
       <div class="details-body"><div class="row no-print">${csvLink('emi-schedule', 'loan schedule')}</div>
@@ -63,7 +63,7 @@ function renderDebt() {
     <div class="card-head"><div><h2>Your debts</h2><p class="muted small">${fmt(sum(state.debts, d => d.balance))} total · ${fmt(minTotal)}/month in minimums</p></div>
       <div class="actions">${csvBtn('debts', 'debts')}</div></div>
     <div class="table-wrap"><table><thead><tr><th scope="col">Debt</th><th class="num" scope="col">Balance</th><th class="num" scope="col">Rate</th><th class="num" scope="col">Minimum</th><th class="num" scope="col">Monthly interest</th><th scope="col">Minimums only</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${warnings.length ? `<div style="margin-top:14px">${warnings.join('')}</div>` : ''}
+    ${warnings.length ? `<div style="margin-top:16px">${warnings.join('')}</div>` : ''}
   </div>`;
 
   // Plan settings
@@ -85,7 +85,7 @@ function renderDebt() {
     const title = key === 'avalanche' ? 'Avalanche' : 'Snowball';
     const tag = key === 'avalanche' ? 'Highest interest first' : 'Smallest balance first';
     let savedTxt;
-    if (!p.paidOff) savedTxt = '—';
+    if (!p.paidOff) savedTxt = '-';
     else if (!plans.minimum.paidOff) savedTxt = '<span class="small tone-danger-text">Minimums alone never finish</span>';
     else savedTxt = fmt(plans.minimum.totalInterest - p.totalInterest);
     return `<div class="card compare ${isChosen ? 'is-chosen' : ''}">

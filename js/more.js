@@ -202,7 +202,7 @@ function sendBudgetNotification(title, body, tone = 'info') {
     const viaSw = () => navigator.serviceWorker && navigator.serviceWorker.getRegistration().then(r => r && r.showNotification(title, opts)).catch(() => {});
     try { new Notification(title, opts); } catch (e) { viaSw(); }   // Android Chrome only allows the service worker route
   }
-  toast(`🔔 ${title} · ${body}`, 4500);
+  toast(`${title}. ${body}`, 4500);
 }
 
 /** Bills due today or tomorrow, for reminders and the Home card. */
@@ -456,7 +456,7 @@ function recurringCard() {
     return `<tr class="${r.active ? '' : 'is-paused'}"><td><strong>${esc(r.name)}</strong><br><span class="small muted">${recurringSchedule(r)} · ${esc(catName(r.categoryId))}</span>
       ${debt ? `<br><span class="badge">Pays off ${esc(debt.name)}</span>` : ''}${missing ? '<br><span class="badge badge-danger">Its category was deleted. Edit it to pick a new one</span>' : ''}</td>
       <td class="num">${fmt(r.amount)}</td>
-      <td>${r.active ? (nx ? `${fmtDate(nx)}<br><span class="small muted">${daysLabel(F.daysBetween(t, nx))}</span>` : '—') : '<span class="badge badge-neutral">Paused</span>'}</td>
+      <td>${r.active ? (nx ? `${fmtDate(nx)}<br><span class="small muted">${daysLabel(F.daysBetween(t, nx))}</span>` : '-') : '<span class="badge badge-neutral">Paused</span>'}</td>
       <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-recurring" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${ICON.edit}</button>
         <button type="button" class="icon-btn danger" data-action="delete-recurring" data-id="${r.id}" aria-label="Delete ${esc(r.name)}">${ICON.trash}</button></td></tr>`;
   }).join('');
@@ -547,7 +547,7 @@ function historyCard() {
   const movers = state.budget.categories.map(c => { const o = last.cats.find(k => k.name.toLowerCase() === c.name.toLowerCase()); return { c, d: o ? c.actual - o.actual : 0 }; })
     .filter(x => x.c.type !== 'savings' && x.d > 0).sort((a, z) => z.d - a.d);
   const best = hist.filter(h => h.income > 0).reduce((m, h) => (!m || histSpent(h) / h.income < histSpent(m) / m.income ? h : m), null);
-  const rows = hist.slice().reverse().map(h => `<tr><td>${monthLabelISO(h.month)}</td><td class="num">${fmt(h.income)}</td><td class="num">${fmt(histSpent(h))}</td><td class="num">${fmt(histSaved(h))}</td><td class="num">${h.income > 0 ? fmtPct(histSpent(h) / h.income * 100) : '—'}</td></tr>`).join('');
+  const rows = hist.slice().reverse().map(h => `<tr><td>${monthLabelISO(h.month)}</td><td class="num">${fmt(h.income)}</td><td class="num">${fmt(histSpent(h))}</td><td class="num">${fmt(histSaved(h))}</td><td class="num">${h.income > 0 ? fmtPct(histSpent(h) / h.income * 100) : '-'}</td></tr>`).join('');
   return `<div class="card mb" id="history-card"><div class="card-head"><div><h2>Month by month</h2><p class="muted small">What you spent on needs and wants, against your income. This month is so far.</p></div><div class="actions">${csvBtn('history', 'month history')}</div></div>
     <div class="chart-box"><canvas id="hist-chart" role="img" aria-label="Spending by month chart"></canvas></div>
     <ul class="insights small">

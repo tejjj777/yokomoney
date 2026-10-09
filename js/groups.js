@@ -526,13 +526,13 @@ const GROUP_ACTIONS = {
       submitLabel: 'Close',
       body: `<p class="small muted mb">Join code: <strong>${g.joinCode}</strong> (give this to friends)</p>
         
-        <h3 style="margin-top:10px">Members</h3>
+        <h3 style="margin-top:12px">Members</h3>
         <ul class="plain-list mb">${data.members.map(m => `<li>${esc(m.name)} ${m.id === g.myMemberId ? '(You)' : ''} <span class="small muted">${isUpiId(m.upi_id) ? '· UPI ' + esc(m.upi_id) : '· no UPI ID yet'}</span></li>`).join('')}</ul>
         <div class="field mb"><label for="grp-my-upi" class="small"><strong>Your UPI ID</strong> (everyone in the group sees it)</label>
-          <div class="row" style="gap:6px;flex-wrap:nowrap"><input id="grp-my-upi" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(state.settings.myUpiId || '')}" style="min-width:0">
+          <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="grp-my-upi" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(state.settings.myUpiId || '')}" style="min-width:0">
           <button type="button" class="btn btn-sm" data-action="group-share-upi">Share</button></div></div>
         
-        <h3 style="margin-top:10px">Who pays who</h3>
+        <h3 style="margin-top:12px">Who pays who</h3>
         ${(() => {
           const myId = g.myMemberId, tx = groupTransfers(balances);
           if (!tx.length) return '<p class="gb-even mb">All square. Nobody owes anything.</p>';
@@ -549,13 +549,13 @@ const GROUP_ACTIONS = {
             <div class="gb-amt ${b.net > 0.004 ? 'tone-success-text' : b.net < -0.004 ? 'tone-danger-text' : ''}">${b.net > 0.004 ? 'gets back ' + fmtExact(b.net) : b.net < -0.004 ? 'owes ' + fmtExact(-b.net) : 'even'}</div></div>`).join('')}
         </div></div></details>
 
-        <h3 style="margin-top:10px">Expenses</h3>
+        <h3 style="margin-top:12px">Expenses</h3>
         ${data.expenses.length ? `<ul class="plain-list mb">${data.expenses.slice().reverse().map(ex => {
           const paidBy = data.members.find(m => m.id === ex.paid_by);
           const mine = ex.paid_by === g.myMemberId && !/^Settlement:/.test(ex.description || '');
           return `<li class="gx-row"><div class="gx-main">${esc(ex.description)}<br><span class="small muted">Paid by ${paidBy ? esc(paidBy.name) : 'Someone'} · ${fmtExact(Number(ex.amount))}</span></div>${mine ? `<span class="gx-act no-print"><button type="button" class="icon-btn" data-action="group-edit-expense" data-group-id="${groupId}" data-ex-id="${esc(String(ex.id))}" aria-label="Edit ${esc(ex.description)}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="group-del-expense" data-group-id="${groupId}" data-ex-id="${esc(String(ex.id))}" aria-label="Delete ${esc(ex.description)}">${ICON.trash}</button></span>` : ''}</li>`;
         }).join('')}</ul>` : '<p class="small muted">No expenses yet.</p>'}
-        ${(state.groupRecurring || []).filter(r => r.groupId === groupId).length ? `<h3 style="margin-top:10px">Repeats every month</h3><ul class="plain-list mb">${state.groupRecurring.filter(r => r.groupId === groupId).map(r => `<li class="gx-row"><div class="gx-main">${esc(r.desc)}<br><span class="small muted">${fmtExact(r.amount)} on day ${r.day}</span></div><span class="gx-act no-print"><button type="button" class="btn btn-sm" data-action="group-stop-repeat" data-id="${r.id}">Stop</button></span></li>`).join('')}</ul>` : ''}
+        ${(state.groupRecurring || []).filter(r => r.groupId === groupId).length ? `<h3 style="margin-top:12px">Repeats every month</h3><ul class="plain-list mb">${state.groupRecurring.filter(r => r.groupId === groupId).map(r => `<li class="gx-row"><div class="gx-main">${esc(r.desc)}<br><span class="small muted">${fmtExact(r.amount)} on day ${r.day}</span></div><span class="gx-act no-print"><button type="button" class="btn btn-sm" data-action="group-stop-repeat" data-id="${r.id}">Stop</button></span></li>`).join('')}</ul>` : ''}
         <p class="small muted">You can edit or delete expenses you paid for.</p>
       `,
       onSubmit: () => { closeModal(true); return false; }
@@ -601,14 +601,14 @@ const GROUP_ACTIONS = {
 
           ${upiSectionHTML(opts)}
 
-          <div class="card mb" style="padding:10px;text-align:left;background:var(--surface-2)">
+          <div class="card mb" style="padding:12px;text-align:left;background:var(--surface-2)">
             <p class="small font-bold" style="margin-bottom:4px">Share message:</p>
             <p class="small" style="background:var(--surface);padding:8px;border-radius:6px;margin-bottom:8px">${esc(shareMsg)}</p>
-            <button type="button" class="btn btn-sm" id="su-copy-msg" data-msg="${esc(shareMsg)}">📋 Copy message</button>
+            <button type="button" class="btn btn-sm" id="su-copy-msg" data-msg="${esc(shareMsg)}">Copy message</button>
           </div>
 
           <div style="border-top:1px solid var(--border);padding-top:12px">
-            <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">✓ Record settlement in group</button>
+            <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">Record settlement in group</button>
           </div>
         </div>
       `;

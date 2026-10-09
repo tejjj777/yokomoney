@@ -13,7 +13,7 @@ function taxYearInfo() {
   return Object.assign(fy, { label, startISO: F.toISO(fy.start), endISO: F.toISO(fy.end) });
 }
 const taxesInYear = fy => state.wallet.taxes.filter(x => x.date >= fy.startISO && x.date <= fy.endISO);
-const monthLabelISO = ym => { const [y, m] = ym.split('-').map(Number); return y && m ? fmtMonthYear(new Date(y, m - 1, 1)) : '—'; };
+const monthLabelISO = ym => { const [y, m] = ym.split('-').map(Number); return y && m ? fmtMonthYear(new Date(y, m - 1, 1)) : '-'; };
 function defaultTransportCat() { const c = state.budget.categories.find(k => /transport|travel|commute/i.test(k.name)); return c ? c.id : ''; }
 
 /** Remove an expense and undo its effects (actual amount this month, round-up). */
@@ -233,14 +233,14 @@ function moreRows(key, all, shown, rowFn, cols) {
 function cashCard() {
   const list = state.wallet.cash.slice().sort((a, b) => b.date.localeCompare(a.date));
   const bal = cashBalance();
-  const row = x => `<tr><td>${fmtDate(F.parseDate(x.date))}</td><td>${esc(x.note) || '<span class="muted">—</span>'}${x.expenseId ? '<br><span class="small muted">Also in budget</span>' : ''}</td>
+  const row = x => `<tr><td>${fmtDate(F.parseDate(x.date))}</td><td>${esc(x.note) || '<span class="muted">-</span>'}${x.expenseId ? '<br><span class="small muted">Also in budget</span>' : ''}</td>
     <td class="num ${x.type === 'in' ? 'tone-success-text' : 'tone-danger-text'}">${x.type === 'in' ? '+' : '−'}${fmt(x.amount)}</td>
     <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-cash" data-id="${x.id}" aria-label="Edit cash entry ${esc(x.note || fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-cash" data-id="${x.id}" aria-label="Delete cash entry ${esc(x.note || fmt(x.amount))}">${ICON.trash}</button></td></tr>`;
   return `<div class="card wallet-card" id="w-cash">
     <div class="card-head"><div><h2>Cash in hand</h2><p class="muted small">The actual notes and coins on you.</p></div>
       <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="cash-in" aria-label="Add cash in">+ In</button><button type="button" class="btn btn-sm" data-action="cash-out" aria-label="Add cash out">− Out</button>${csvBtn('cash', 'cash log')}</div></div>
     <p class="big-num ${bal < 0 ? 'tone-danger-text' : ''}">${fmt(bal)}</p>
-    ${bal < 0 ? '<p class="small tone-danger-text" style="margin-bottom:10px">You’ve logged more cash out than in. Add what you started with as “Cash in”.</p>' : ''}
+    ${bal < 0 ? '<p class="small tone-danger-text" style="margin-bottom:12px">You’ve logged more cash out than in. Add what you started with as “Cash in”.</p>' : ''}
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Note</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${list.slice(0, 6).map(row).join('')}</tbody></table></div>${moreRows('cash-all', list, 6, row, 4)}`
       : '<div class="chart-empty"><p>No cash logged yet. Start with what’s in your wallet right now.</p><button type="button" class="btn btn-sm no-print" data-action="cash-in">Add cash in hand</button></div>'}
   </div>`;
@@ -290,8 +290,8 @@ function transportCard() {
       <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="add-transport">${ICON.plus}<span>Add</span></button>${csvBtn('transport', 'transport log')}</div></div>
     <div class="mini-stats"><div><p class="stat-label">This month</p><p class="stat-value">${fmt(total)}</p></div>
       <div><p class="stat-label">Per day</p><p class="stat-value">${fmt(total / todayDate().getDate())}</p></div>
-      <div><p class="stat-label">Biggest</p><p class="stat-value">${top ? `${modeInfo(top[0])[1]} ${fmt(top[1])}` : '—'}</p></div></div>
-    ${total > 0 ? `<p class="small" style="margin-bottom:10px">${feelsLike(total)}${km > 0 ? ` · ${shortNum(km)} km logged · ${fmt(sum(withKm, x => x.amount) / km)}/km` : ''}</p>` : ''}
+      <div><p class="stat-label">Biggest</p><p class="stat-value">${top ? `${modeInfo(top[0])[1]} ${fmt(top[1])}` : '-'}</p></div></div>
+    ${total > 0 ? `<p class="small" style="margin-bottom:12px">${feelsLike(total)}${km > 0 ? ` · ${shortNum(km)} km logged · ${fmt(sum(withKm, x => x.amount) / km)}/km` : ''}</p>` : ''}
     ${month.length ? '<div class="chart-box sm mb"><canvas id="transport-chart" role="img" aria-label="Transport spending by type this month"></canvas></div>' : ''}
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Type</th><th class="num" scope="col">Cost</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${list.slice(0, 6).map(row).join('')}</tbody></table></div>${moreRows('transport-all', list, 6, row, 4)}`
       : '<div class="chart-empty"><p>Nothing logged yet. Quick way: press Ctrl+K and type “uber 250”.</p><button type="button" class="btn btn-sm no-print" data-action="add-transport">Log transport</button></div>'}
@@ -316,15 +316,15 @@ function taxCard() {
         <select id="tax-start" class="select input-sm" data-bind="wallet" data-field="taxYearStart" data-kind="num">${FULL_MONTHS.map((m, i) => `<option value="${i + 1}" ${w.taxYearStart === i + 1 ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
     </div>
     <div class="mini-stats"><div><p class="stat-label">Paid so far</p><p class="stat-value">${fmt(paid)}</p></div>
-      <div><p class="stat-label">${est > 0 ? 'Still to pay' : 'Estimate'}</p><p class="stat-value">${est > 0 ? fmt(left) : '—'}</p></div></div>
+      <div><p class="stat-label">${est > 0 ? 'Still to pay' : 'Estimate'}</p><p class="stat-value">${est > 0 ? fmt(left) : '-'}</p></div></div>
     ${est > 0 ? `<div class="progress mb" role="progressbar" aria-label="Tax paid against estimate" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(clamp(paid / est * 100, 0, 100))}"><span style="width:${clamp(paid / est * 100, 0, 100)}%"></span></div>
       <p class="small mb">${left > 0 ? `To cover the rest by year end: ${incomeHint(left / monthsLeft)}` : '<span class="tone-success-text">✓ Your estimate is covered.</span>'}</p>` : '<p class="small muted mb">Add your estimated tax to see how much is left to pay.</p>'}
     ${byType.length ? `<p class="small mb">${byType.map(([tp, v]) => `<span class="badge">${esc(tp)} ${fmt(v)}</span>`).join(' ')}</p>` : ''}
     ${list.length ? '<div class="chart-box sm mb"><canvas id="tax-chart" role="img" aria-label="Tax paid by month this tax year"></canvas></div>' : ''}
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Type</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${list.slice(0, 5).map(row).join('')}</tbody></table></div>${moreRows('tax-all', list, 5, row, 4)}`
       : '<p class="small muted">No tax payments this year yet. Upload a payslip and TDS is logged for you.</p>'}
-    <h3 style="margin:18px 0 8px">Deadlines</h3>
-    ${deadlines.length ? `<ul class="plain-list">${deadlines.map(d => { const days = F.daysBetween(t, d.eff); return `<li><span>${esc(d.title)}</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end"><span class="small muted">${fmtDate(d.eff)}</span><span class="badge ${days <= 7 ? 'badge-warn' : 'badge-neutral'}">${daysLabel(days)}</span>
+    <h3 style="margin:16px 0 8px">Deadlines</h3>
+    ${deadlines.length ? `<ul class="plain-list">${deadlines.map(d => { const days = F.daysBetween(t, d.eff); return `<li><span>${esc(d.title)}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="small muted">${fmtDate(d.eff)}</span><span class="badge ${days <= 7 ? 'badge-warn' : 'badge-neutral'}">${daysLabel(days)}</span>
       <button type="button" class="icon-btn no-print" data-action="edit-deadline" data-id="${d.id}" aria-label="Edit deadline ${esc(d.title)}">${ICON.edit}</button><button type="button" class="icon-btn danger no-print" data-action="delete-deadline" data-id="${d.id}" aria-label="Delete deadline ${esc(d.title)}">${ICON.trash}</button></span></li>`; }).join('')}</ul>` : '<p class="small muted">No deadlines saved. Add some from the ⋯ menu.</p>'}
     <p class="small muted" style="margin-top:8px">Dates can change, so double-check them with your tax office.</p>
   </div>`;
@@ -338,7 +338,7 @@ function payslipCard() {
       <p class="dz-icon" aria-hidden="true">📄</p><p><strong>Drop a payslip PDF or photo here</strong></p><p class="small muted">or</p>
       <button type="button" class="btn btn-primary btn-sm" data-action="open-payslip">${ICON.upload}<span>Choose a file</span></button>
       <p class="small muted">Password-protected and scanned PDFs work too.</p></div>
-    ${list.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th scope="col">Month</th><th class="num" scope="col">Gross</th><th class="num" scope="col">Deductions</th><th class="num" scope="col">Net</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
+    ${list.length ? `<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th scope="col">Month</th><th class="num" scope="col">Gross</th><th class="num" scope="col">Deductions</th><th class="num" scope="col">Net</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
       ${list.map(p => { const ded = p.tax + p.pf + p.pt + p.esi + p.other; return `<tr><td>${monthLabelISO(p.month)}${p.employer ? `<br><span class="small muted">${esc(p.employer)}</span>` : ''}</td><td class="num">${fmt(p.gross)}</td><td class="num">${fmt(ded)}${p.tax ? `<br><span class="small muted">tax ${fmt(p.tax)}</span>` : ''}</td><td class="num">${fmt(p.net)}</td>
         <td class="actions no-print"><button type="button" class="btn btn-sm" data-action="reuse-payslip" data-id="${p.id}" aria-label="Use ${monthLabelISO(p.month)} payslip for my paycheck">Use</button>
         <button type="button" class="icon-btn danger" data-action="delete-payslip" data-id="${p.id}" aria-label="Delete ${monthLabelISO(p.month)} payslip">${ICON.trash}</button></td></tr>`; }).join('')}</tbody></table></div>` : ''}
@@ -398,7 +398,7 @@ function personBalancesCard() {
         <p class="muted small">Total net balance per friend across all shared expenses.</p>
       </div>
       <div class="actions no-print">
-        <button type="button" class="btn btn-sm btn-primary" data-action="split-bill"><span aria-hidden="true">🧾</span><span>Split a bill</span></button>
+        <button type="button" class="btn btn-sm btn-primary" data-action="split-bill">${ICON.receipt}<span>Split a bill</span></button>
       </div>
     </div>
     <div class="table-wrap">
@@ -428,7 +428,7 @@ function personBalancesCard() {
               </td>
               <td class="actions no-print">
                 <button type="button" class="btn btn-sm btn-primary" data-action="settle-person" data-person="${esc(p.person)}">
-                  <span>⚡ Settle up</span>
+                  <span>Settle up</span>
                 </button>
               </td>
             </tr>
@@ -446,7 +446,7 @@ function liveGroupsCard() {
       <div class="card-head"><div><h2>Live Shared Budgets</h2><p class="muted small">Sync trips and shared expenses in real time.</p></div></div>
       <div class="chart-empty">
         <p>No groups yet. Create one for a trip or flat, or join one with a code. Needs internet.</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
           <button type="button" class="btn btn-primary" data-action="create-group">Create group</button>
           <button type="button" class="btn" data-action="join-group">Join with code</button>
         </div>
@@ -460,7 +460,7 @@ function liveGroupsCard() {
   
   groups.forEach(g => {
     html += `<li><strong>${esc(g.name)}</strong> <span class="small muted">Code: ${esc(g.joinCode)}</span>
-      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
         <button type="button" class="btn btn-sm" data-action="group-view" data-id="${g.id}">View details</button>
         <button type="button" class="btn btn-sm" data-action="group-add-expense" data-id="${g.id}">Add expense</button>
       </div></li>`;
@@ -476,9 +476,9 @@ function renderSplit() {
   const owe = sum(open.filter(x => x.dir === 'owe'), x => x.amount);
   const owed = sum(open.filter(x => x.dir === 'owed'), x => x.amount);
   const head = viewHeader('split', 'Split & Roommates', 'Split group bills, track who owes who, and settle up with roommates.',
-    `<button type="button" class="btn btn-primary" data-action="split-bill"><span aria-hidden="true">🧾</span><span>Split a bill</span></button>`);
+    `<button type="button" class="btn btn-primary" data-action="split-bill">${ICON.receipt}<span>Split a bill</span></button>`);
 
-  const summaryCard = `<div class="stats-grid two" style="margin-bottom:14px">
+  const summaryCard = `<div class="stats-grid two" style="margin-bottom:16px">
     ${stat('You are owed', fmt(owed), `${plural(open.filter(x => x.dir === 'owed').length, 'payment')} to come from friends`, owed > 0 ? 'tone-success' : '')}
     ${stat('You owe', fmt(owe), `${plural(open.filter(x => x.dir === 'owe').length, 'IOU')} to pay back`, owe > 0 ? 'tone-danger' : '')}
   </div>`;
@@ -487,7 +487,7 @@ function renderSplit() {
   const historyTab = `<div class="card" id="w-settled">
     <div class="card-head"><div><h2>Settled history</h2><p class="muted small">Previous IOUs and bill settlements.</p></div></div>
     ${settled.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Person</th><th scope="col">Date settled</th><th class="num" scope="col">Amount</th><th scope="col">Note</th></tr></thead>
-    <tbody>${settled.slice().reverse().map(x => `<tr><td><strong>${esc(x.person)}</strong></td><td>${fmtDate(F.parseDate(x.settledAt || x.date))}</td><td class="num font-bold">${fmt(x.amount)}</td><td class="muted small">${esc(x.note || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No settled IOUs yet.</p>'}
+    <tbody>${settled.slice().reverse().map(x => `<tr><td><strong>${esc(x.person)}</strong></td><td>${fmtDate(F.parseDate(x.settledAt || x.date))}</td><td class="num font-bold">${fmt(x.amount)}</td><td class="muted small">${esc(x.note || '-')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No settled IOUs yet.</p>'}
   </div>`;
 
   const groupsTab = liveGroupsCard();

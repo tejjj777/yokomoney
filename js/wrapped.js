@@ -164,7 +164,7 @@ function renderWrappedStory(form) {
           <p class="mw-card-sub">${esc(data.monthName)}</p>
           <h1 class="mw-hero-amount">${fmt(data.totalSpent)}</h1>
           <p class="mw-lead-text">logged across ${plural(data.expsCount, 'expense')}.</p>
-          <div class="stats-grid two" style="margin-top:20px;text-align:left">
+          <div class="stats-grid two" style="margin-top:24px;text-align:left">
             <div class="stat"><p class="stat-label">Allowance / Income</p><p class="stat-value font-bold">${fmt(data.income)}</p></div>
             <div class="stat"><p class="stat-label">No-spend streak</p><p class="stat-value font-bold">🔥 ${plural(data.streak, 'day')}</p></div>
           </div>
@@ -195,7 +195,7 @@ function renderWrappedStory(form) {
       render: () => `
         <div class="mw-card-body">
           <p class="mw-card-sub">Most active spending day</p>
-          <h1 class="mw-hero-amount" style="font-size:38px">${data.biggestDay ? fmt(data.biggestDay.total) : '—'}</h1>
+          <h1 class="mw-hero-amount" style="font-size:38px">${data.biggestDay ? fmt(data.biggestDay.total) : '-'}</h1>
           <p class="mw-lead-text">on ${data.biggestDay ? fmtDate(F.parseDate(data.biggestDay.date)) : 'no spending days yet'}</p>
           ${data.biggestDay && data.biggestDay.topNote ? `
             <div class="card" style="margin-top:24px;padding:12px;background:var(--surface);text-align:left">
@@ -266,7 +266,7 @@ function renderWrappedStory(form) {
   container.innerHTML = `
     <!-- Top Bar: Month Selector & Story progress bars -->
     <div class="mw-header">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
         <select id="mw-month-select" class="select input-sm" style="width:auto;max-width:200px">
           ${monthOptions.map(m => `<option value="${m.iso}" ${m.iso === currentWrappedMonth ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}
         </select>
@@ -338,7 +338,7 @@ function drawWrappedSquareCard(d, cardIndex) {
   c.width = S;
   c.height = S;
   const ctx = c.getContext('2d');
-  const font = (w, px) => `${w} ${px}px Inter, system-ui, -apple-system, sans-serif`;
+  const font = (w, px) => `${w} ${px}px "Bricolage Grotesque", "Schibsted Grotesk", system-ui, -apple-system, sans-serif`;
   const fit = (text, maxW) => {
     let s = String(text || '');
     if (ctx.measureText(s).width <= maxW) return s;
@@ -437,7 +437,7 @@ function drawWrappedSquareCard(d, cardIndex) {
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = font(800, 92);
-    ctx.fillText(d.biggestDay ? fmt(d.biggestDay.total) : '—', 80, 440);
+    ctx.fillText(d.biggestDay ? fmt(d.biggestDay.total) : '-', 80, 440);
 
     ctx.fillStyle = '#94A3B8';
     ctx.font = font(500, 36);

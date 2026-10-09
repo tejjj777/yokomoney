@@ -172,7 +172,7 @@ function shouldIBuy(preset = {}) {
       const r = buyVerdict(v.price);
       return `<div class="verdict verdict-${r.verdict}"><p class="verdict-head"><span aria-hidden="true">${r.head[0]}</span> ${r.head[1]}</p>
         <ul class="small">${r.reasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${r.roast ? `<p class="small muted">“${esc(r.roast)}”</p>` : ''}</div>
-        <div class="row" style="margin-top:10px"><button type="button" class="btn btn-sm" data-buy="now" ${ok ? '' : 'disabled'}>I bought it</button><button type="button" class="btn btn-sm" data-buy="skip" ${ok ? '' : 'disabled'}>Skip it (+20 XP)</button></div>`;
+        <div class="row" style="margin-top:12px"><button type="button" class="btn btn-sm" data-buy="now" ${ok ? '' : 'disabled'}>I bought it</button><button type="button" class="btn btn-sm" data-buy="skip" ${ok ? '' : 'disabled'}>Skip it (+20 XP)</button></div>`;
     },
     onMount: form => {
       form.addEventListener('click', e => {
@@ -217,7 +217,7 @@ function wishlistCard() {
     <div class="actions no-print"><button type="button" class="btn btn-sm btn-primary" data-action="should-i-buy">Should I buy it?</button></div></div>
     ${skipped > 0 ? `<p class="skip-total">Skipped so far: <strong class="num">${fmt(skipped)}</strong>${fmtHours(skipped) ? ` <span class="small muted">(${fmtHours(skipped)})</span>` : ''}</p>` : ''}
     ${waiting.length ? `<ul class="wish-list">${waiting.map(row).join('')}</ul>` : '<p class="muted small">Nothing here. Next time something’s tempting you, ask “Should I buy it?” first.</p>'}
-    ${decided.length ? `<p class="small muted" style="margin-top:10px">Recent: ${decided.map(w => `${esc(w.name)} ${w.status === 'bought' ? '🛍️' : '💪'}`).join(' · ')}</p>` : ''}</div>`;
+    ${decided.length ? `<p class="small muted" style="margin-top:12px">Recent: ${decided.map(w => `${esc(w.name)} ${w.status === 'bought' ? '🛍️' : '💪'}`).join(' · ')}</p>` : ''}</div>`;
 }
 
 /* ---------- Split the bill ---------- */

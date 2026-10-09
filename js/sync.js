@@ -257,8 +257,8 @@ function accountPanelInner() {
   const pc = parkedCopy();
   return `${who}<p class="small muted" id="sync-status">${syncStatusText()}</p>
     <div class="row"><button type="button" class="btn" data-action="sync-now">Sync now</button><button type="button" class="btn" data-action="sync-signout">Sign out</button></div>
-    <p class="small" style="margin-top:10px"><button type="button" class="linklike" data-action="sync-passphrase">Change passphrase</button> · <button type="button" class="linklike" data-action="sync-recovery">New recovery key</button> · <button type="button" class="linklike" data-action="sync-delete">Delete account</button></p>
-    ${pc ? `<p class="small muted" style="margin-top:10px">A copy from ${esc(pc.why || 'another device')} was set aside on ${fmtDate(new Date(pc.at))} when two devices clashed. <button type="button" class="linklike" data-action="sync-clash">Use that copy</button></p>` : ''}`;
+    <p class="small" style="margin-top:12px"><button type="button" class="linklike" data-action="sync-passphrase">Change passphrase</button> · <button type="button" class="linklike" data-action="sync-recovery">New recovery key</button> · <button type="button" class="linklike" data-action="sync-delete">Delete account</button></p>
+    ${pc ? `<p class="small muted" style="margin-top:12px">A copy from ${esc(pc.why || 'another device')} was set aside on ${fmtDate(new Date(pc.at))} when two devices clashed. <button type="button" class="linklike" data-action="sync-clash">Use that copy</button></p>` : ''}`;
 }
 function accountGroupHTML() { return `<div class="settings-group"><h3>Sync across devices</h3><div id="sync-panel">${accountPanelInner()}</div></div>`; }
 function refreshSyncUI() { const el = document.getElementById('sync-panel'); if (el) el.innerHTML = accountPanelInner(); }

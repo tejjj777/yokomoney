@@ -76,7 +76,7 @@ function impFileStage(form) {
   st.innerHTML = `<div class="dropzone" id="imp-drop"><p class="dz-icon" aria-hidden="true">🏦</p><p><strong>Drop bank statements or UPI screenshots here</strong></p><p class="small muted">CSV, PDF, or UPI screenshots (PNG / JPG)</p>
       <div class="row" style="justify-content:center;margin-top:8px">
         <button type="button" class="btn btn-primary" id="imp-pick">${ICON.upload}<span>Choose files</span></button>
-        <button type="button" class="btn" id="imp-demo-shots">📱 Try 15 sample UPI screenshots</button>
+        <button type="button" class="btn" id="imp-demo-shots">Try 15 sample UPI screenshots</button>
       </div>
       <input type="file" id="imp-file" accept=".csv,.txt,.pdf,text/csv,application/pdf,image/*,.png,.jpg,.jpeg" multiple class="sr-only" tabindex="-1" aria-label="Statement file">
       <p class="small muted">Read privately on this device.</p></div>

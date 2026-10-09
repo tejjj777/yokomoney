@@ -21,7 +21,7 @@ function giftsPanel() {
   const rows = list.map(g => `<tr>
     <th scope="row" style="text-transform:none;font-size:14px;color:var(--text);letter-spacing:0">${esc(g.name)}</th>
     <td>${esc(g.label)}</td><td>${fmtDate(g.eff)}</td><td>${giftBadge(g.days)}</td><td class="num">${fmt(g.budget)}</td>
-    <td>${esc(g.idea) || '<span class="muted">—</span>'}</td>
+    <td>${esc(g.idea) || '<span class="muted">-</span>'}</td>
     <td><label class="sr-only" for="gift-status-${g.id}">Status for ${esc(g.name)}</label>
       <select id="gift-status-${g.id}" class="select input-sm" style="min-width:96px" data-bind="gift" data-id="${g.id}" data-field="status" data-kind="select">${GIFT_STATUS.map(s => `<option ${g.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
     <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-gift" data-id="${g.id}" aria-label="Edit gift for ${esc(g.name)}">${ICON.edit}</button>
@@ -134,7 +134,7 @@ function renderGoals() {
       <div class="chart-box lg"><canvas id="goal-line" role="img" aria-label="Projected balance for ${esc(sel.name)}"></canvas></div></div>
     <div class="card mb"><div class="card-head"><div><h2>All goals</h2></div><div class="actions">${moreMenu([csvItem('goals', 'goals'), csvItem('contributions', 'contributions')])}</div></div>
       <div class="table-wrap"><table><thead><tr><th scope="col">Goal</th><th class="num" scope="col">Target</th><th class="num" scope="col">Saved</th><th class="num" scope="col">Progress</th><th scope="col">Deadline</th><th class="num" scope="col">Rate</th><th class="num" scope="col">Needed / month</th></tr></thead><tbody>
-      ${infos.map(({ g, i }) => `<tr><td>${esc(g.name)}</td><td class="num">${fmt(g.target)}</td><td class="num">${fmt(g.saved)}</td><td class="num">${fmtPct(i.pct)}</td><td>${i.dl ? fmtDate(i.dl) : '—'}</td><td class="num">${fmtRate(g.rate)}</td><td class="num">${i.reached ? 'Reached' : fmt(i.required)}</td></tr>`).join('')}
+      ${infos.map(({ g, i }) => `<tr><td>${esc(g.name)}</td><td class="num">${fmt(g.target)}</td><td class="num">${fmt(g.saved)}</td><td class="num">${fmtPct(i.pct)}</td><td>${i.dl ? fmtDate(i.dl) : '-'}</td><td class="num">${fmtRate(g.rate)}</td><td class="num">${i.reached ? 'Reached' : fmt(i.required)}</td></tr>`).join('')}
       </tbody></table></div></div>`;
   const html = head + tabbed('goals', { savings: savingsCard('goals-savings-chart'), goals: goalsPanel, gifts: gp.html, wishlist: wishlistCard(), challenges: challengesCard() });
 

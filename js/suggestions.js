@@ -92,7 +92,7 @@ function debtPicker(then) {
       const st = form.querySelector('#dp-stage'), submit = form.querySelector('button[type="submit"]');
       const stage1 = () => {
         kind = null; submit.hidden = true;
-        st.innerHTML = `<p>What kind of debt is it?</p><div class="pick-grid">${DEBT_TYPES.map(([k, ic, l]) => `<button type="button" class="pick-tile" data-kind="${k}"><span class="pick-ic" aria-hidden="true">${ic}</span><span>${l}</span></button>`).join('')}</div>`;
+        st.innerHTML = `<p>What kind of debt is it?</p><div class="pick-grid">${DEBT_TYPES.map(([k, ic, l]) => `<button type="button" class="pick-tile" data-kind="${k}"><span>${l}</span></button>`).join('')}</div>`;
         st.querySelector('.pick-tile').focus();
       };
       const stage2 = k => {
@@ -138,7 +138,7 @@ function goalSuggestion(k) {
 function goalPicker(then) {
   openModal({
     title: 'Add a goal', hideSubmit: true,
-    body: `<p>What are you saving for?</p><div class="pick-grid">${GOAL_TEMPLATES.map(([k, ic, l]) => `<button type="button" class="pick-tile" data-goal="${k}"><span class="pick-ic" aria-hidden="true">${ic}</span><span>${l}</span></button>`).join('')}</div>`,
+    body: `<p>What are you saving for?</p><div class="pick-grid">${GOAL_TEMPLATES.map(([k, ic, l]) => `<button type="button" class="pick-tile" data-goal="${k}"><span>${l}</span></button>`).join('')}</div>`,
     onMount: form => {
       form.querySelector('.pick-tile').focus();
       form.addEventListener('click', e => {
@@ -400,8 +400,8 @@ function onboardExtras() {
   openModal({
     title: 'One more thing (optional)', hideSubmit: true, cancelLabel: nd || ns ? 'I’m done' : 'Skip',
     body: `<p>Any debts or subscriptions? Adding them now fills in your debt-free date and what your subscriptions cost you a year.</p>
-      <div class="pick-grid two"><button type="button" class="pick-tile" data-ob="debt"><span class="pick-ic" aria-hidden="true">💳</span><span>Add a debt</span></button>
-      <button type="button" class="pick-tile" data-ob="subs"><span class="pick-ic" aria-hidden="true">📺</span><span>Pick my subscriptions</span></button></div>
+      <div class="pick-grid two"><button type="button" class="pick-tile" data-ob="debt"><span>Add a debt</span></button>
+      <button type="button" class="pick-tile" data-ob="subs"><span>Pick my subscriptions</span></button></div>
       ${nd || ns ? `<p class="small tone-success-text">Added so far: ${[nd ? plural(nd, 'debt') : '', ns ? plural(ns, 'subscription') : ''].filter(Boolean).join(', ')}.</p>` : ''}`,
     onMount: form => form.addEventListener('click', e => {
       const b = e.target.closest('[data-ob]'); if (!b) return;

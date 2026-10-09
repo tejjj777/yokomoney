@@ -76,7 +76,7 @@ function petSVG(mood, stage) {
     meh: '<path d="M50 70h20" stroke="#0A0A0A" stroke-width="4" stroke-linecap="round"/>',
     worried: '<path d="M50 72q10-6 20 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
     sad: '<path d="M48 74q12-10 24 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
-    sleepy: '<ellipse cx="60" cy="70" rx="5" ry="4" fill="#0A0A0A"/><text x="90" y="30" font-size="14" font-weight="700" fill="currentColor" font-family="Inter, sans-serif">z</text><text x="99" y="20" font-size="10" font-weight="700" fill="currentColor" font-family="Inter, sans-serif">z</text>'
+    sleepy: '<ellipse cx="60" cy="70" rx="5" ry="4" fill="#0A0A0A"/><text x="90" y="30" font-size="14" font-weight="700" fill="currentColor" font-family="Schibsted Grotesk, sans-serif">z</text><text x="99" y="20" font-size="10" font-weight="700" fill="currentColor" font-family="Schibsted Grotesk, sans-serif">z</text>'
   }[mood] || mouth.happy;
   const extra = [
     '<path d="M60 20q-2-10 6-14q2 8-6 14z" fill="var(--primary-dark)"/><path d="M60 20q-6-6-12-4q4 7 12 4z" fill="var(--primary-dark)"/>',   // sprout

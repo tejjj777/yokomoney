@@ -17,10 +17,10 @@ function ghostSpendingCard() {
     <div class="card mb" id="w-ghost-spending">
       <div class="card-head">
         <div>
-          <h2>Ghost spending 👻</h2>
+          <h2>Ghost spending</h2>
           <p class="muted small">Micro-payments that slip under the radar.</p>
         </div>
-        <div class="row no-print" style="align-items:center;gap:6px">
+        <div class="row no-print" style="align-items:center;gap:8px">
           <span class="small muted">Under:</span>
           <div class="affix" style="width:90px">
             <span class="affix-sym">${esc(CURRENCIES[state.currency].symbol)}</span>
@@ -42,7 +42,7 @@ function ghostSpendingCard() {
           <p class="stat-value">${ghost.pct}%</p>
         </div>
       </div>
-      <p class="small" style="margin-top:10px;line-height:1.5">
+      <p class="small" style="margin-top:12px;line-height:1.5">
         ${ghost.count > 0 
           ? `<strong>${ghost.count} small payments</strong> under ${fmt(customGhostThreshold)} added up to <strong>${fmt(ghost.total)}</strong> this month.`
           : `No payments under ${fmt(customGhostThreshold)} found this month.`}
@@ -81,24 +81,24 @@ function timeOfDayCard() {
     <div class="card mb" id="w-time-of-day">
       <div class="card-head">
         <div>
-          <h2>Time-of-day habits 🕒</h2>
+          <h2>Time-of-day habits</h2>
           <p class="muted small">When your wallet opens during 24 hours.</p>
         </div>
       </div>
       <div class="stats-grid two mb">
-        <div class="card" style="padding:10px;background:var(--surface)">
+        <div class="card" style="padding:12px;background:var(--surface)">
           <span class="small muted">🌅 Morning (6am–12pm)</span>
           <p class="stat-value font-bold" style="font-size:18px">${fmt(b.morning.total)} <span class="small muted">(${b.morning.pct}%)</span></p>
         </div>
-        <div class="card" style="padding:10px;background:var(--surface)">
+        <div class="card" style="padding:12px;background:var(--surface)">
           <span class="small muted">☀️ Afternoon (12pm–5pm)</span>
           <p class="stat-value font-bold" style="font-size:18px">${fmt(b.afternoon.total)} <span class="small muted">(${b.afternoon.pct}%)</span></p>
         </div>
-        <div class="card" style="padding:10px;background:var(--surface)">
+        <div class="card" style="padding:12px;background:var(--surface)">
           <span class="small muted">🌆 Evening (5pm–10pm)</span>
           <p class="stat-value font-bold" style="font-size:18px">${fmt(b.evening.total)} <span class="small muted">(${b.evening.pct}%)</span></p>
         </div>
-        <div class="card" style="padding:10px;background:var(--surface)">
+        <div class="card" style="padding:12px;background:var(--surface)">
           <span class="small muted">🌙 Late Night (10pm–6am)</span>
           <p class="stat-value font-bold" style="font-size:18px">${fmt(b.lateNight.total)} <span class="small muted">(${b.lateNight.pct}%)</span></p>
         </div>
@@ -132,7 +132,7 @@ function spendingHeatmapCard() {
     <div class="card mb" id="w-spending-heatmap">
       <div class="card-head">
         <div>
-          <h2>Spending Heatmap 🗓️</h2>
+          <h2>Spending heatmap</h2>
           <p class="muted small">${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()} daily intensity (tap a day to see expenses).</p>
         </div>
       </div>
@@ -165,7 +165,7 @@ function spendingHeatmapCard() {
       </div>
 
       <!-- Legend -->
-      <div class="row small muted" style="justify-content:space-between;align-items:center;margin-top:10px;font-size:11px">
+      <div class="row small muted" style="justify-content:space-between;align-items:center;margin-top:12px;font-size:11px">
         <span>Less</span>
         <div class="row" style="gap:4px;align-items:center">
           <span class="hm-legend-dot hm-lvl-0"></span>
@@ -178,17 +178,17 @@ function spendingHeatmapCard() {
       </div>
 
       <!-- Selected Day Inspection Panel -->
-      <div id="hm-day-details" style="margin-top:14px">
+      <div id="hm-day-details" style="margin-top:16px">
         ${selectedDay ? `
-          <div class="card" style="padding:12px;background:var(--surface-2);border-left:3px solid var(--primary)">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="card" style="padding:12px;background:var(--surface-2)">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
               <strong>${fmtDate(selectedDay.date)}</strong>
               <span class="font-bold">${fmt(selectedDay.amount)}</span>
             </div>
             ${selectedDay.expenses.length ? `
               <ul class="plain-list small">
                 ${selectedDay.expenses.map(x => `
-                  <li style="display:flex;justify-content:space-between;gap:8px;padding:3px 0">
+                  <li style="display:flex;justify-content:space-between;gap:8px;padding:4px 0">
                     <span>${esc(x.note || 'Expense')}</span>
                     <span class="font-bold">${fmt(x.amount)}</span>
                   </li>

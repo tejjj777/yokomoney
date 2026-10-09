@@ -118,7 +118,7 @@ let isRecording = false;
 
 function commandBarHTML() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const micBtn = SpeechRecognition ? `<button type="button" class="btn icon-btn" id="cb-mic" aria-label="Use voice" title="Use voice">🎤</button>` : '';
+  const micBtn = SpeechRecognition ? `<button type="button" class="btn icon-btn" id="cb-mic" aria-label="Use voice" title="Use voice">${ICON.mic}</button>` : '';
   
   return `<div class="card mb cb-card" id="command-bar">
     <div class="cb-input-row">
@@ -189,7 +189,7 @@ function bindCommandBar() {
     recognition.onstart = () => {
       isRecording = true;
       mic.classList.add('recording');
-      mic.innerHTML = '🛑';
+      mic.innerHTML = ICON.stop;
       inp.placeholder = 'Listening...';
     };
 
@@ -203,7 +203,7 @@ function bindCommandBar() {
       console.warn('Speech recognition error', event.error);
       isRecording = false;
       mic.classList.remove('recording');
-      mic.innerHTML = '🎤';
+      mic.innerHTML = ICON.mic;
       inp.placeholder = "Ask AI: 'can I afford a 1500 concert on Saturday?'";
       toast(event.error === 'no-speech' ? 'Didn’t catch that. Tap the mic and try again.'
         : event.error === 'not-allowed' || event.error === 'service-not-allowed' ? 'YOKO! can’t use the mic. Allow it in your browser, or just type.'
@@ -213,7 +213,7 @@ function bindCommandBar() {
     recognition.onend = () => {
       isRecording = false;
       mic.classList.remove('recording');
-      mic.innerHTML = '🎤';
+      mic.innerHTML = ICON.mic;
       inp.placeholder = "Ask AI: 'can I afford a 1500 concert on Saturday?'";
     };
 
@@ -243,7 +243,7 @@ function renderCommandResult(parsed, originalText, container) {
     const freeze = typeof getActiveCategoryFreeze === 'function' && cat ? getActiveCategoryFreeze(cat.id) : null;
     html = `<div class="cb-card-confirm">
       <p>I’ll log <strong>${fmt(parsed.amount)}</strong>${hrs ? ` <span class="small muted">(= ${hrs})</span>` : ''} for <strong>${esc(parsed.note)}</strong> in ${esc(catName)}.</p>
-      ${freeze ? `<p class="alert alert-warn" style="margin-top:6px">❄️ <strong>${esc(catName)}</strong> is frozen (${plural(freeze.daysLeft, 'day')} left). Logging will break your challenge.</p>` : ''}
+      ${freeze ? `<p class="alert alert-warn" style="margin-top:8px">❄️ <strong>${esc(catName)}</strong> is frozen (${plural(freeze.daysLeft, 'day')} left). Logging will break your challenge.</p>` : ''}
       ${parsed.split && parsed.withPerson ? `<p class="small muted">And I’ll split it with ${esc(parsed.withPerson)} (they owe you ${fmt(parsed.amount/2)}).</p>` : ''}
       <button type="button" class="btn btn-primary btn-sm mt" id="cb-confirm-btn">Confirm and Save</button>
     </div>`;

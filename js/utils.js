@@ -35,8 +35,12 @@ const ROUTES = [
   { id: 'debt', label: 'Debt', short: 'Debt', icon: 'debt', long: 'Debt & Loans' }
 ];
 
-const svg = (p, size = 20) => `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;
+const svg = (p, size = 20) => `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false">${p}</svg>`;
 const ICON = {
+  mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
+  stop: svg('<rect x="6" y="6" width="12" height="12"/>'),
+  camera: svg('<path d="M4 7h4l2-3h4l2 3h4v12H4z"/><circle cx="12" cy="13" r="3.5"/>'),
+  receipt: svg('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>'),
   dashboard: svg('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'),
   debt: svg('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>'),
   budget: svg('<path d="M21 12.5A9 9 0 1 1 11.5 3v9.5z"/><path d="M14.5 3.2A9 9 0 0 1 20.8 9.5h-6.3z"/>'),
@@ -205,33 +209,33 @@ function getFmt(digits, compact) {
 }
 /** Whole units by default; paise/cents only for small non-round amounts. */
 function fmt(v) {
-  if (!Number.isFinite(v)) return '—';
+  if (!Number.isFinite(v)) return '-';
   if (Math.abs(v) < 0.005) v = 0;
   const small = Math.abs(v) < 100 && Math.abs(v - Math.round(v)) > 0.004;
   return getFmt(NO_DECIMALS.has(state.currency) || !small ? 0 : 2).format(v);
 }
 function fmtExact(v) {
-  if (!Number.isFinite(v)) return '—';
+  if (!Number.isFinite(v)) return '-';
   if (Math.abs(v) < 0.005) v = 0;
   return getFmt(NO_DECIMALS.has(state.currency) ? 0 : 2).format(v);
 }
 function fmtCompact(v) {
-  if (!Number.isFinite(v)) return '—';
+  if (!Number.isFinite(v)) return '-';
   const s = getFmt(1, true).format(v);
   return CURRENCIES[state.currency].locale === 'en-IN' ? s.replace(/(\d)\s?T$/, '$1K') : s;   // en-IN writes thousands as “T”, which reads as trillions
 }
 function fmtPct(p) {
-  if (!Number.isFinite(p)) return '—';
+  if (!Number.isFinite(p)) return '-';
   const a = Math.abs(p);
   return (a > 0 && a < 10 ? p.toFixed(1).replace(/\.0$/, '') : String(Math.round(p))) + '%';
 }
 /** Interest rates keep their decimals (10.5%, not 11%). */
-function fmtRate(p) { return Number.isFinite(p) ? `${Math.round(p * 100) / 100}%` : '—'; }
-const fmtDate = d => d ? `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '—';
-const fmtMonthYear = d => d ? `${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '—';
+function fmtRate(p) { return Number.isFinite(p) ? `${Math.round(p * 100) / 100}%` : '-'; }
+const fmtDate = d => d ? `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '-';
+const fmtMonthYear = d => d ? `${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '-';
 const fmtMonthShort = d => `${MONTHS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
 function monthsLabel(n) {
-  if (!Number.isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return '-';
   if (n <= 0) return 'now';
   const y = Math.floor(n / 12), m = n % 12;
   if (y === 0) return `${m} month${m === 1 ? '' : 's'}`;

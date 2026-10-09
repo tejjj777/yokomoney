@@ -460,8 +460,8 @@ function openPaycheckModal() {
         <div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="pc-grossamt" class="input" type="text" inputmode="decimal" value="${inc.gross ? numStr(inc.gross) : ''}" aria-describedby="pc-grossamt-err"></div>
         <p class="field-error" id="pc-grossamt-err"></p></div>
       <fieldset><legend>Deductions per paycheck</legend><div class="row-list" id="pc-deds">${inc.deductions.map(dedRow).join('')}</div>
-        <button type="button" class="btn btn-sm" style="margin-top:10px" data-pc="add-ded">${ICON.plus}<span>Add deduction</span></button></fieldset>
-      <div class="calc-line"><span>Take-home (gross − deductions)</span><strong id="pc-net-calc">—</strong></div>
+        <button type="button" class="btn btn-sm" style="margin-top:12px" data-pc="add-ded">${ICON.plus}<span>Add deduction</span></button></fieldset>
+      <div class="calc-line"><span>Take-home (gross − deductions)</span><strong id="pc-net-calc">-</strong></div>
       <p class="help">Enter what is actually deducted. Tax brackets are not calculated.</p>
     </div>
     <div class="form-grid two" id="pc-sched" ${inc.irregular ? 'hidden' : ''}>
@@ -469,8 +469,8 @@ function openPaycheckModal() {
       <div class="field"><label for="pc-date">Next pay date</label><input id="pc-date" class="input" type="date" value="${esc(inc.nextPayDate)}" aria-describedby="pc-date-err"><p class="field-error" id="pc-date-err"></p></div>
     </div>
     <fieldset><legend>Other income</legend><div class="row-list" id="pc-others">${inc.others.map(otherRow).join('')}</div>
-      <button type="button" class="btn btn-sm" style="margin-top:10px" data-pc="add-other">${ICON.plus}<span>Add another income source</span></button></fieldset>
-    <div class="calc-line" aria-live="polite"><span>Monthly income (all sources)</span><strong id="pc-monthly">—</strong></div>`;
+      <button type="button" class="btn btn-sm" style="margin-top:12px" data-pc="add-other">${ICON.plus}<span>Add another income source</span></button></fieldset>
+    <div class="calc-line" aria-live="polite"><span>Monthly income (all sources)</span><strong id="pc-monthly">-</strong></div>`;
 
   /** Read the modal. With `show`, mark invalid fields; returns { ok, income }. */
   function read(form, show) {

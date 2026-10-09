@@ -84,12 +84,12 @@ function bsRenderStage(form, data, assignments) {
           <strong>📸 Snap / Upload bill receipt</strong>
           <p class="small muted" style="margin:0">Take a photo and YOKO! reads the items and prices on this device.</p>
         </div>
-        <div class="row" style="gap:6px">
+        <div class="row" style="gap:8px">
           <button type="button" class="btn btn-sm btn-primary" id="bs-snap-btn">${ICON.upload}<span>Camera / Upload</span></button>
           <input type="file" id="bs-file-input" accept="image/*,application/pdf" class="sr-only" tabindex="-1">
         </div>
       </div>
-      <div id="bs-ocr-status" style="margin-top:6px" aria-live="polite"></div>
+      <div id="bs-ocr-status" style="margin-top:8px" aria-live="polite"></div>
     </div>
 
     <!-- Bill Details -->
@@ -125,7 +125,7 @@ function bsRenderStage(form, data, assignments) {
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="small font-bold">People in this split (${data.people.length}):</span>
       </div>
-      <div class="bs-people-chips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <div class="bs-people-chips" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         ${data.people.map(p => `
           <span class="badge ${p.id === 'me' ? 'badge-primary' : 'badge-neutral'} bs-person-tag" data-pid="${p.id}">
             ${esc(p.name)}
@@ -138,7 +138,7 @@ function bsRenderStage(form, data, assignments) {
         </div>
       </div>
       ${known.length ? `
-        <div class="row small muted" style="margin-top:8px;gap:6px;align-items:center;flex-wrap:wrap">
+        <div class="row small muted" style="margin-top:8px;gap:8px;align-items:center;flex-wrap:wrap">
           <span>Quick add contact:</span>
           ${known.slice(0, 5).map(n => `<button type="button" class="linklike bs-quick-contact" data-name="${esc(n)}">+ ${esc(n)}</button>`).join(' · ')}
         </div>
@@ -157,7 +157,7 @@ function bsRenderStage(form, data, assignments) {
           const itemAssigned = assignments[it.id] || [];
           return `
             <div class="bs-item-row" data-id="${it.id}" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface)">
-              <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
+              <div class="row" style="gap:8px;align-items:center;margin-bottom:8px">
                 <input type="text" class="input input-sm bs-item-name" data-id="${it.id}" value="${esc(it.name)}" placeholder="Item name" style="flex:2">
                 <div class="affix" style="flex:1;min-width:90px">
                   <span class="affix-sym">${esc(CURRENCIES[state.currency].symbol)}</span>
@@ -168,10 +168,10 @@ function bsRenderStage(form, data, assignments) {
               <!-- Assign people chips -->
               <div class="row" style="gap:4px;align-items:center;flex-wrap:wrap">
                 <span class="small muted" style="font-size:12px">Split with:</span>
-                <button type="button" class="btn btn-sm bs-assign-all" data-id="${it.id}" style="padding:2px 6px;font-size:11px">All</button>
+                <button type="button" class="btn btn-sm bs-assign-all" data-id="${it.id}" style="padding:2px 8px;font-size:11px">All</button>
                 ${data.people.map(p => {
                   const isAssigned = itemAssigned.includes(p.id);
-                  return `<button type="button" class="badge ${isAssigned ? 'badge-success' : 'badge-neutral'} bs-assign-toggle" data-id="${it.id}" data-pid="${p.id}" style="cursor:pointer;padding:3px 8px;font-size:12px">
+                  return `<button type="button" class="badge ${isAssigned ? 'badge-success' : 'badge-neutral'} bs-assign-toggle" data-id="${it.id}" data-pid="${p.id}" style="cursor:pointer;padding:4px 8px;font-size:12px">
                     ${isAssigned ? '✓ ' : ''}${esc(p.name)}
                   </button>`;
                 }).join('')}
@@ -182,7 +182,7 @@ function bsRenderStage(form, data, assignments) {
       </div>
 
       <!-- Taxes & Extra Charges -->
-      <div class="form-grid two" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="form-grid two" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div class="field">
           <label for="bs-tax" class="small">Taxes (GST / VAT) - split proportionally</label>
           <div class="affix">
@@ -401,7 +401,7 @@ function bsRefreshSummary(form, data, assignments) {
 
 async function bsProcessBillFile(form, file, data, assignments) {
   const status = form.querySelector('#bs-ocr-status');
-  if (status) status.innerHTML = `<div class="progress" style="margin-top:6px"><span id="bs-pbar" style="width:5%"></span></div><span class="small muted">Reading the bill on this device…</span>`;
+  if (status) status.innerHTML = `<div class="progress" style="margin-top:8px"><span id="bs-pbar" style="width:5%"></span></div><span class="small muted">Reading the bill on this device…</span>`;
 
   try {
     let parsed = null;
@@ -559,14 +559,14 @@ function upiSectionHTML(o) {
   return `
     <div class="field" style="text-align:left;margin-bottom:12px">
       <label for="su-upi-input" class="small"><strong>${owed ? 'Your UPI ID' : `${esc(o.person)}'s UPI ID`}</strong></label>
-      <div class="row" style="gap:6px;flex-wrap:nowrap">
+      <div class="row" style="gap:8px;flex-wrap:nowrap">
         <input type="text" id="su-upi-input" class="input" inputmode="email" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="name@okhdfcbank" value="${esc(id)}" style="min-width:0">
         <button type="button" class="btn btn-sm" id="su-save-upi">Save</button>
       </div>
       ${id && !ok ? `<p class="small tone-danger-text">That doesn’t look like a UPI ID. It should look like name@bank.</p>` : `<p class="small muted">${owed ? `So ${esc(o.person)} can pay you. Saved for next time.` : 'Saved for next time.'}</p>`}
     </div>
     ${ok ? `
-      <div class="card mb" style="padding:14px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div class="card mb" style="padding:16px;background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:12px">
         ${owed ? '' : `<p class="small" style="margin:4px 0 0"><strong>Pay ${fmtExact(o.amount)} with</strong></p>
         <div class="upi-apps">${upiAppLinks(url).map((a, i) => `<a href="${esc(a.href)}" ${i === 0 ? 'id="su-pay" ' : ''}class="btn ${i === 0 ? 'btn-primary' : ''} su-pay-app" style="text-decoration:none">${esc(a.name)}</a>`).join('')}</div>
         <p class="small muted" id="su-pay-hint">Nothing opens? That app isn’t installed. Try another, or copy the UPI ID.</p>`}
@@ -662,7 +662,7 @@ function settleUpModal(personName) {
           <p class="stat-sub">${plural(info.ious.length, 'open IOU')}</p>
         </div>
 
-        <div class="card mb su-paid" style="padding:14px;text-align:left">
+        <div class="card mb su-paid" style="padding:16px;text-align:left">
           <div class="form-grid two" style="align-items:end">
             <div class="field" style="margin:0"><label for="su-paid">${info.dir === 'owed' ? `How much did ${esc(info.person)} pay?` : 'How much are you paying?'}</label>
               <div class="affix"><span class="affix-sym" aria-hidden="true">${esc(CURRENCIES[state.currency].symbol)}</span><input id="su-paid" class="input" inputmode="decimal" value="${numStr(paidNow)}" aria-describedby="su-left"></div></div>
@@ -674,15 +674,15 @@ function settleUpModal(personName) {
         <div id="su-upi-wrap">${upiSectionHTML(Object.assign({}, opts, { amount: paidNow }))}</div>
 
         <!-- Copyable Message / WhatsApp share -->
-        <div class="card mb" style="padding:10px;text-align:left;background:var(--surface-2)">
+        <div class="card mb" style="padding:12px;text-align:left;background:var(--surface-2)">
           <p class="small font-bold" style="margin-bottom:4px">Message for ${esc(info.person)}:</p>
           <p class="small" id="su-msg-text" style="background:var(--surface);padding:8px;border-radius:6px;border:1px solid var(--border);margin-bottom:8px">${esc(shareMsg)}</p>
-          <button type="button" class="btn btn-sm" id="su-copy-msg" data-msg="${esc(shareMsg)}">📋 Copy message</button>
+          <button type="button" class="btn btn-sm" id="su-copy-msg" data-msg="${esc(shareMsg)}">Copy message</button>
         </div>
 
         <!-- Manual Settle Confirmation -->
         <div style="border-top:1px solid var(--border);padding-top:12px">
-          <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">${paidNow >= amount - 0.005 ? '✓ Mark all as settled' : `✓ Record ${fmtExact(paidNow)} paid`}</button>
+          <button type="button" class="btn btn-primary" id="su-mark-settled" style="width:100%">${paidNow >= amount - 0.005 ? 'Mark all as settled' : `Record ${fmtExact(paidNow)} paid`}</button>
         </div>
       </div>
     `;
@@ -824,8 +824,8 @@ function openTopUpModal() {
         </div>
 
         <div class="row" style="gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button type="button" class="btn" id="tu-copy-btn">📋 Copy text</button>
-          <button type="button" class="btn btn-primary" id="tu-share-btn">📲 Share message</button>
+          <button type="button" class="btn" id="tu-copy-btn">Copy text</button>
+          <button type="button" class="btn btn-primary" id="tu-share-btn">Share message</button>
         </div>
       </div>
     `;

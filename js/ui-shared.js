@@ -122,7 +122,7 @@ function ring(pct) {
   return `<svg class="ring" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="${Math.round(pct)}% saved">
     <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--tint)" stroke-width="7"/>
     <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--primary-dark)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 32 32)"/>
-    <text x="32" y="36.5" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" style="color:var(--text)" font-family="Inter, sans-serif">${Math.round(pct)}%</text></svg>`;
+    <text x="32" y="36.5" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" style="color:var(--text)" font-family="Schibsted Grotesk, sans-serif">${Math.round(pct)}%</text></svg>`;
 }
 function openAttr(key) { return ui.open[key] ? 'open' : ''; }
 
@@ -136,7 +136,7 @@ function splitCard() {
     else if (s.diff < -0.5) status = `<span class="split-status badge-danger">Over by ${fmt(-s.diff)}</span>`;
     else status = `<span class="split-status badge-success">100% assigned</span>`;
   }
-  const pctAssigned = s.base > 0 ? fmtPct(s.assigned / s.base * 100) : '—';
+  const pctAssigned = s.base > 0 ? fmtPct(s.assigned / s.base * 100) : '-';
   const rows = s.rows.map(r => {
     const vid = `bk-val-${r.id}`;
     return `<div class="split-row">

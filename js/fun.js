@@ -280,7 +280,7 @@ function bossCard() {
         ${dead ? '<span class="stamp" aria-hidden="true">DEFEATED</span>' : ''}</div>
       <div class="hp" role="meter" aria-label="${esc(d.name)} health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}" aria-valuetext="${esc(fmt(d.balance))} of ${esc(fmt(d.startBalance))} left"><span class="${tone}" style="width:${pct}%"></span></div>
       <p class="small num"><strong>HP ${fmt(d.balance)}</strong> <span class="muted">/ ${fmt(d.startBalance)} · ${fmtPct(100 - pct)} damage dealt</span></p>
-      ${dead ? '' : `<button type="button" class="btn btn-sm no-print" data-action="hit-debt" data-id="${d.id}"><span aria-hidden="true">⚔️</span><span>Log a payment</span></button>`}
+      ${dead ? '' : `<button type="button" class="btn btn-sm no-print" data-action="hit-debt" data-id="${d.id}"><span>Log a payment</span></button>`}
     </article>`;
   }).join('');
   return `<div class="card mb"><div class="card-head"><div><h2>Boss fights</h2><p class="muted small">Payments knock the health bar down. Interest puts some back every month.</p></div></div><div class="boss-grid">${cards}</div></div>`;
@@ -295,7 +295,7 @@ function whatIfCard(minTotal) {
     <label for="whatif-range" class="field-label">Extra per month: <strong id="whatif-val" class="num">${fmt(cur)}</strong></label>
     <input type="range" id="whatif-range" class="range" min="0" max="${max}" step="${step}" value="${Math.min(cur, max)}">
     <div class="whatif-grid" id="whatif-out" aria-live="polite"></div>
-    <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+    <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
       <button type="button" class="btn btn-primary btn-sm" data-action="apply-whatif">Use this amount</button>
       <button type="button" class="btn btn-sm" data-action="reset-whatif">Back to current</button></div>
   </div>`;
@@ -338,10 +338,10 @@ function subsCard() {
   return `<div class="card"><div class="card-head"><div><h2>Subscriptions</h2><p class="muted small">What they cost you over a year.</p></div>
     <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="add-subscription">${ICON.plus}<span>Add</span></button>${csvBtn('subscriptions', 'subscriptions')}</div></div>
     ${subs.length ? `<div class="vamp-total"><p class="stat-label">Per year</p><p class="stat-value">${fmt(yearly)}<span class="small muted" style="font-weight:500"> a year</span></p>
-      <p class="stat-sub" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${incomeHint(monthly)} ${feelsLike(yearly)}</p></div>
+      <p class="stat-sub" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">${incomeHint(monthly)} ${feelsLike(yearly)}</p></div>
       <div class="table-wrap"><table><thead><tr><th scope="col">Service</th><th class="num" scope="col">Price</th><th class="num" scope="col">Per year</th><th scope="col">Work hours a year</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${sugs.length ? `<p class="small sug-note no-print" style="margin-top:10px">${plural(sugs.length, 'regular payment')} in your bank data ${sugs.length === 1 ? 'looks' : 'look'} like ${sugs.length === 1 ? 'a subscription' : 'subscriptions'}. <button type="button" class="linklike" data-action="review-sub-sugs">Take a look</button></p>` : ''}
-      ${subCat && Math.abs(subCat.planned - monthly) > 0.5 ? `<p class="small no-print" style="margin-top:10px">Your “${esc(subCat.name)}” budget is ${fmt(subCat.planned)}/month. <button type="button" class="linklike" data-action="sync-subs" data-id="${subCat.id}">Set it to ${fmt(monthly)}</button></p>` : ''}`
+      ${sugs.length ? `<p class="small sug-note no-print" style="margin-top:12px">${plural(sugs.length, 'regular payment')} in your bank data ${sugs.length === 1 ? 'looks' : 'look'} like ${sugs.length === 1 ? 'a subscription' : 'subscriptions'}. <button type="button" class="linklike" data-action="review-sub-sugs">Take a look</button></p>` : ''}
+      ${subCat && Math.abs(subCat.planned - monthly) > 0.5 ? `<p class="small no-print" style="margin-top:12px">Your “${esc(subCat.name)}” budget is ${fmt(subCat.planned)}/month. <button type="button" class="linklike" data-action="sync-subs" data-id="${subCat.id}">Set it to ${fmt(monthly)}</button></p>` : ''}`
     : `<div class="chart-empty"><p>No subscriptions tracked yet.</p><button type="button" class="btn btn-sm" data-action="add-subscription">Pick from a list</button>${sugs.length ? `<p class="small" style="margin-top:8px"><button type="button" class="linklike" data-action="review-sub-sugs">${plural(sugs.length, 'payment')} in your bank data look like subscriptions</button></p>` : ''}</div>`}
   </div>`;
 }
@@ -399,8 +399,8 @@ function wrappedData() {
     monthName: `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`, persona,
     tiles: [
       ['Spent', fmt(b.actual), b.income > 0 ? `${fmtPct(b.actual / b.income * 100)} of income` : 'Add income to compare'],
-      ['Top category', topCat ? topCat.name : '—', topCat ? fmt(topCat.actual) : 'No spending yet'],
-      ['Biggest splurge', biggest ? fmt(biggest.amount) : '—', biggest ? (biggest.note || catName(biggest.categoryId)) : 'Nothing logged'],
+      ['Top category', topCat ? topCat.name : '-', topCat ? fmt(topCat.actual) : 'No spending yet'],
+      ['Biggest splurge', biggest ? fmt(biggest.amount) : '-', biggest ? (biggest.note || catName(biggest.categoryId)) : 'Nothing logged'],
       ['Saved for goals', fmt(saved), roundups > 0 ? `${fmt(roundups)} from round-ups` : plural(contribs.length, 'deposit')],
       ['Debt damage', fmt(debtPaid), slain ? `${plural(slain, 'boss')} defeated`.replace('bosss', 'bosses') : 'No debts paid off yet'],
       ['Longest no-spend streak', plural(streak, 'day'), streak >= 7 ? 'Not bad at all' : 'Aim for 7 next month']
@@ -411,7 +411,7 @@ function drawWrapped(d) {
   const W = 1080, H = 1350, c = document.createElement('canvas');
   c.width = W; c.height = H;
   const x = c.getContext('2d');
-  const font = (w, px) => `${w} ${px}px Inter, system-ui, sans-serif`;
+  const font = (w, px) => `${w} ${px}px "Schibsted Grotesk", system-ui, sans-serif`;
   const rrect = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
   const fit = (text, maxW) => { let s = String(text); if (x.measureText(s).width <= maxW) return s; while (s.length > 1 && x.measureText(s + '…').width > maxW) s = s.slice(0, -1); return s + '…'; };
   const accent = (THEMES[state.settings.theme] || THEMES.yoko).chart[0];

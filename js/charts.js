@@ -27,7 +27,7 @@ function makeChart(id, config) {
 function setupChartDefaults() {
   if (!hasChart()) return;
   const D = Chart.defaults;
-  D.font.family = 'Inter, system-ui, sans-serif';
+  D.font.family = '"Schibsted Grotesk", system-ui, sans-serif';
   D.font.size = 12;
   D.color = css('--muted');
   D.borderColor = css('--grid');
