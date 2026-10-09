@@ -1153,7 +1153,8 @@ main td { overflow-wrap: break-word; }
 .su-left { margin: 2px 0 0; font-size: 22px; font-weight: 700; font-variant-numeric: normal; }
 
 /* Income log row actions */
-#income-log .cal-list li { align-items: center; }
+#income-log .cal-list li { grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: center; }
+@media (max-width: 480px) { #income-log .cal-list li { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 4px; } #income-log .cal-what { grid-column: 1 / -1; grid-row: 2; } }
 .inc-act { display: inline-flex; gap: 2px; margin-left: 4px; }
 .inc-act .icon-btn { width: 32px; height: 32px; }
 
