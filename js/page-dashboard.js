@@ -218,7 +218,7 @@ function renderDashboard() {
   const semesterTab = semesterCard() + `<div class="grid-2">${chartCard('Savings goal progress', '% of each target saved', 'dash-goals-tab', state.goals.length > 0, 'Add a savings goal to track progress.')}</div>`;
 
   const chartsTab = `<div class="grid-2">
-    ${chartCard('Spending by category', sp.useActual ? 'Actual spending this month' : (sp.list.length ? 'Planned' : ''), 'dash-spend', sp.list.length > 0, 'Log expenses to see where your money goes.')}
+    ${chartCard('Spending by category', sp.useActual ? 'Actual spending this month' : (sp.list.length ? 'Planned' : ''), 'dash-spend', sp.list.length > 0, 'Log expenses to see where your money goes.', '', true)}
     ${chartCard('Savings goal progress', '% of each target saved', 'dash-goals', state.goals.length > 0, 'Add a savings goal to track progress.')}
   </div>`;
 

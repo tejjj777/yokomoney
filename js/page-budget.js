@@ -110,10 +110,10 @@ function renderBudget() {
 
   const html = head + intro + tabbed('budget', {
     plan: statsRow + incomeLogCard() + catCard + `<div class="grid-2">${ruleCard}${splitCard()}</div>`,
-    where: whereCard() + `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut', sp.list.length > 0, 'Add planned or actual amounts to see this chart.')}${chartCard('Planned vs actual', 'By category', 'budget-bar', hasBar, 'Add amounts to compare planned and actual.')}</div>`,
+    where: whereCard() + `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut', sp.list.length > 0, 'Add planned or actual amounts to see this chart.', '', true)}${chartCard('Planned vs actual', 'By category', 'budget-bar', hasBar, 'Add amounts to compare planned and actual.')}</div>`,
     yearly: yearlyCard(),
     history: whereCard() + historyCard() +
-      `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut-hist', sp.list.length > 0, 'Add planned or actual amounts to see this chart.')}${chartCard('Planned vs actual', 'By category', 'budget-bar-hist', hasBar, 'Add amounts to compare planned and actual.')}</div>` +
+      `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut-hist', sp.list.length > 0, 'Add planned or actual amounts to see this chart.', '', true)}${chartCard('Planned vs actual', 'By category', 'budget-bar-hist', hasBar, 'Add amounts to compare planned and actual.')}</div>` +
       `<div class="mb">${heatmapCard()}</div>`
   });
   return {
@@ -171,7 +171,7 @@ function renderSpend() {
   </div>`;
 
   const catBreakdown = `<div class="grid-2">
-    ${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned' : ''), 'spend-doughnut', sp.list.length > 0, 'Log expenses to see this chart.')}
+    ${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned' : ''), 'spend-doughnut', sp.list.length > 0, 'Log expenses to see this chart.', '', true)}
     <div class="card">
       <div class="card-head"><div><h2>Categories</h2><p class="muted small">Breakdown of this month’s spend.</p></div></div>
       <div class="table-wrap"><table><thead><tr><th scope="col">Category</th><th class="num" scope="col">Spent</th><th class="num" scope="col">Budget</th></tr></thead>

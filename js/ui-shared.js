@@ -99,9 +99,14 @@ function emptyState(title, text, action, actionLabel, icon = 'goal') {
     <button type="button" class="btn" data-action="load-sample">Load sample data</button></div>
   </div>`;
 }
-function chartCard(title, sub, id, hasData, emptyMsg, size = '') {
+/** Small "Change graph color" picker for slice charts: YOKO theme shades or Rainbow (same setting as Settings, Chart colors). */
+function chartColorPick() {
+  const rb = state.settings.chartColors === 'rainbow';
+  return `<label class="chart-color no-print"><span class="muted small">Change graph color</span><select class="select select-sm" data-chart-colors aria-label="Change graph color"><option value="yoko" ${rb ? '' : 'selected'}>YOKO theme</option><option value="rainbow" ${rb ? 'selected' : ''}>Rainbow</option></select></label>`;
+}
+function chartCard(title, sub, id, hasData, emptyMsg, size = '', pick = false) {
   return `<div class="card">
-    <div class="card-head"><div><h2>${title}</h2>${sub ? `<p class="muted small">${sub}</p>` : ''}</div></div>
+    <div class="card-head"><div><h2>${title}</h2>${sub ? `<p class="muted small">${sub}</p>` : ''}</div>${pick && hasData ? chartColorPick() : ''}</div>
     ${hasData ? `<div class="chart-box ${size}"><canvas id="${id}" role="img" aria-label="${esc(title)} chart"></canvas></div>`
       : `<div class="chart-empty"><p>${emptyMsg}</p><button type="button" class="btn btn-sm no-print" data-action="load-sample">Load sample data</button></div>`}
   </div>`;

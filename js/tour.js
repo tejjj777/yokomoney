@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 20;   // bumped: debt, savings, exact amounts, onboarding currency
+const TOUR_VERSION = 21;   // bumped: change graph color on charts
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -35,7 +35,7 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#sub-check', '#safe-hero'], title: 'Subscription check-in', text: 'Once a month YOKO! asks if you actually used each subscription. If you didn’t, it shows what it costs you in a year, so cancelling is an easy call.' },
     { route: 'dashboard/forecast', target: ['#weather', '#view-dashboard .subtabs-inner'], title: 'Money weather', text: 'A quick mood check for your month. Sunny when you’re on track, stormy when things are getting tight.' },
     { route: 'dashboard/calendar', target: ['#cal-card'], title: 'Bill calendar', text: 'Every bill, fee and allowance day on one calendar. From its ⋯ menu you can add them all to your phone’s calendar.' },
-    { route: 'dashboard/charts', target: ['#view-dashboard .grid-2', '#view-dashboard .subtabs-inner'], title: 'Charts', text: 'Where your money goes by category, and how close each goal is.' }
+    { route: 'dashboard/charts', target: ['#view-dashboard .grid-2', '#view-dashboard .subtabs-inner'], title: 'Charts', text: 'Where your money goes by category, and how close each goal is. Change graph color switches between YOKO theme and Rainbow.' }
   ] },
   { id: 'ai', icon: '✨', title: 'Ask the AI', blurb: 'Type or talk to log spends and ask questions.', route: 'dashboard/overview', steps: [
     { route: 'dashboard/overview', target: ['#command-bar'], title: 'Just ask', text: 'Type the way you’d text a friend. “Spent 120 on chai.” “Can I afford a 1500 concert on Saturday?” “How much did I spend on food this week?” It answers with your real numbers.' },
@@ -337,12 +337,13 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
+        <li><strong>Change graph color:</strong> switch Spending by category between YOKO theme and Rainbow, right on the chart.</li></ul>
+      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
         <li><strong>Rainbow charts:</strong> Settings, Chart colors. Every slice gets its own color.</li>
         <li><strong>New look:</strong> new fonts for titles, buttons and money.</li>
         <li><strong>Forecast fixed:</strong> one big bill like rent no longer says you run out tomorrow.</li>
         <li><strong>Habit sliders:</strong> a bigger handle that’s easy to drag.</li>
-        <li><strong>Income list:</strong> long notes are readable now.</li></ul>
-      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Income list:</strong> long notes are readable now.</li>
         <li><strong>Bill reminders:</strong> a heads-up the day before rent, fees or a payback is due.</li>
         <li><strong>This week:</strong> see what’s left for the week next to safe to spend.</li>
         <li><strong>Bank balance:</strong> type in your bank / UPI balance and safe to spend uses real money.</li>

@@ -73,6 +73,7 @@ function bindMore() {
   document.addEventListener('change', e => {
     if (e.target.id === 'set-currency' && CURRENCIES[e.target.value]) { state.currency = e.target.value; commit(); }
     if (e.target.id === 'set-country' && COUNTRIES[e.target.value]) setCountry(e.target.value);
+    if (e.target.matches && e.target.matches('[data-chart-colors]')) { state.settings.chartColors = e.target.value === 'rainbow' ? 'rainbow' : 'yoko'; save(); render(); }
     if (e.target.id === 'set-lang') { state.settings.lang = ['hi', 'te'].includes(e.target.value) ? e.target.value : 'en'; save(); setTimeout(() => location.reload(), 150); }
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lastTick && lastTick !== todayISO()) { if (dailyTick()) render(); } });
