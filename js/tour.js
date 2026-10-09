@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 21;   // bumped: change graph color on charts
+const TOUR_VERSION = 22;   // bumped: What's new button on Home, What's new no longer vanishes
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -20,7 +20,7 @@ const CHAPTERS = [
   ] },
   { id: 'dashboard', icon: '🏠', title: 'Home', blurb: 'Safe to spend, savings, forecast, semester and your pet.', route: 'dashboard/overview', tryIt: ['See my Money Wrapped', () => openWrapped()], steps: [
     { route: 'dashboard/overview', target: ['#view-dashboard [data-action="scan-receipt"]', '#quickadd-btn'], title: 'Scan a receipt', text: 'Take a photo of any bill and YOKO! reads the shop, total and date for you. Check it, pick a category, done. It reads the photo on your phone, nothing gets uploaded.' },
-    { route: 'dashboard/overview', target: ['#view-dashboard [data-action="tour-all"]'], title: 'Full tutorial', text: 'This button brings you back here any time. Every screen also has a short tour in its ⋯ menu.' },
+    { route: 'dashboard/overview', target: ['#view-dashboard [data-action="tour-all"]'], title: 'Full tutorial', text: 'This button brings you back here any time. What’s new next to it shows the latest changes. Every screen also has a short tour in its ⋯ menu.' },
     { route: 'dashboard/overview', target: ['#view-dashboard .view-actions .menu-wrap', '#view-dashboard .view-actions'], title: 'The ⋯ menu', text: 'Money Wrapped, loading or removing demo data, a tour of just this page, and printing or saving as PDF.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Safe to spend today', text: 'The most important number in the app. It’s exactly how much you can still spend today. We take what’s left of your allowance, remove bills and debt payments that are still due, split it over the days until your next allowance, then subtract what you already spent today.' },
     { route: 'dashboard/overview', target: ['#safe-hero .safe-badge', '#safe-hero'], title: 'Green, amber, red', text: 'Green means you’re fine. Amber means you’re spending a bit fast. Red means the money won’t last, and a button shows up to ask your parents for a top-up with a polite message ready to send.' },
@@ -96,14 +96,9 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Debt, savings, exact amounts and better UPI.', hidden: true, steps: [
-    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Exact safe to spend', text: 'Shows exactly what’s left for today, after bills, debt payments and what you already spent.' },
-    { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'See how much you save each month and your savings rate.' },
-    { route: 'dashboard/overview', target: ['#view-dashboard [data-action="scan-receipt"]', '#quickadd-btn'], title: 'Scan a receipt', text: 'Snap a bill right from Home and it logs the expense for you.' },
-    { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Debt is back', text: 'Track loans and money you owe, with a payoff plan.' },
-    { route: 'split/groups', target: ['[data-action="create-group"]', '#view-split .view-head'], title: 'Groups count in your budget', text: 'Your share of every group expense now shows up in your own spending. Split equally or by amount.' },
-    { route: 'split/groups', target: ['#view-split .view-head'], title: 'UPI in groups', text: 'Pick GPay, PhonePe or Paytm to pay. In live groups everyone sees each other’s UPI ID.' },
-    { route: 'dashboard/overview', target: ['#command-bar'], title: 'Say amounts your way', text: 'Type or say “2 lakh”, “50k” or “two thousand”. The AI gets it.' }
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'What’s new button and graph colors.', hidden: true, steps: [
+    { route: 'dashboard/overview', target: ['#view-dashboard [data-action="whats-new"]'], title: 'What’s new', text: 'Tap this anytime to see what changed in the latest update.' },
+    { route: 'budget/where', target: ['[data-chart-colors]', '#view-budget .subtabs-inner'], title: 'Change graph color', text: 'Switch the category chart between YOKO theme and Rainbow. Same setting as Settings, Chart colors.' }
   ] }
 ];
 const CHAPTER_ORDER = ['quick', 'dashboard', 'ai', 'spend', 'budget', 'split', 'goals', 'debt', 'settings'];
@@ -337,8 +332,10 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Change graph color:</strong> switch Spending by category between YOKO theme and Rainbow, right on the chart.</li></ul>
+        <li><strong>What’s new on Home:</strong> a button next to Scan receipt, so you can open this anytime.</li>
+        <li><strong>Fixed:</strong> this screen and the tour no longer vanish when the app updates.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Change graph color:</strong> switch Spending by category between YOKO theme and Rainbow, right on the chart.</li>
         <li><strong>Rainbow charts:</strong> Settings, Chart colors. Every slice gets its own color.</li>
         <li><strong>New look:</strong> new fonts for titles, buttons and money.</li>
         <li><strong>Forecast fixed:</strong> one big bill like rent no longer says you run out tomorrow.</li>

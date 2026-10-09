@@ -339,7 +339,10 @@ function setupPwa() {
     // When a new version takes over, reload once so the update shows straight away.
     const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    // Wait while a popup (like What's new) or the tour is open, so the reload never wipes what you're reading.
+    const busy = () => document.body.classList.contains('modal-open') || (typeof tour !== 'undefined' && tour);
+    const reloadWhenFree = () => { if (busy()) setTimeout(reloadWhenFree, 500); else location.reload(); };
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; reloadWhenFree(); } });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update && r.update()).catch(err => console.warn('Service worker not registered', err));
   }
 }
