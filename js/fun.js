@@ -162,6 +162,7 @@ function playSound(kind) {
 
 /* ---------- Shared money actions (used by forms and the command palette) ---------- */
 function addExpense({ categoryId, amount, date, note, noRoundup }) {
+  if (!state.budget.categories.some(x => x.id === categoryId) && state.budget.categories[0]) categoryId = state.budget.categories[0].id;   // e.g. "+ New category…" left unfinished
   const cat = state.budget.categories.find(x => x.id === categoryId);
   const exp = { id: uid(), date, categoryId, amount, note: note || '' };
   const ru = state.settings.roundUp;

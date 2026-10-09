@@ -28,6 +28,10 @@ async function aiCall(task, input, timeoutMs = 5000) {
     
     clearTimeout(timeout);
     
+    if (res.status === 429) {   // daily limit reached: say so instead of pretending the AI is down
+      const d = await res.json().catch(() => null);
+      return { intent: 'chat', reply: (d && d.reply) || 'You’ve asked a lot today. Try again in a bit.' };
+    }
     if (!res.ok) {
       console.warn(`AI edge function failed with status ${res.status}`);
       return null;

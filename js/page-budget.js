@@ -40,15 +40,15 @@ function renderBudget() {
   };
   const bucketOpts = c => `<option value="" ${c.bucketId ? '' : 'selected'}>None</option>` + split.rows.map(b => `<option value="${b.id}" ${c.bucketId === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('');
   const catRow = c => {
-    const left = c.planned - c.actual;
+    const carry = c.carryIn || 0, left = c.planned + carry - c.actual;
     return `<tr>
       <td><label class="sr-only" for="cat-name-${c.id}">Category name</label><input id="cat-name-${c.id}" class="input input-sm" value="${esc(c.name)}" maxlength="40" data-bind="cat" data-id="${c.id}" data-field="name" data-kind="text" aria-describedby="cat-name-${c.id}-err"><span class="field-error" id="cat-name-${c.id}-err"></span></td>
       <td><label class="sr-only" for="cat-type-${c.id}">Type for ${esc(c.name)}</label><select id="cat-type-${c.id}" class="select input-sm" style="min-width:96px" data-bind="cat" data-id="${c.id}" data-field="type" data-kind="select">${CAT_TYPES.map(([v, l]) => `<option value="${v}" ${c.type === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
       <td>${moneyInput({ id: `cat-planned-${c.id}`, bind: 'cat', dataId: c.id, field: 'planned', value: c.planned, label: `Planned for ${c.name}` })}</td>
       <td class="num" style="text-align:left"><button type="button" class="linklike cat-actual" data-action="cat-expenses" data-id="${c.id}" aria-label="${esc(fmt(c.actual))} spent on ${esc(c.name)}. Show these expenses">${fmt(c.actual)}</button></td>
-      <td class="num ${left < 0 ? 'tone-danger-text' : ''}">${left < 0 ? `Over ${fmt(-left)}` : fmt(left)}</td>${lastMonthCell(c, last)}
+      <td class="num ${left < 0 ? 'tone-danger-text' : ''}">${left < 0 ? `Over ${fmt(-left)}` : fmt(left)}${carry > 0.004 ? `<br><span class="small tone-success-text">+${fmt(carry)} carried</span>` : ''}</td>${lastMonthCell(c, last)}
       <td><label class="sr-only" for="cat-bucket-${c.id}">Paycheck bucket for ${esc(c.name)}</label><select id="cat-bucket-${c.id}" class="select input-sm" style="min-width:110px" data-bind="cat" data-id="${c.id}" data-field="bucketId" data-kind="select">${bucketOpts(c)}</select></td>
-      <td class="actions no-print"><button type="button" class="icon-btn danger" data-action="delete-category" data-id="${c.id}" aria-label="Delete ${esc(c.name)}">${ICON.trash}</button></td>
+      <td class="actions no-print"><button type="button" class="icon-btn carry-btn ${c.carry ? 'on' : ''}" data-action="toggle-carry" data-id="${c.id}" aria-pressed="${c.carry ? 'true' : 'false'}" title="${c.carry ? 'Unspent money carries to next month' : 'Carry unspent money to next month'}" aria-label="Carry unspent ${esc(c.name)} money to next month">↻</button><button type="button" class="icon-btn danger" data-action="delete-category" data-id="${c.id}" aria-label="Delete ${esc(c.name)}">${ICON.trash}</button></td>
     </tr>`;
   };
   const groups = split.rows.map(bk => ({ bk, list: cats.filter(c => c.bucketId === bk.id) }));
@@ -103,7 +103,7 @@ function renderBudget() {
       <div class="actions no-print">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), mi('Import a bank statement', 'import-statement'), csvItem('expenses', 'expenses')])}</div></div>
     ${expFilterBar(ef, cats)}
     ${exps.length ? `<div class="table-wrap"><table class="exp-table"><thead><tr><th scope="col">Date</th><th scope="col" class="exp-cat-col">Category</th><th scope="col">Note</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">—</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
+      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">—</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.photo ? ` <button type="button" class="linklike small" data-action="show-photo" data-id="${x.id}">📷 receipt</button>` : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
       <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-expense" data-id="${x.id}" aria-label="Edit expense of ${esc(fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-expense" data-id="${x.id}" aria-label="Delete expense of ${esc(fmt(x.amount))}">${ICON.trash}</button></td></tr>`).join('')}
       </tbody></table></div>` : (filtering ? '<p class="muted">Nothing matches. Try fewer filters.</p>' : '<p class="muted">No expenses this month yet. Use + Quick Add → Add Expense, or press Ctrl+K and type “250 food”.</p>')}
   </div>`;
@@ -165,7 +165,7 @@ function renderSpend() {
       <div class="actions no-print">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), csvItem('expenses', 'expenses')])}</div></div>
     ${expFilterBar(ef, cats)}
     ${exps.length ? `<div class="table-wrap"><table class="exp-table"><thead><tr><th scope="col">Date</th><th scope="col" class="exp-cat-col">Category</th><th scope="col">Note</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">—</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num font-bold">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
+      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">—</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.photo ? ` <button type="button" class="linklike small" data-action="show-photo" data-id="${x.id}">📷 receipt</button>` : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num font-bold">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
       <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-expense" data-id="${x.id}" aria-label="Edit expense of ${esc(fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-expense" data-id="${x.id}" aria-label="Delete expense of ${esc(fmt(x.amount))}">${ICON.trash}</button></td></tr>`).join('')}
       </tbody></table></div>` : (filtering ? '<p class="muted">Nothing matches. Try fewer filters.</p>' : '<p class="muted">No expenses logged yet this month. Tap "+ Add expense" or paste a bank message.</p>')}
   </div>`;
@@ -182,8 +182,9 @@ function renderSpend() {
   const stsSp = monthlyIncome() > 0 ? studentSafeToSpend() : null;
   const exactCard = stsSp ? `<div class="card mb exact-card"><div class="exact-grid">
       <div><p class="stat-label">Left to spend today</p><p class="exact-val">${fmtExact(stsSp.leftToday)}</p></div>
-      <div><p class="stat-label">Left this period</p><p class="exact-val">${fmtExact(stsSp.balanceNow)}</p></div>
+      <div><p class="stat-label">${stsSp.fromBank ? 'In your bank' : 'Left this period'}</p><p class="exact-val">${fmtExact(stsSp.balanceNow)}</p></div>
       <div><p class="stat-label">Spent today</p><p class="exact-val">${fmtExact(stsSp.spentToday)}</p></div>
+      <div><p class="stat-label">Left this week</p><p class="exact-val">${fmtExact(stsSp.weekLeft)}</p></div>
     </div></div>` : '';
   const html = head + exactCard + tabbed('spend', {
     log: expCard,

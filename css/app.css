@@ -1166,3 +1166,31 @@ main td { overflow-wrap: break-word; }
 .ge-row .ge-eq { text-align: right; font-variant-numeric: tabular-nums; }
 .ge-row .ge-amt-wrap[hidden] + .ge-eq { grid-column: 2; }
 .ge-row .ge-eq:empty { display: none; }
+
+/* Group expense rows */
+.gx-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.gx-main { min-width: 0; overflow-wrap: anywhere; }
+.gx-act { display: inline-flex; gap: 2px; flex: none; }
+
+.safe-due { display: grid; gap: 4px; margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 13px; }
+
+.carry-btn { font-size: 16px; opacity: .55; }
+.carry-btn.on { opacity: 1; color: var(--primary-dark); }
+
+/* New category inline */
+.newcat { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.newcat .newcat-name { flex: 1 1 160px; min-width: 0; }
+.newcat .newcat-type { flex: 0 0 auto; width: auto; }
+.newcat .newcat-err { flex-basis: 100%; margin: 0; }
+
+/* Habits */
+.slider-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.slider-panel-head .slider-panel-title { margin: 0; }
+.slider-cost { margin: 2px 0 0; }
+.hb-head, .hb-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 52px minmax(0, .9fr) 36px; gap: 6px; align-items: center; }
+.hb-head { margin: 6px 0 4px; } .hb-head span:last-child { grid-column: 3 / span 2; }
+#hb-list { display: grid; gap: 6px; margin-bottom: 10px; }
+@media (max-width: 480px) { .hb-head { display: none; } .hb-row { grid-template-columns: 1fr 1fr; padding: 8px; border: 1px solid var(--border); border-radius: 10px; } .hb-row .hb-name { grid-column: 1 / -1; } }
+/* Hindi and Telugu: letter-spacing and all-caps break joined letters in these scripts */
+html[lang="hi"] *, html[lang="te"] * { letter-spacing: normal !important; }
+html[lang="hi"] .stat-label, html[lang="te"] .stat-label, html[lang="hi"] .safe-hero-label, html[lang="te"] .safe-hero-label { text-transform: none; }

@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 17;   // bumped: debt, savings, exact amounts, onboarding currency
+const TOUR_VERSION = 18;   // bumped: debt, savings, exact amounts, onboarding currency
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -24,10 +24,11 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#view-dashboard .view-actions .menu-wrap', '#view-dashboard .view-actions'], title: 'The ⋯ menu', text: 'Money Wrapped, loading or removing demo data, a tour of just this page, and printing or saving as PDF.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Safe to spend today', text: 'The most important number in the app. It’s exactly how much you can still spend today. We take what’s left of your allowance, remove bills and debt payments that are still due, split it over the days until your next allowance, then subtract what you already spent today.' },
     { route: 'dashboard/overview', target: ['#safe-hero .safe-badge', '#safe-hero'], title: 'Green, amber, red', text: 'Green means you’re fine. Amber means you’re spending a bit fast. Red means the money won’t last, and a button shows up to ask your parents for a top-up with a polite message ready to send.' },
+    { route: 'dashboard/overview', target: ['[data-action="set-bank"]', '#safe-hero'], title: 'This week and your bank', text: 'Under safe to spend you see what’s left this week. Add your bank or UPI balance and safe to spend works from your real money. Bills due today or tomorrow show up here too.' },
     { route: 'dashboard/overview', target: ['#view-dashboard .stats-grid'], title: 'Quick numbers', text: 'Your monthly allowance and when the next one lands, what’s left until then, and your no-spend streak (days in a row without spending on wants).' },
     { route: 'dashboard/overview', target: ['#savings-card'], title: 'Your savings', text: 'Total saved, how much this month, your savings rate and whether you’re ahead of last month. The bars show the last six months and each goal’s progress is right under it.' },
     { route: 'dashboard/overview', target: ['#forecast-card'], title: 'Will I make it?', text: 'This line is where your balance is heading, based on how you spent in the last 30 days. If it hits zero before your allowance, you’ll see the day it runs out.' },
-    { route: 'dashboard/overview', target: ['#forecast-card .slider-panel', '#forecast-card'], title: 'Try a habit', text: 'Drag the sliders for food delivery, outings and chai. The line moves right away, so you can see what skipping two orders a week actually does.' },
+    { route: 'dashboard/overview', target: ['#forecast-card .slider-panel', '#forecast-card'], title: 'Your habits', text: 'These are things you spend on often. Tap Edit habits to write your own, with what each costs. Drag a slider and the line moves right away.' },
     { route: 'dashboard/overview', target: ['#semester-card'], title: 'Semester plan', text: 'Add the expensive months coming up, like exam fees or a fest. It tells you if what you’re saving now will cover them.' },
     { route: 'dashboard/overview', target: ['#pet-card'], title: 'Meet Yoko', text: 'Your money pet. It earns XP when you log spends, stick to your budget and finish challenges, and it reacts to how your month is going. Rename it in Settings.' },
     { route: 'dashboard/overview', target: ['#quests-card'], title: 'Coming up', text: 'Challenges in progress, things on your wishlist, birthdays you’re buying gifts for and bills due soon, all in one list.' },
@@ -58,7 +59,7 @@ const CHAPTERS = [
   { id: 'budget', icon: '📊', title: 'Budget', blurb: 'Your plan, your income, and what changed.', route: 'budget/plan', steps: [
     { route: 'budget/plan', target: ['#view-budget .stats-grid'], title: 'The month at a glance', text: 'Income, how much is left, and your daily allowance for the rest of the month.' },
     { route: 'budget/plan', target: ['#income-log', '#view-budget .stats-grid', '#cat-card'], title: 'Income', text: 'Pocket money, part-time pay, money from home. Log what comes in so the plan matches reality. If your allowance comes at random times, mark it as irregular when you set it up.' },
-    { route: 'budget/plan', target: ['#cat-card'], title: 'Category limits', text: 'Set a limit for each category. Spending fills in on its own from your expense log. You get a heads-up at 80% and again at 100%, as a notification or a banner in the app.' },
+    { route: 'budget/plan', target: ['#cat-card'], title: 'Category limits', text: 'Set a limit for each category, or add your own with Add category (or “+ New category” while logging a spend). Tap ↻ to carry unspent money into next month. You get a heads-up at 80% and 100%.' },
     { route: 'budget/plan', target: ['#cat-card'], title: 'Freeze a category', text: 'Trying to cut back on something? Freeze it for 7 to 30 days from Goals → Challenges. If you log a spend there, YOKO! reminds you how many days you have left.' },
     { route: 'budget/plan', target: ['#view-budget .grid-2'], title: '50 / 30 / 20 check', text: 'Compares your needs, wants and savings with the common 50/30/20 split. Next to it, your allowance is split into pots like Hostel & Mess, Daily spending and Savings.' },
     { route: 'budget/where', target: ['#where-card'], title: 'Where did it go?', text: 'This month against the same point last month, category by category. You see right away what went up and what went down.' },
@@ -335,6 +336,15 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p>New and fixed:</p><ul class="whats-new">
+        <li><strong>Bill reminders:</strong> a heads-up the day before rent, fees or a payback is due.</li>
+        <li><strong>This week:</strong> see what’s left for the week next to safe to spend.</li>
+        <li><strong>Bank balance:</strong> type in your bank / UPI balance and safe to spend uses real money.</li>
+        <li><strong>Your own habits:</strong> write the things you spend on and drag to see your forecast change.</li>
+        <li><strong>New categories anywhere:</strong> pick “+ New category” while adding a spend.</li>
+        <li><strong>Carry over:</strong> tap ↻ on a category to roll unspent money into next month.</li>
+        <li><strong>Receipt photos:</strong> scanned receipts keep a photo with the spend.</li>
+        <li><strong>Groups:</strong> edit or delete what you paid, and repeat rent or WiFi every month.</li>
+        <li><strong>हिन्दी / తెలుగు:</strong> switch language in Settings.</li>
         <li><strong>Group spending counts:</strong> your share of live group expenses now shows up in your budget.</li>
         <li><strong>Split by amount:</strong> live groups can split unevenly, and you pick who’s in.</li>
         <li><strong>Settle part of it:</strong> settle up asks how much was paid and shows what’s left.</li>

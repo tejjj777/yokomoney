@@ -138,6 +138,7 @@ function init() {
   checkBadges(true);     // quietly record badges already earned
   dailyTick();           // new month → history; recurring payments; rewards
   render();
+  try { startI18n(); } catch (e) { console.warn('Language setup failed', e); }
   runSelfTests();
   restoreBackupLink();   // reconnect the auto-backup file, if one was linked
   setupPwa();            // install-as-app, only when served from a website

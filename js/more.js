@@ -205,6 +205,29 @@ function sendBudgetNotification(title, body, tone = 'info') {
   toast(`🔔 ${title} · ${body}`, 4500);
 }
 
+/** Bills due today or tomorrow, for reminders and the Home card. */
+function billsDueSoon() {
+  const t = todayDate(), today = F.toISO(t), tomorrow = F.toISO(F.addDays(t, 1)), yesterday = F.toISO(F.addDays(t, -1));
+  const out = [];
+  (state.recurring || []).filter(r => r.active).forEach(r => {
+    F.recurringDue(r, yesterday, tomorrow).forEach(d => { const iso = typeof d === 'string' ? d : F.toISO(d); if (iso >= today && iso <= tomorrow) out.push({ key: 'r' + r.id, name: r.name, amount: r.amount, date: iso }); });
+  });
+  (state.yearlyBills || []).forEach(y => {
+    const n = F.nextAnnualOccurrence(F.parseDate(y.due) || t, t), iso = F.toISO(n);
+    if (iso >= today && iso <= tomorrow) out.push({ key: 'y' + y.id, name: y.name, amount: y.amount, date: iso });
+  });
+  ((state.wallet && state.wallet.ious) || []).filter(x => !x.settled && x.dir === 'owe' && x.due).forEach(x => {
+    if (x.due >= today && x.due <= tomorrow) out.push({ key: 'i' + x.id, name: `Pay back ${x.person}`, amount: x.amount, date: x.due });
+  });
+  (state.groupRecurring || []).forEach(r => {
+    const dim = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(), day = Math.min(r.day, dim);
+    const iso = F.toISO(new Date(t.getFullYear(), t.getMonth(), day));
+    const g = (state.groups || []).find(x => x.id === r.groupId);
+    if (iso >= today && iso <= tomorrow && r.lastPosted < iso.slice(0, 7)) out.push({ key: 'g' + r.id, name: r.desc, amount: r.amount, date: iso, extra: g ? g.name : '' });
+  });
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function checkBudgetNudges(opts = {}) {
   if (!state || !state.budget) return [];
   if (!opts.dry && !hasAnyData()) return [];   // nothing set up yet: no alerts on the first screen
@@ -217,19 +240,20 @@ function checkBudgetNudges(opts = {}) {
   // 1. Check category budgets (80% and 100%)
   const curExpenses = state.budget.expenses.filter(e => e.date.startsWith(ym));
   state.budget.categories.forEach(cat => {
-    if (cat.type === 'savings' || !(cat.planned > 0)) return;
+    const limit = cat.planned + (cat.carryIn || 0);
+    if (cat.type === 'savings' || !(limit > 0)) return;
     const spent = sum(curExpenses.filter(e => e.categoryId === cat.id), e => e.amount);
-    const ratio = spent / cat.planned;
+    const ratio = spent / limit;
     const key100 = `${cat.id}:100:${ym}`;
     const key80 = `${cat.id}:80:${ym}`;
     
     if (ratio >= 1.0) {
       // a need paid in one go (the mess fee) landing exactly on its plan isn't news; going over is
-      if ((spent > cat.planned + 0.5 || cat.type === 'wants') && !state.meta.nudges[key100]) {
+      if ((spent > limit + 0.5 || cat.type === 'wants') && !state.meta.nudges[key100]) {
         state.meta.nudges[key100] = todayISO();
         state.meta.nudges[key80] = todayISO();
-        const title = spent > cat.planned + 0.5 ? `Over budget: ${cat.name}` : `Budget limit reached: ${cat.name}`;
-        const body = `You’ve spent ${fmt(spent)} of your ${fmt(cat.planned)} limit for ${cat.name}.`;
+        const title = spent > limit + 0.5 ? `Over budget: ${cat.name}` : `Budget limit reached: ${cat.name}`;
+        const body = `You’ve spent ${fmt(spent)} of your ${fmt(limit)} limit for ${cat.name}.`;
         send(title, body, 'danger');
         nudgesSent.push({ type: '100', catId: cat.id, title, body });
       }
@@ -237,7 +261,7 @@ function checkBudgetNudges(opts = {}) {
       if (!state.meta.nudges[key80]) {
         state.meta.nudges[key80] = todayISO();
         const title = `Budget alert: ${cat.name} at ${Math.round(ratio * 100)}%`;
-        const body = `You’ve spent ${fmt(spent)} of your ${fmt(cat.planned)} limit for ${cat.name}.`;
+        const body = `You’ve spent ${fmt(spent)} of your ${fmt(limit)} limit for ${cat.name}.`;
         send(title, body, 'warn');
         nudgesSent.push({ type: '80', catId: cat.id, title, body });
       }
@@ -259,6 +283,16 @@ function checkBudgetNudges(opts = {}) {
       }
     }
   }
+  // 3. Bills due today or tomorrow (recurring payments, yearly / semester fees, IOUs you owe, repeating group bills)
+  billsDueSoon().forEach(bl => {
+    const key = `bill:${bl.key}:${bl.date}`;
+    if (state.meta.nudges[key]) return;
+    state.meta.nudges[key] = true;
+    const title = bl.date === todayISO() ? `Due today: ${bl.name}` : `Due tomorrow: ${bl.name}`;
+    const body = `${fmtExact(bl.amount)}${bl.extra ? ` · ${bl.extra}` : ''}. Make sure the money is there.`;
+    send(title, body, 'warn');
+    nudgesSent.push({ type: 'bill', title, body });
+  });
   if (nudgesSent.length && !opts.dry) save();   // remember what was sent, so it doesn't repeat on the next open
   return nudgesSent;
 }
@@ -374,7 +408,7 @@ function recurringForm(r, preset) {
       { name: 'amount', label: 'Amount', kind: 'money', required: true, positive: true },
       { name: 'freq', label: 'Repeats', kind: 'select', options: [['monthly', 'Every month'], ['weekly', 'Every week'], ['yearly', 'Every year']] },
       { name: 'start', label: r ? 'Schedule starts' : 'Next payment date', kind: 'date', required: true, help: r ? 'Changing this doesn’t re-log past payments.' : 'If this is in the past, the missed payments are logged right away.' },
-      { name: 'categoryId', label: 'Budget category', kind: 'select', options: cats.map(c => [c.id, c.name]) },
+      { name: 'categoryId', label: 'Budget category', kind: 'select', options: catOptions() },
       { name: 'debtId', label: 'Pays down a debt?', kind: 'select', options: [['', 'No'], ...debts.map(d => [d.id, d.name])], help: 'The principal part lowers that debt’s balance each time.', wide: true },
       ...(r ? [{ name: 'active', label: 'Active (untick to pause)', kind: 'check', wide: true }] : [])
     ],
@@ -476,6 +510,13 @@ function rolloverMonth() {
     if (snapshotMonth(m, from || m + '-01', endOf(m))) saved.push(m);
     from = null;
   }
+  // categories set to carry over: last month's unspent money is added to this month
+  const lm = prevYM(ym), spentLm = spentByCategory(lm + '-01', endOf(lm));
+  state.budget.categories.forEach(c => {
+    if (!c.carry) { delete c.carryIn; return; }
+    const left = c.planned + (lm === bm ? (c.carryIn || 0) : 0) - (spentLm[c.id] || 0);
+    if (left > 0.004) c.carryIn = Math.round(left * 100) / 100; else delete c.carryIn;
+  });
   state.meta.periodStart = from || ym + '-01';   // closed early with no gap: this month counts from that day
   state.meta.closedEarly = '';
   state.meta.budgetMonth = ym;

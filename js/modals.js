@@ -259,6 +259,43 @@ function giftForm(gift) {
     }
   });
 }
+/** Category options for a select, with "+ New category…" at the end. */
+function catOptions() { return state.budget.categories.map(c => [c.id, c.name]).concat([[NEW_CAT, '+ New category…']]); }
+const NEW_CAT = '__newcat__';
+/** Picking "+ New category…" opens a small inline form under the select to create one. */
+function newCategoryInline(sel) {
+  const prev = sel.dataset.prev && sel.dataset.prev !== NEW_CAT ? sel.dataset.prev : (state.budget.categories[0] || {}).id || '';
+  const holder = sel.closest('.field') || sel.parentElement;
+  if (holder.querySelector('.newcat')) return;
+  const box = document.createElement('div');
+  box.className = 'newcat';
+  box.innerHTML = `<input class="input input-sm newcat-name" maxlength="40" placeholder="Name, e.g. Gym, Gifts, Pets" aria-label="New category name">
+    <select class="select input-sm newcat-type" aria-label="Type">${CAT_TYPES.map(([v, l]) => `<option value="${v}" ${v === 'wants' ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <button type="button" class="btn btn-sm btn-primary newcat-add">Add</button><button type="button" class="btn btn-sm newcat-cancel">Cancel</button>
+    <p class="field-error newcat-err"></p>`;
+  holder.appendChild(box);
+  const name = box.querySelector('.newcat-name'); name.focus();
+  const close = v => { box.remove(); sel.value = v; sel.dataset.prev = v; sel.dispatchEvent(new Event('change', { bubbles: true })); };
+  box.querySelector('.newcat-cancel').addEventListener('click', () => close(prev));
+  const add = () => {
+    const n = name.value.trim();
+    if (!n) { box.querySelector('.newcat-err').textContent = 'Give it a name.'; name.focus(); return; }
+    const dup = state.budget.categories.find(c => c.name.toLowerCase() === n.toLowerCase());
+    if (dup) { close(dup.id); return; }
+    const c = { id: uid(), name: n.slice(0, 40), type: box.querySelector('.newcat-type').value, planned: 0, actual: 0, bucketId: '' };
+    state.budget.categories.push(c); save(); scheduleRender(300);
+    document.querySelectorAll('select').forEach(s2 => {
+      const nw = s2.querySelector(`option[value="${NEW_CAT}"]`);
+      if (nw) { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; s2.insertBefore(o, nw); }
+    });
+    close(c.id); toast(`Added “${c.name}”. Set a limit for it in Budget.`);
+  };
+  box.querySelector('.newcat-add').addEventListener('click', add);
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+}
+document.addEventListener('focusin', e => { if (e.target.tagName === 'SELECT') e.target.dataset.prev = e.target.value; });
+document.addEventListener('change', e => { if (e.target.tagName === 'SELECT' && e.target.value === NEW_CAT) newCategoryInline(e.target); });
+
 function expenseForm(exp) {
   const cats = state.budget.categories;
   if (!cats.length) { toast('Add a budget category first.'); location.hash = '#budget'; return; }
@@ -268,7 +305,7 @@ function expenseForm(exp) {
       title: 'Edit expense', submitLabel: 'Save changes',
       values: { categoryId: cats.some(c => c.id === exp.categoryId) ? exp.categoryId : cats[0].id, amount: exp.amount, date: exp.date, note: exp.note },
       fields: [
-        { name: 'categoryId', label: 'Category', kind: 'select', options: cats.map(c => [c.id, c.name]) },
+        { name: 'categoryId', label: 'Category', kind: 'select', options: catOptions() },
         { name: 'amount', label: 'Amount', kind: 'money', required: true, positive: true },
         { name: 'date', label: 'Date', kind: 'date', required: true },
         { name: 'note', label: 'Note', kind: 'text', max: 120, placeholder: 'Optional' }
@@ -280,7 +317,7 @@ function expenseForm(exp) {
     return;
   }
   const fields = [
-    { name: 'categoryId', label: 'Category', kind: 'select', options: cats.map(c => [c.id, c.name]) },
+    { name: 'categoryId', label: 'Category', kind: 'select', options: catOptions() },
     { name: 'amount', label: 'Amount', kind: 'money', required: true, positive: true },
     { name: 'date', label: 'Date', kind: 'date', required: true },
     { name: 'note', label: 'Note', kind: 'text', max: 120, placeholder: 'Optional' }

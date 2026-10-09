@@ -55,7 +55,7 @@ function defaultState() {
     payslips: [],
     student: { allowance: 0, arrivalDay: 1, living: 'hostel', partTimeAmount: 0, partTimeHours: 0, semester: { start: '', end: '', heavyMonths: [] } },
     recurring: [], history: [], rules: [], wishlist: [], challenges: [], xp: { total: 0 }, yearlyBills: [], incomeLog: [],
-    groups: [], groupData: {}
+    groups: [], groupData: {}, groupRecurring: []
   };
 }
 
@@ -101,7 +101,7 @@ function normalizeState(raw) {
   s.emi = { principal: nn(em.principal ?? d.emi.principal), rate: clamp(nn(em.rate ?? d.emi.rate), 0, 100), months: clamp(Math.round(nn(em.months ?? 60)) || 60, 1, 600) };
 
   const rb = raw.budget || {};
-  const cats = arr(rb.categories).map(c => ({ id: str(c.id, uid()), name: str(c.name, 'Category', 40), type: ['needs', 'wants', 'savings'].includes(c.type) ? c.type : 'wants', planned: nn(c.planned), actual: nn(c.actual) }));
+  const cats = arr(rb.categories).map(c => Object.assign({ id: str(c.id, uid()), name: str(c.name, 'Category', 40), type: ['needs', 'wants', 'savings'].includes(c.type) ? c.type : 'wants', planned: nn(c.planned), actual: nn(c.actual) }, c.carry === true ? { carry: true } : {}, nn(c.carryIn) > 0 ? { carryIn: nn(c.carryIn) } : {}));
   s.budget = {
     incomeOverride: rb.incomeOverride === null || rb.incomeOverride === undefined || rb.incomeOverride === '' ? null : nn(rb.incomeOverride),
     categories: Array.isArray(rb.categories) ? cats : d.budget.categories,
@@ -233,12 +233,16 @@ function normalizeMore(s, raw) {
     if (['import', 'sms', 'receipt'].includes(x.src)) e.src = x.src;
     if (typeof x.splitId === 'string') e.splitId = x.splitId.slice(0, 40);
     if (typeof x.groupExp === 'string') e.groupExp = x.groupExp.slice(0, 60);
+    if (x.photo === true) e.photo = true;
   });
   // live-group expenses that were already there before group spending counted in the budget
   s.meta.groupSkip = Array.isArray(rm.groupSkip) ? rm.groupSkip.filter(v => typeof v === 'string').slice(-2000) : null;
   s.meta.groupSeen = {};
   if (rm.groupSeen && typeof rm.groupSeen === 'object') for (const k of Object.keys(rm.groupSeen).slice(0, 200)) if (rm.groupSeen[k] === true) s.meta.groupSeen[k] = true;
   s.settings.groupCat = rs.groupCat ? String(rs.groupCat).slice(0, 40) : '';
+  s.settings.lang = ['hi', 'te'].includes(rs.lang) ? rs.lang : 'en';
+  const bk = rs.bank;
+  s.settings.bank = bk && typeof bk === 'object' && date(bk.asOf) ? { amount: nn(bk.amount), use: bk.use === true, asOf: bk.asOf, spentBase: nn(bk.spentBase), incomeBase: nn(bk.incomeBase) } : null;
   s.yearlyBills = arr(raw.yearlyBills).map(x => ({ id: str(x.id, uid()), name: str(x.name, 'Yearly bill', 60), amount: nn(x.amount), due: date(x.due) || todayISO() }));
   s.incomeLog = arr(raw.incomeLog).map(x => ({ id: str(x.id, uid()), date: date(x.date) || todayISO(), amount: nn(x.amount), note: str(x.note, '', 80) })).filter(x => x.amount > 0);
   // every category belongs to a paycheck bucket (or none)
@@ -270,6 +274,8 @@ function normalizeMore(s, raw) {
     id: str(g.id), name: str(g.name, 'Group', 80), joinCode: str(g.joinCode), myMemberId: str(g.myMemberId)
   })).filter(g => g.id && g.joinCode);
   s.groupData = raw.groupData && typeof raw.groupData === 'object' ? raw.groupData : {};
+  s.habits = Array.isArray(raw.habits) ? raw.habits.filter(h => h && nn(h.cost) > 0).slice(0, 12).map(h => ({ id: str(h.id, uid()), name: str(h.name, 'Habit', 40), cost: nn(h.cost), per: h.per === 'day' ? 'day' : 'week', now: Math.min(99, Math.round(nn(h.now))) })) : null;
+  s.groupRecurring = arr(raw.groupRecurring).filter(r => r && typeof r.groupId === 'string' && nn(r.amount) > 0).map(r => ({ id: str(r.id, uid()), groupId: r.groupId, desc: str(r.desc, 'Group expense', 80), amount: nn(r.amount), splits: r.splits && typeof r.splits === 'object' ? r.splits : {}, categoryId: str(r.categoryId), day: clamp(Math.round(nn(r.day)) || 1, 1, 31), lastPosted: typeof r.lastPosted === 'string' ? r.lastPosted.slice(0, 7) : '' }));
   return s;
 }
 
@@ -622,8 +628,20 @@ function allowanceLeft() {
   const balance = inc > 0 ? inc - b.actual : Math.max(0, (state.settings.cashOnHand || 0) - b.actual);
   return { balance, spent: b.actual, income: inc, daysLeft, start: today.slice(0, 7) + '-01', end, byPayday: false };
 }
+/** Bank / UPI balance the student typed in, moved along by what they've logged since. */
+function bankBalanceNow() {
+  const b = state.settings.bank;
+  if (!b || !b.asOf) return null;
+  const spent = sum(state.budget.expenses, x => x.amount), income = sum(state.incomeLog || [], x => x.amount);
+  return Math.round((b.amount - (spent - b.spentBase) + (income - b.incomeBase)) * 100) / 100;
+}
+function setBankBalance(amount, use) {
+  state.settings.bank = { amount, use: !!use, asOf: todayISO(), spentBase: sum(state.budget.expenses, x => x.amount), incomeBase: sum(state.incomeLog || [], x => x.amount) };
+}
 function studentSafeToSpend() {
-  const al = allowanceLeft();
+  const al = Object.assign({}, allowanceLeft());
+  const bank = state.settings.bank && state.settings.bank.use ? bankBalanceNow() : null;
+  if (bank !== null) al.balance = bank;   // the real money in the bank beats the allowance estimate
   const t = todayDate();
   const until = al.end;
   const after = F.toISO(t);
@@ -650,6 +668,12 @@ function studentSafeToSpend() {
   r.dailyLimit = Math.max(0, r.perDay);
   r.leftToday = Math.max(0, r.perDay - spentToday);
   r.overToday = Math.max(0, spentToday - r.perDay);
+  r.fromBank = bank !== null;
+  // this week (Monday to Sunday), capped at the next allowance
+  const dow = (t.getDay() + 6) % 7, weekStart = F.toISO(F.addDays(t, -dow)), daysLeftWeek = Math.min(7 - dow, r.daysLeft);
+  r.spentWeek = sum(state.budget.expenses.filter(x => x.date >= weekStart && x.date <= after), x => x.amount);
+  r.weekLeft = Math.max(0, r.dailyLimit * daysLeftWeek - spentToday);
+  r.daysLeftWeek = daysLeftWeek;
   return r;
 }
 
@@ -677,6 +701,18 @@ function categoryDailyAverages(daysBack = 30) {
   return out;
 }
 
+/** The student's own spending habits for the forecast sliders. Starts with three common ones they can change. */
+function habitsList() {
+  if (!Array.isArray(state.habits)) {
+    const k = typeof scaleFor === 'function' ? scaleFor(state.currency) : 1, r = v => Math.max(1, niceAmount(v * k));
+    state.habits = [
+      { id: uid(), name: 'Food delivery / takeout', cost: r(200), per: 'week', now: 3 },
+      { id: uid(), name: 'Outings & fun', cost: r(450), per: 'week', now: 2 },
+      { id: uid(), name: 'Chai / coffee / snacks', cost: r(25), per: 'day', now: 2 }
+    ];
+  }
+  return state.habits;
+}
 function studentRunOutForecast(sliderAdjustments = {}) {
   const al = allowanceLeft();
   const dailyAvgs = categoryDailyAverages(30);

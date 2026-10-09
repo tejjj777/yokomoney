@@ -1,7 +1,7 @@
 /* YOKO! Student service worker: makes the installed app open offline.
    The page and its own code (js/, css/) are fetched fresh when online (so updates arrive together) and fall back to the cached copy offline.
    Everything else is cache-first; the large OCR files are cached the first time they're used. */
-const CACHE = 'yoko-student-v25';   // bump the number every session
+const CACHE = 'yoko-student-v26';   // bump the number every session
 const PREFIX = 'yoko-student-';    // only ever delete our own caches (main YOKO! may share this origin)
 const CORE = [
   './', './index.html', './manifest.webmanifest', './prices.json',
@@ -15,6 +15,7 @@ const CORE = [
   './js/finmath.js',
   './js/selftests.js',
   './js/utils.js',
+  './js/i18n.js',
   './js/state.js',
   './js/charts.js',
   './js/ui-shared.js',

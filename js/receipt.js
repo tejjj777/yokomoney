@@ -1,6 +1,40 @@
 /* YOKO! Student · Scan a receipt.
    Classic script: shares one global scope with the other js/ files (see README-AGENTS.md). */
 'use strict';
+
+/* ---------- Receipt photos: a small copy kept on this phone (IndexedDB), linked to the expense ---------- */
+const PhotoDB = {
+  db: null,
+  open() {
+    if (this.db) return Promise.resolve(this.db);
+    return new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('yoko-photos', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('photos');
+        r.onsuccess = () => { this.db = r.result; res(this.db); };
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const tx = db.transaction('photos', 'readwrite'); tx.objectStore('photos').put(blob, id); tx.oncomplete = () => res(true); tx.onerror = () => rej(tx.error); }); },
+  async get(id) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('photos').objectStore('photos').get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); },
+  async del(id) { try { const db = await this.open(); db.transaction('photos', 'readwrite').objectStore('photos').delete(id); } catch (e) { /* nothing to delete */ } }
+};
+/** Shrink a photo to about 900px wide JPEG so it stays small. */
+async function shrinkPhoto(file) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); if (bmp.close) bmp.close();
+  return new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.7));
+}
+async function showReceiptPhoto(expId) {
+  let blob = null;
+  try { blob = await PhotoDB.get(expId); } catch (e) { blob = null; }
+  if (!blob) { toast('No photo saved for this one (photos stay on the phone they were taken on).'); return; }
+  const url = URL.createObjectURL(blob);
+  openModal({ title: 'Receipt photo', hideSubmit: true, cancelLabel: 'Close', body: `<img src="${url}" alt="Receipt photo" style="width:100%;border-radius:10px">`, onMount: () => setTimeout(() => URL.revokeObjectURL(url), 60000) });
+}
 /* =========================================================
    SCAN A RECEIPT
    ========================================================= */
@@ -30,6 +64,7 @@ function rcUploadStage(form) {
   bindDrop(st.querySelector('#rc-drop'), f => rcHandleFile(form, f));
 }
 async function rcHandleFile(form, file) {
+  form._photo = isImageFile(file) ? file : null;
   const status = form.querySelector('#rc-status');
   const say = (html, cls = 'alert-info') => { if (status) status.innerHTML = `<div class="alert ${cls}" role="status">${html}</div>`; };
   try {
@@ -75,7 +110,7 @@ function rcReviewStage(form, r, lines, ocr) {
       <div class="field"><label for="rc-merchant">Where ${tag('merchant')}</label><input id="rc-merchant" class="input" maxlength="120" value="${esc(r.merchant || '')}" placeholder="Shop name"></div>
       <div class="field"><label for="rc-amount">Total ${tag('total')}</label><div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="rc-amount" class="input" inputmode="decimal" value="${r.total ? numStr(r.total) : ''}" aria-describedby="rc-amount-err"></div><p class="field-error" id="rc-amount-err"></p></div>
       <div class="field"><label for="rc-date">Date ${tag('date')}</label><input id="rc-date" class="input" type="date" value="${rcDate(r.date)}">${r.date && rcDate(r.date) !== r.date ? `<p class="help">The receipt says ${esc(fmtDate(F.parseDate(r.date)))}. Set to today so it counts in this month’s budget. Change it if you want.</p>` : ''}</div>
-      <div class="field"><label for="rc-cat">Category</label><select id="rc-cat" class="select">${cats.map(c => `<option value="${c.id}" ${g && c.id === g.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="rc-cat">Category</label><select id="rc-cat" class="select">${cats.map(c => `<option value="${c.id}" ${g && c.id === g.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}<option value="__newcat__">+ New category…</option></select></div>
     </div>
     ${lines.length ? `<details class="collapsible"><summary>See the text it read</summary><div class="details-body"><pre class="ps-text">${esc(lines.slice(0, 60).join('\n'))}</pre></div></details>` : ''}
     <p class="small"><button type="button" class="linklike" id="rc-again">Scan a different receipt</button> · <button type="button" class="linklike" id="rc-split">Split it across categories</button></p>`;
@@ -95,6 +130,10 @@ function rcApply(form) {
   const note = st.querySelector('#rc-merchant').value.trim().slice(0, 120) || 'Receipt';
   const r = addExpense({ categoryId: st.querySelector('#rc-cat').value, amount: v.value, date, note });
   r.exp.src = 'receipt';
+  if (form._photo) {
+    r.exp.photo = true;
+    shrinkPhoto(form._photo).then(b => b && PhotoDB.put(r.exp.id, b)).catch(e => { console.warn('Photo not saved', e); delete r.exp.photo; save(); });
+  }
   commit(); expenseToast(v.value, r);
   return true;
 }

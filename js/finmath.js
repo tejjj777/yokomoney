@@ -744,14 +744,13 @@ const FinMath = (() => {
     const days = Math.max(1, Math.round(daysLeft));
     let bal = isNum(currentBalance) ? currentBalance : 0;
 
-    let totalDailySpend = 0;
-    const allCats = new Set([...Object.keys(dailySpendByCategory || {}), ...Object.keys(sliderAdjustments || {})]);
-    for (const cat of allCats) {
-      const base = isNum(dailySpendByCategory[cat]) ? dailySpendByCategory[cat] : 0;
-      const adj = isNum(sliderAdjustments[cat]) ? sliderAdjustments[cat] : 0;
-      totalDailySpend += Math.max(0, base + adj);
-    }
-    if (totalDailySpend <= 0 && bal > 0) {
+    // Adjustments are habit changes (spend more or less per day). A habit isn't always its own category,
+    // so add every adjustment to the overall daily spend instead of clamping each one against a category.
+    let base = 0, adjust = 0;
+    for (const v of Object.values(dailySpendByCategory || {})) if (isNum(v)) base += v;
+    for (const v of Object.values(sliderAdjustments || {})) if (isNum(v)) adjust += v;
+    let totalDailySpend = Math.max(0, base + adjust);
+    if (base <= 0 && adjust === 0 && bal > 0) {   // no spending history yet: assume the money is spread evenly
       totalDailySpend = bal / days;
     }
 

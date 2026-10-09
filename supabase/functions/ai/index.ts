@@ -6,13 +6,35 @@
 //   GROQ_API_KEY (recommended: fast, free at console.groq.com), GROQ_MODEL (optional)
 // Order: Groq (if GROQ_API_KEY is set), then GEMINI_MODEL, then other Gemini Flash models on this key
 // (each has its own free quota). A busy (503) or out-of-quota (429) model is skipped, so one bad model can't take the AI down.
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
+// Usage limits (so nobody else can burn the AI quota):
+//   ALLOWED_ORIGINS (optional secret): comma-separated sites allowed to call this. Defaults below.
+//   AI_PER_10_MIN / AI_PER_DAY (optional secrets): requests allowed per person (by IP). Defaults 20 and 150.
+const ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ||
+  "https://tejjj777.github.io,https://yokomoney.netlify.app,capacitor://localhost,https://localhost,http://localhost")
+  .split(",").map((o) => o.trim()).filter(Boolean);
+const okOrigin = (o: string | null) => !!o && ORIGINS.some((a) => o === a || (a.endsWith("localhost") && o.startsWith(a)));
+let CORS: Record<string, string> = {
+  "Access-Control-Allow-Origin": ORIGINS[0],
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Vary": "Origin",
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+// Per-IP counters. They live in this function's memory, so they reset when Supabase restarts it;
+// good enough to stop one person or script from draining the free quota.
+const PER_10 = Number(Deno.env.get("AI_PER_10_MIN") || 20), PER_DAY = Number(Deno.env.get("AI_PER_DAY") || 150);
+const hits = new Map<string, number[]>();
+function overLimit(ip: string) {
+  const now = Date.now(), day = 24 * 60 * 60 * 1000;
+  const list = (hits.get(ip) || []).filter((t) => now - t < day);
+  const recent = list.filter((t) => now - t < 10 * 60 * 1000).length;
+  if (recent >= PER_10 || list.length >= PER_DAY) { hits.set(ip, list); return true; }
+  list.push(now); hits.set(ip, list);
+  if (hits.size > 5000) for (const k of hits.keys()) { hits.delete(k); if (hits.size < 4000) break; }
+  return false;
+}
 
 const SYSTEM = (today: string) => `You are YOKO!, a friendly money buddy inside a budgeting app for college students in India.
 Today is ${today}. Money is in Indian rupees (₹).
@@ -113,8 +135,13 @@ async function askGroq(key: string, model: string, system: string, user: string,
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  CORS = { ...CORS, "Access-Control-Allow-Origin": okOrigin(origin) ? origin! : ORIGINS[0] };
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (!okOrigin(origin)) return json({ error: "not allowed from this site" }, 403);
+  const ip = (req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown").split(",")[0].trim();
+  if (overLimit(ip)) return json({ error: "limit", reply: "You’ve asked a lot today. Try again in a bit." }, 429);
   const gKey = Deno.env.get("GEMINI_API_KEY");
   const qKey = Deno.env.get("GROQ_API_KEY");
   if (!gKey && !qKey) return json({ error: "No AI key set (GEMINI_API_KEY or GROQ_API_KEY)" }, 500);

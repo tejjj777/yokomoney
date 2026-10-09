@@ -193,6 +193,60 @@ const GroupSync = {
     }
   },
 
+  /** True when this expense only exists on this phone so far (still waiting in the outbox). */
+  isLocalOnly(ex) { return !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(ex.id)); },
+  dropFromOutbox(localId) {
+    let q = [];
+    try { q = JSON.parse(localStorage.getItem('yoko.groups.outbox')) || []; } catch (e) { q = []; }
+    localStorage.setItem('yoko.groups.outbox', JSON.stringify(q.filter(a => !(a.expense && a.expense.id === localId))));
+  },
+  async deleteExpense(groupId, ex) {
+    const data = state.groupData[groupId];
+    if (!this.isLocalOnly(ex)) {
+      if (!(await this.ready())) return false;
+      try {
+        await this.session();
+        const r1 = await this.client.from('group_expense_splits').delete().eq('expense_id', ex.id);
+        if (r1.error) throw r1.error;
+        const r2 = await this.client.from('group_expenses').delete().eq('id', ex.id).select();
+        if (r2.error) throw r2.error;
+        if (!r2.data || !r2.data.length) throw new Error('not allowed');   // database rules blocked it
+      } catch (e) { console.warn('Delete group expense failed', e); return false; }
+    } else this.dropFromOutbox(ex.id);
+    if (data) data.expenses = data.expenses.filter(x => x !== ex);
+    state.budget.expenses = state.budget.expenses.filter(e => e.groupExp !== String(ex.id));
+    commit();
+    return true;
+  },
+  async updateExpense(groupId, ex, description, amount, splitDetails, categoryId) {
+    const g = state.groups.find(x => x.id === groupId);
+    const splits = Object.entries(splitDetails).map(([member_id, amt]) => ({ member_id, amount: amt }));
+    if (!this.isLocalOnly(ex)) {
+      if (!(await this.ready())) return false;
+      try {
+        await this.session();
+        const r1 = await this.client.from('group_expenses').update({ description, amount }).eq('id', ex.id).select();
+        if (r1.error) throw r1.error;
+        if (!r1.data || !r1.data.length) throw new Error('not allowed');
+        const r2 = await this.client.from('group_expense_splits').delete().eq('expense_id', ex.id);
+        if (r2.error) throw r2.error;
+        const r3 = await this.client.from('group_expense_splits').insert(splits.map(sp => ({ ...sp, expense_id: ex.id })));
+        if (r3.error) throw r3.error;
+      } catch (e) { console.warn('Update group expense failed', e); return false; }
+    } else {
+      this.dropFromOutbox(ex.id);
+      this.queueAction({ type: 'ADD_EXPENSE', expense: { id: ex.id, group_id: groupId, paid_by: ex.paid_by, description, amount }, splits });
+    }
+    Object.assign(ex, { description, amount, group_expense_splits: splits });
+    // keep your own share in step
+    const mine = Number(splitDetails[g && g.myMemberId]) || 0, row = state.budget.expenses.find(e => e.groupExp === String(ex.id));
+    if (row && mine > 0.004) { row.amount = Math.round(mine * 100) / 100; row.note = `${g.name}: ${description}`.slice(0, 120); if (categoryId) row.categoryId = categoryId; }
+    else if (row) state.budget.expenses = state.budget.expenses.filter(e => e !== row);
+    else if (mine > 0.004 && g) { const r = addExpense({ categoryId: categoryId || groupCategoryId(), amount: Math.round(mine * 100) / 100, date: todayISO(), note: `${g.name}: ${description}`.slice(0, 120), noRoundup: true }); r.exp.groupExp = String(ex.id); }
+    commit();
+    return true;
+  },
+
   addExpense(groupId, description, amount, splitDetails, categoryId) {
     const group = state.groups.find(g => g.id === groupId);
     if (!group) return;
@@ -307,6 +361,114 @@ function groupTransfers(balances) {
   return out;
 }
 
+function groupExpenseForm(groupId, exId) {
+    const g = state.groups.find(x => x.id === groupId), data = state.groupData[groupId];
+    if (!g || !data || !data.members || !data.members.length) return;
+    const ex = exId ? (data.expenses || []).find(x => String(x.id) === String(exId)) : null;
+    const pre = {};
+    if (ex) (ex.group_expense_splits || []).forEach(sp => { pre[sp.member_id] = Number(sp.amount) || 0; });
+    const preVals = Object.values(pre), preEqual = !ex || (preVals.length && preVals.every(v => Math.abs(v - preVals[0]) < 0.011));
+    const myRow = ex && state.budget.expenses.find(e => e.groupExp === String(ex.id));
+    const members = data.members, sym = esc(CURRENCIES[state.currency].symbol);
+    const cats = state.budget.categories, catNow = groupCategoryId();
+    openModal({
+      title: ex ? 'Edit group expense' : 'Add group expense', submitLabel: ex ? 'Save changes' : 'Add',
+      body: `<div class="field"><label for="ge-desc">What for?</label><input id="ge-desc" class="input" maxlength="80" placeholder="e.g. Dinner, groceries, cab" value="${ex ? esc(ex.description || '') : ''}"></div>
+        <div class="field"><label for="ge-amt">Total amount</label><div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="ge-amt" class="input" inputmode="decimal" placeholder="0" value="${ex ? numStr(Number(ex.amount)) : ''}"></div></div>
+        <fieldset class="field ge-mode"><legend class="field-label">How to split</legend>
+          <label class="check"><input type="radio" name="ge-mode" value="equal" ${preEqual ? 'checked' : ''}> Equally</label>
+          <label class="check"><input type="radio" name="ge-mode" value="amount" ${preEqual ? '' : 'checked'}> By amount</label></fieldset>
+        <div class="ge-list">${members.map(m => `<div class="ge-row"><label class="check"><input type="checkbox" class="ge-in" data-id="${esc(m.id)}" ${!ex || pre[m.id] > 0 ? 'checked' : ''}> ${esc(m.name)}${m.id === g.myMemberId ? ' (you)' : ''}</label>
+          <div class="affix ge-amt-wrap" hidden><span class="affix-sym" aria-hidden="true">${sym}</span><input class="input input-sm ge-each" data-id="${esc(m.id)}" inputmode="decimal" placeholder="0" aria-label="${esc(m.name)}'s share" value="${ex && pre[m.id] ? numStr(pre[m.id]) : ''}"></div>
+          <span class="ge-eq small muted" data-id="${esc(m.id)}"></span></div>`).join('')}</div>
+        <p class="small" id="ge-status" aria-live="polite"></p>
+        ${cats.length ? `<div class="field"><label for="ge-cat">Your share goes in</label><select id="ge-cat" class="select">${cats.map(c => `<option value="${c.id}" ${c.id === (myRow ? myRow.categoryId : catNow) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}<option value="__newcat__">+ New category…</option></select><p class="help">Your share counts in your own budget.</p></div>` : ''}
+        ${ex ? '' : `<label class="check"><input type="checkbox" id="ge-repeat"> Repeat every month on day ${todayDate().getDate()} (rent, WiFi, subscriptions)</label>`}
+        <p class="field-error" id="ge-err"></p>`,
+      onMount: form => {
+        const q = sel => form.querySelector(sel), qa = sel => [...form.querySelectorAll(sel)];
+        const amt = () => { const r = validateValue('money', q('#ge-amt').value, { required: false }); return r.value > 0 ? r.value : 0; };
+        const mode = () => (q('input[name="ge-mode"]:checked') || {}).value;
+        form._shares = () => {
+          const total = amt(), ins = qa('.ge-in').filter(c => c.checked).map(c => c.dataset.id), out = {};
+          if (mode() === 'equal') {
+            if (!ins.length) return { out, left: total };
+            const cents = Math.round(total * 100), base = Math.floor(cents / ins.length);
+            ins.forEach((id, i) => { out[id] = (base + (i < cents - base * ins.length ? 1 : 0)) / 100; });
+            return { out, left: 0 };
+          }
+          let used = 0;
+          qa('.ge-each').forEach(inp => {
+            const on = qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked;
+            const r = validateValue('money', inp.value, { required: false });
+            if (on && r.value > 0) { out[inp.dataset.id] = Math.round(r.value * 100) / 100; used += out[inp.dataset.id]; }
+          });
+          return { out, left: Math.round((total - used) * 100) / 100 };
+        };
+        const draw = () => {
+          q('#ge-err').textContent = '';
+          const byAmt = mode() === 'amount', { out, left } = form._shares();
+          qa('.ge-amt-wrap').forEach(w => { w.hidden = !byAmt; });
+          qa('.ge-eq').forEach(sp => { sp.textContent = !byAmt && out[sp.dataset.id] ? fmtExact(out[sp.dataset.id]) : ''; });
+          qa('.ge-each').forEach(inp => { inp.disabled = !qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked; });
+          const st = q('#ge-status');
+          if (!amt()) st.textContent = 'Enter the total first.';
+          else if (!byAmt) st.textContent = `Split between ${plural(Object.keys(out).length, 'person', 'people')}.`;
+          else st.textContent = Math.abs(left) < 0.005 ? 'All assigned.' : left > 0 ? `${fmtExact(left)} left to assign.` : `${fmtExact(-left)} too much.`;
+          st.className = 'small ' + (byAmt && amt() && Math.abs(left) >= 0.005 ? 'tone-danger-text' : 'muted');
+        };
+        form.addEventListener('input', draw); form.addEventListener('change', draw);
+        draw(); q('#ge-desc').focus();
+      },
+      onSubmit: form => {
+        const desc = form.querySelector('#ge-desc').value.trim(), err = form.querySelector('#ge-err');
+        const r = validateValue('money', form.querySelector('#ge-amt').value, { required: true, positive: true });
+        const { out, left } = form._shares();
+        const msg = !desc ? 'Say what it was for.' : r.error ? r.error : !Object.keys(out).length ? 'Pick at least one person.' : Math.abs(left) >= 0.005 ? (left > 0 ? `${fmtExact(left)} still to assign.` : `Shares add up to ${fmtExact(-left)} more than the total.`) : '';
+        err.textContent = msg; if (msg) return false;
+        const cat = form.querySelector('#ge-cat'), catId = cat ? cat.value : '';
+        if (ex) {
+          GroupSync.updateExpense(groupId, ex, desc, r.value, out, catId).then(ok => {
+            toast(ok ? 'Group expense updated' : 'Couldn’t update it. Check your internet and try again.', ok ? 2600 : 5000);
+            const btn = document.createElement('button'); btn.dataset.id = groupId; GROUP_ACTIONS['group-view'](btn);
+          });
+          return true;
+        }
+        GroupSync.addExpense(groupId, desc, r.value, out, catId);
+        const rep = form.querySelector('#ge-repeat');
+        if (rep && rep.checked) {
+          (state.groupRecurring = state.groupRecurring || []).push({ id: uid(), groupId, desc, amount: r.value, splits: out, categoryId: catId, day: todayDate().getDate(), lastPosted: todayISO().slice(0, 7) });
+        }
+        commit();
+        toast(out[g.myMemberId] ? `Added. Your share ${fmtExact(out[g.myMemberId])} is in your budget${rep && rep.checked ? '. Repeats monthly' : ''}` : 'Expense added to group');
+        return true;
+      }
+    });
+}
+
+/** Delete one of your own group expenses (and your share from your budget). */
+async function groupDeleteExpense(groupId, exId) {
+  const data = state.groupData[groupId], ex = data && (data.expenses || []).find(x => String(x.id) === String(exId));
+  if (!ex || !confirm(`Delete “${ex.description}” (${fmt(Number(ex.amount))}) for everyone in the group?`)) return;
+  const ok = await GroupSync.deleteExpense(groupId, ex);
+  toast(ok ? 'Deleted for everyone' : 'Couldn’t delete it. Check your internet and try again.', ok ? 2600 : 5000);
+  const btn = document.createElement('button'); btn.dataset.id = groupId; GROUP_ACTIONS['group-view'](btn);
+}
+/** Post repeating group expenses that are due this month. Runs from dailyTick. */
+function postGroupRecurring() {
+  const t = todayDate(), ym = todayISO().slice(0, 7);
+  let n = 0;
+  (state.groupRecurring || []).forEach(r => {
+    const g = state.groups.find(x => x.id === r.groupId);
+    if (!g || r.lastPosted >= ym) return;
+    const dim = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    if (t.getDate() < Math.min(r.day, dim)) return;
+    GroupSync.addExpense(r.groupId, r.desc, r.amount, r.splits, r.categoryId);
+    r.lastPosted = ym; n++;
+  });
+  return n;
+}
+
 const GROUP_ACTIONS = {
   'create-group': () => {
     formModal({
@@ -390,79 +552,22 @@ const GROUP_ACTIONS = {
         <h3 style="margin-top:10px">Expenses</h3>
         ${data.expenses.length ? `<ul class="plain-list mb">${data.expenses.slice().reverse().map(ex => {
           const paidBy = data.members.find(m => m.id === ex.paid_by);
-          return `<li>${esc(ex.description)} <br><span class="small muted">Paid by ${paidBy ? esc(paidBy.name) : 'Someone'} · ${fmt(ex.amount)}</span></li>`;
+          const mine = ex.paid_by === g.myMemberId && !/^Settlement:/.test(ex.description || '');
+          return `<li class="gx-row"><div class="gx-main">${esc(ex.description)}<br><span class="small muted">Paid by ${paidBy ? esc(paidBy.name) : 'Someone'} · ${fmtExact(Number(ex.amount))}</span></div>${mine ? `<span class="gx-act no-print"><button type="button" class="icon-btn" data-action="group-edit-expense" data-group-id="${groupId}" data-ex-id="${esc(String(ex.id))}" aria-label="Edit ${esc(ex.description)}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="group-del-expense" data-group-id="${groupId}" data-ex-id="${esc(String(ex.id))}" aria-label="Delete ${esc(ex.description)}">${ICON.trash}</button></span>` : ''}</li>`;
         }).join('')}</ul>` : '<p class="small muted">No expenses yet.</p>'}
+        ${(state.groupRecurring || []).filter(r => r.groupId === groupId).length ? `<h3 style="margin-top:10px">Repeats every month</h3><ul class="plain-list mb">${state.groupRecurring.filter(r => r.groupId === groupId).map(r => `<li class="gx-row"><div class="gx-main">${esc(r.desc)}<br><span class="small muted">${fmtExact(r.amount)} on day ${r.day}</span></div><span class="gx-act no-print"><button type="button" class="btn btn-sm" data-action="group-stop-repeat" data-id="${r.id}">Stop</button></span></li>`).join('')}</ul>` : ''}
+        <p class="small muted">You can edit or delete expenses you paid for.</p>
       `,
       onSubmit: () => { closeModal(true); return false; }
     });
   },
-  'group-add-expense': el => {
-    const groupId = el.dataset.id;
-    const g = state.groups.find(x => x.id === groupId), data = state.groupData[groupId];
-    if (!g || !data || !data.members || !data.members.length) return;
-    const members = data.members, sym = esc(CURRENCIES[state.currency].symbol);
-    const cats = state.budget.categories, catNow = groupCategoryId();
-    openModal({
-      title: 'Add group expense', submitLabel: 'Add',
-      body: `<div class="field"><label for="ge-desc">What for?</label><input id="ge-desc" class="input" maxlength="80" placeholder="e.g. Dinner, groceries, cab"></div>
-        <div class="field"><label for="ge-amt">Total amount</label><div class="affix"><span class="affix-sym" aria-hidden="true">${sym}</span><input id="ge-amt" class="input" inputmode="decimal" placeholder="0"></div></div>
-        <fieldset class="field ge-mode"><legend class="field-label">How to split</legend>
-          <label class="check"><input type="radio" name="ge-mode" value="equal" checked> Equally</label>
-          <label class="check"><input type="radio" name="ge-mode" value="amount"> By amount</label></fieldset>
-        <div class="ge-list">${members.map(m => `<div class="ge-row"><label class="check"><input type="checkbox" class="ge-in" data-id="${esc(m.id)}" checked> ${esc(m.name)}${m.id === g.myMemberId ? ' (you)' : ''}</label>
-          <div class="affix ge-amt-wrap" hidden><span class="affix-sym" aria-hidden="true">${sym}</span><input class="input input-sm ge-each" data-id="${esc(m.id)}" inputmode="decimal" placeholder="0" aria-label="${esc(m.name)}'s share"></div>
-          <span class="ge-eq small muted" data-id="${esc(m.id)}"></span></div>`).join('')}</div>
-        <p class="small" id="ge-status" aria-live="polite"></p>
-        ${cats.length ? `<div class="field"><label for="ge-cat">Your share goes in</label><select id="ge-cat" class="select">${cats.map(c => `<option value="${c.id}" ${c.id === catNow ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select><p class="help">Your share counts in your own budget.</p></div>` : ''}
-        <p class="field-error" id="ge-err"></p>`,
-      onMount: form => {
-        const q = sel => form.querySelector(sel), qa = sel => [...form.querySelectorAll(sel)];
-        const amt = () => { const r = validateValue('money', q('#ge-amt').value, { required: false }); return r.value > 0 ? r.value : 0; };
-        const mode = () => (q('input[name="ge-mode"]:checked') || {}).value;
-        form._shares = () => {
-          const total = amt(), ins = qa('.ge-in').filter(c => c.checked).map(c => c.dataset.id), out = {};
-          if (mode() === 'equal') {
-            if (!ins.length) return { out, left: total };
-            const cents = Math.round(total * 100), base = Math.floor(cents / ins.length);
-            ins.forEach((id, i) => { out[id] = (base + (i < cents - base * ins.length ? 1 : 0)) / 100; });
-            return { out, left: 0 };
-          }
-          let used = 0;
-          qa('.ge-each').forEach(inp => {
-            const on = qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked;
-            const r = validateValue('money', inp.value, { required: false });
-            if (on && r.value > 0) { out[inp.dataset.id] = Math.round(r.value * 100) / 100; used += out[inp.dataset.id]; }
-          });
-          return { out, left: Math.round((total - used) * 100) / 100 };
-        };
-        const draw = () => {
-          q('#ge-err').textContent = '';
-          const byAmt = mode() === 'amount', { out, left } = form._shares();
-          qa('.ge-amt-wrap').forEach(w => { w.hidden = !byAmt; });
-          qa('.ge-eq').forEach(sp => { sp.textContent = !byAmt && out[sp.dataset.id] ? fmtExact(out[sp.dataset.id]) : ''; });
-          qa('.ge-each').forEach(inp => { inp.disabled = !qa('.ge-in').find(c => c.dataset.id === inp.dataset.id).checked; });
-          const st = q('#ge-status');
-          if (!amt()) st.textContent = 'Enter the total first.';
-          else if (!byAmt) st.textContent = `Split between ${plural(Object.keys(out).length, 'person', 'people')}.`;
-          else st.textContent = Math.abs(left) < 0.005 ? 'All assigned.' : left > 0 ? `${fmtExact(left)} left to assign.` : `${fmtExact(-left)} too much.`;
-          st.className = 'small ' + (byAmt && amt() && Math.abs(left) >= 0.005 ? 'tone-danger-text' : 'muted');
-        };
-        form.addEventListener('input', draw); form.addEventListener('change', draw);
-        draw(); q('#ge-desc').focus();
-      },
-      onSubmit: form => {
-        const desc = form.querySelector('#ge-desc').value.trim(), err = form.querySelector('#ge-err');
-        const r = validateValue('money', form.querySelector('#ge-amt').value, { required: true, positive: true });
-        const { out, left } = form._shares();
-        const msg = !desc ? 'Say what it was for.' : r.error ? r.error : !Object.keys(out).length ? 'Pick at least one person.' : Math.abs(left) >= 0.005 ? (left > 0 ? `${fmtExact(left)} still to assign.` : `Shares add up to ${fmtExact(-left)} more than the total.`) : '';
-        err.textContent = msg; if (msg) return false;
-        const cat = form.querySelector('#ge-cat');
-        GroupSync.addExpense(groupId, desc, r.value, out, cat ? cat.value : '');
-        commit();
-        toast(out[g.myMemberId] ? `Added. Your share ${fmtExact(out[g.myMemberId])} is in your budget` : 'Expense added to group');
-        return true;
-      }
-    });
+  'group-add-expense': el => groupExpenseForm(el.dataset.id),
+  'group-edit-expense': el => groupExpenseForm(el.dataset.groupId, el.dataset.exId),
+  'group-del-expense': el => groupDeleteExpense(el.dataset.groupId, el.dataset.exId),
+  'group-stop-repeat': el => {
+    const r = (state.groupRecurring || []).find(x => x.id === el.dataset.id); if (!r) return;
+    state.groupRecurring = state.groupRecurring.filter(x => x !== r); commit(); toast(`“${r.desc}” won’t repeat any more`);
+    const btn = document.createElement('button'); btn.dataset.id = r.groupId; GROUP_ACTIONS['group-view'](btn);
   },
   'group-share-upi': el => {
     const inp = document.getElementById('grp-my-upi'); if (!inp) return;

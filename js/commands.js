@@ -3,9 +3,49 @@
 'use strict';
 /* ---------- Daily tick: month rollover, recurring payments, rewards ---------- */
 let lastTick = '';
+/** Edit the habits shown as sliders on the forecast: name, cost each time, how often now. */
+function habitsEditor() {
+  const list = habitsList().map(h => Object.assign({}, h)), sym = esc(CURRENCIES[state.currency].symbol);
+  const row = h => `<div class="hb-row" data-id="${h.id}">
+      <input class="input input-sm hb-name" maxlength="40" value="${esc(h.name)}" placeholder="e.g. Cab rides" aria-label="Habit name">
+      <div class="affix hb-cost"><span class="affix-sym" aria-hidden="true">${sym}</span><input class="input input-sm hb-cost-in" inputmode="decimal" value="${h.cost ? numStr(h.cost) : ''}" placeholder="Cost" aria-label="Cost each time"></div>
+      <input class="input input-sm hb-now" inputmode="numeric" value="${h.now}" aria-label="How many times now">
+      <select class="select input-sm hb-per" aria-label="How often"><option value="week" ${h.per === 'week' ? 'selected' : ''}>a week</option><option value="day" ${h.per === 'day' ? 'selected' : ''}>a day</option></select>
+      <button type="button" class="icon-btn danger hb-del" aria-label="Remove ${esc(h.name)}">${ICON.trash}</button></div>`;
+  openModal({
+    title: 'Your spending habits', submitLabel: 'Save',
+    body: `<p class="small muted">Things you spend on again and again. Write your own: name, what it costs each time, and how often you do it now.</p>
+      <div class="hb-head small muted"><span>What</span><span>Cost each</span><span>How often</span></div>
+      <div id="hb-list">${list.map(row).join('')}</div>
+      <button type="button" class="btn btn-sm" id="hb-add">${ICON.plus}<span>Add a habit</span></button>
+      <p class="field-error" id="hb-err"></p>`,
+    onMount: form => {
+      const box = form.querySelector('#hb-list');
+      form.querySelector('#hb-add').addEventListener('click', () => {
+        if (box.children.length >= 12) return;
+        box.insertAdjacentHTML('beforeend', row({ id: uid(), name: '', cost: 0, per: 'week', now: 1 }));
+        box.lastElementChild.querySelector('.hb-name').focus();
+      });
+      box.addEventListener('click', e => { const d = e.target.closest('.hb-del'); if (d) d.closest('.hb-row').remove(); });
+    },
+    onSubmit: form => {
+      const out = [];
+      for (const r of form.querySelectorAll('.hb-row')) {
+        const name = r.querySelector('.hb-name').value.trim(), c = validateValue('money', r.querySelector('.hb-cost-in').value, { required: false });
+        if (!name && !(c.value > 0)) continue;
+        if (!name || !(c.value > 0)) { form.querySelector('#hb-err').textContent = 'Each habit needs a name and a cost.'; return false; }
+        out.push({ id: r.dataset.id, name: name.slice(0, 40), cost: c.value, per: r.querySelector('.hb-per').value === 'day' ? 'day' : 'week', now: Math.max(0, Math.min(99, Math.round(Number(r.querySelector('.hb-now').value) || 0))) });
+      }
+      state.habits = out; commit(); toast('Habits saved');
+      return true;
+    }
+  });
+}
+
 function dailyTick() {
   lastTick = todayISO();
   const p = postRecurring();     // log bills first, so they land in the month they were due
+  try { if (typeof postGroupRecurring === 'function') postGroupRecurring(); } catch (e) { console.warn('Group repeat failed', e); }
   const rolled = rolloverMonth();
   evaluateRewards();
   save();
@@ -33,6 +73,7 @@ function bindMore() {
   document.addEventListener('change', e => {
     if (e.target.id === 'set-currency' && CURRENCIES[e.target.value]) { state.currency = e.target.value; commit(); }
     if (e.target.id === 'set-country' && COUNTRIES[e.target.value]) setCountry(e.target.value);
+    if (e.target.id === 'set-lang') { state.settings.lang = ['hi', 'te'].includes(e.target.value) ? e.target.value : 'en'; save(); setTimeout(() => location.reload(), 150); }
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lastTick && lastTick !== todayISO()) { if (dailyTick()) render(); } });
   document.addEventListener('keydown', e => {
@@ -78,6 +119,25 @@ const MORE_ACTIONS = {
   'delete-bucket': el => { const b = byId(state.split.buckets, el.dataset.id); if (b) undoable(`Deleted bucket “${b.name}”`, () => { state.split.buckets = state.split.buckets.filter(x => x !== b); }); },
   'delete-deadline': el => { const d = byId(state.wallet.deadlines, el.dataset.id); if (d) undoable(`Deleted “${d.title}”`, () => { state.wallet.deadlines = state.wallet.deadlines.filter(x => x !== d); }); },
   'log-income': () => incomeForm(),
+  'edit-habits': () => habitsEditor(),
+  'toggle-carry': el => {
+    const c = state.budget.categories.find(k => k.id === el.dataset.id); if (!c) return;
+    c.carry = !c.carry; commit();
+    toast(c.carry ? `Unspent ${c.name} money will carry over to next month` : `${c.name} starts fresh each month`);
+  },
+  'show-photo': el => showReceiptPhoto(el.dataset.id),
+  'set-bank': () => {
+    const b = state.settings.bank;
+    formModal({
+      title: 'Bank / UPI balance', submitLabel: 'Save',
+      values: { amount: b ? bankBalanceNow() : '', use: b ? b.use : true },
+      fields: [
+        { name: 'amount', label: 'How much is in your bank right now?', kind: 'money', required: true, help: 'Check your bank or UPI app and type the balance. Spends and income you log after this move it up and down.' },
+        { name: 'use', label: 'Use this for safe to spend (instead of your allowance estimate)', kind: 'check', wide: true }
+      ],
+      onSave: v => { setBankBalance(v.amount, v.use); commit(); toast(`Bank balance set to ${fmtExact(v.amount)}`); }
+    });
+  },
   'edit-income': el => { const x = state.incomeLog.find(k => k.id === el.dataset.id); if (x) incomeForm(x); },
   'delete-income': el => {
     const x = state.incomeLog.find(k => k.id === el.dataset.id); if (!x) return;
@@ -194,6 +254,7 @@ function moreParse(q, words, low) {
 function moreSettingsHTML() {
   const s = state.settings;
   return `<div class="settings-group"><h3>Country and currency</h3><div class="form-grid two">
+    <div class="field"><label for="set-lang">Language</label><select id="set-lang" class="select">${LANGS.map(([k, n]) => `<option value="${k}" ${uiLang() === k ? 'selected' : ''}>${n}</option>`).join('')}</select><p class="help">Menus, tabs and buttons. Some text stays in English for now.</p></div>
     <div class="field"><label for="set-country">Country</label><select id="set-country" class="select">${Object.keys(COUNTRIES).map(k => [k, countryInfo(k).name]).sort((a, b) => (a[0] === 'OTHER') - (b[0] === 'OTHER') || a[1].localeCompare(b[1])).map(([k, n]) => `<option value="${k}" ${state.settings.country === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><p class="help">Sets your tax year, tax dates and how dates are read.</p></div>
     <div class="field"><label for="set-currency">Currency</label><select id="set-currency" class="select">${Object.entries(CURRENCIES).map(([code, c]) => `<option value="${code}" ${state.currency === code ? 'selected' : ''}>${esc(c.symbol)} ${code}</option>`).join('')}</select><p class="help">Only changes the symbol. Amounts aren’t converted.</p></div>
   </div></div>

@@ -30,6 +30,7 @@ function removeExpense(x) {
     if (ct) { g.saved = Math.max(0, g.saved - ct.amount); g.contributions = g.contributions.filter(k => k !== ct); }
   }
   state.budget.expenses = state.budget.expenses.filter(e => e !== x);
+  if (x.photo && typeof PhotoDB !== 'undefined') setTimeout(() => { if (!state.budget.expenses.some(e => e.id === x.id)) PhotoDB.del(x.id); }, 15000);   // after the undo window
 }
 const removeExpenseById = id => removeExpense(state.budget.expenses.find(e => e.id === id));
 /** Change a logged expense in place. Keeps its round-up, loan payment and linked cash or transport entry in step. */

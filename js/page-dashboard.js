@@ -37,14 +37,19 @@ function safeToSpendHero() {
         <span>Spent today: ${fmtExact(sts.spentToday)}</span>
       </div>
       <div class="safe-hero-formula small muted">
-        <span>Left this period: ${fmtExact(sts.balanceNow)}</span>
+        <span>This week: <strong>${fmtExact(sts.weekLeft)}</strong> left · spent ${fmtExact(sts.spentWeek)}</span>
+      </div>
+      <div class="safe-hero-formula small muted">
+        <span>${sts.fromBank ? 'In your bank / UPI' : 'Left this period'}: ${fmtExact(sts.balanceNow)}</span>
         ${sts.upcomingBills > 0 ? `<span>− Bills ${fmtExact(sts.upcomingBills)}</span>` : ''}
         ${sts.debtDue > 0 ? `<span>− Debt ${fmtExact(sts.debtDue)}</span>` : ''}
         <span>· ${plural(sts.daysLeft, 'day')} left</span>
       </div>
     </div>
+    ${(() => { const due = billsDueSoon(); return due.length ? `<div class="safe-due">${due.slice(0, 3).map(b => `<span>${b.date === todayISO() ? 'Due today' : 'Due tomorrow'}: <strong>${esc(b.name)}</strong> ${fmtExact(b.amount)}</span>`).join('')}</div>` : ''; })()}
     <div class="safe-hero-actions no-print">
       <button type="button" class="btn btn-primary btn-sm" data-action="add-expense">${ICON.plus}<span>Log expense</span></button>
+      <button type="button" class="btn btn-sm" data-action="set-bank">${state.settings.bank ? `Bank: ${fmtExact(bankBalanceNow())}` : 'Add bank balance'}</button>
       <button type="button" class="btn btn-sm" data-action="open-paycheck"><span>Edit allowance</span></button>
       ${sts.status === 'red' ? `<button type="button" class="btn btn-sm btn-warn" data-action="ask-topup"><span>🙏 Ask for a top-up</span></button>` : ''}
     </div>
@@ -68,21 +73,16 @@ function runOutForecastCard(chartId = 'dash-forecast-chart') {
     </div>
     <div class="chart-box" style="height:210px;position:relative"><canvas id="${chartId}"></canvas></div>
     <div class="slider-panel no-print">
-      <p class="slider-panel-title"><strong>Adjust flexible spending</strong> <span class="small muted">(drag to test your habits)</span></p>
-      <div class="slider-grid">
-        <div class="slider-item">
-          <div class="slider-header"><label for="slider-food">🍔 Food delivery / takeout</label><span class="slider-val" id="val-slider-food">3 orders/wk</span></div>
-          <input type="range" class="range-slider" id="slider-food" min="0" max="14" step="1" value="3" data-cat="Food" data-base="3" data-cost="200" data-unit="orders/wk">
-        </div>
-        <div class="slider-item">
-          <div class="slider-header"><label for="slider-fun">🎉 Outings & fun</label><span class="slider-val" id="val-slider-fun">2 times/wk</span></div>
-          <input type="range" class="range-slider" id="slider-fun" min="0" max="7" step="1" value="2" data-cat="Fun" data-base="2" data-cost="450" data-unit="times/wk">
-        </div>
-        <div class="slider-item">
-          <div class="slider-header"><label for="slider-chai">☕ Chai / coffee / snacks</label><span class="slider-val" id="val-slider-chai">2 cups/day</span></div>
-          <input type="range" class="range-slider" id="slider-chai" min="0" max="6" step="1" value="2" data-cat="Chai" data-base="2" data-cost="25" data-unit="cups/day" data-freq="daily">
-        </div>
-      </div>
+      <div class="slider-panel-head"><p class="slider-panel-title"><strong>Your spending habits</strong> <span class="small muted">(drag to see what changes)</span></p>
+        <button type="button" class="btn btn-sm" data-action="edit-habits">${ICON.edit}<span>Edit habits</span></button></div>
+      ${habitsList().length ? `<div class="slider-grid">${habitsList().map(h => {
+        const max = Math.max(5, Math.ceil(h.now * 3), h.now + 3);
+        return `<div class="slider-item">
+          <div class="slider-header"><label for="slider-${h.id}">${esc(h.name)}</label><span class="slider-val" id="val-slider-${h.id}">${h.now} ${h.per === 'day' ? 'a day' : 'a week'}</span></div>
+          <input type="range" class="range-slider" id="slider-${h.id}" min="0" max="${max}" step="1" value="${h.now}" data-hid="${h.id}" data-base="${h.now}" data-cost="${h.cost}" data-per="${h.per}">
+          <p class="small muted slider-cost">${fmt(h.cost)} each</p>
+        </div>`;
+      }).join('')}</div>` : '<p class="small muted">Add the things you spend on often, like takeout, cafes or cabs, and see how changing them moves your forecast.</p>'}
     </div>
   </div>`;
 }
@@ -127,23 +127,14 @@ function bindForecastSliders(chartId = 'dash-forecast-chart') {
   if (!sliders.length) return;
 
   const onSlide = () => {
-    let deltaFood = 0, deltaFun = 0, deltaChai = 0;
+    const adj = {};
     sliders.forEach(s => {
-      const val = Number(s.value);
-      const base = Number(s.dataset.base || 0);
-      const cost = Number(s.dataset.cost || 0);
-      const unit = s.dataset.unit || '';
-      const isDaily = s.dataset.freq === 'daily';
+      const val = Number(s.value), base = Number(s.dataset.base || 0), cost = Number(s.dataset.cost || 0), daily = s.dataset.per === 'day';
       const label = container.querySelector('#val-' + s.id);
-      if (label) label.textContent = `${val} ${unit}`;
-
-      const delta = (val - base) * cost * (isDaily ? 1 : 1 / 7);
-      if (s.dataset.cat === 'Food') deltaFood = delta;
-      else if (s.dataset.cat === 'Fun') deltaFun = delta;
-      else if (s.dataset.cat === 'Chai') deltaChai = delta;
+      if (label) label.textContent = `${val} ${daily ? 'a day' : 'a week'}`;
+      adj['habit:' + s.dataset.hid] = (val - base) * cost * (daily ? 1 : 1 / 7);
     });
-
-    const newFc = studentRunOutForecast({ Food: deltaFood, Fun: deltaFun, Chai: deltaChai });
+    const newFc = studentRunOutForecast(adj);
     updateRunOutChartLive(chartId, newFc);
 
     const badge = container.querySelector('#forecast-status-badge');
