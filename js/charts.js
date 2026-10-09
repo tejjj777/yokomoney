@@ -6,9 +6,12 @@
    ========================================================= */
 const charts = {};
 const hasChart = () => typeof window.Chart !== 'undefined';
+/** Rainbow chart colors: eight clearly different hues, checked to stay apart for colour-blind readers on the dark background. */
+const RAINBOW = ['#3987E5', '#D95926', '#199E70', '#C98500', '#D55181', '#008300', '#9085E9', '#E66767'];
 function colorAt(i) {
   const th = THEMES[state.settings.theme] || THEMES.yoko;
-  const all = th.chart.concat(['#CFCFCF', '#8F8F8F', '#6B6B6B', '#B5B5B5', '#5A5A5A', '#E0E0E0']);
+  const base = state.settings.chartColors === 'rainbow' ? RAINBOW : th.chart;
+  const all = base.concat(['#CFCFCF', '#8F8F8F', '#6B6B6B', '#B5B5B5', '#5A5A5A', '#E0E0E0']);
   const c = all[i % all.length];
   return document.documentElement.dataset.theme === 'print' && c === '#E8E8E8' ? '#3A3A3A' : c;   // light grey is invisible on paper
 }
@@ -27,7 +30,7 @@ function makeChart(id, config) {
 function setupChartDefaults() {
   if (!hasChart()) return;
   const D = Chart.defaults;
-  D.font.family = '"Schibsted Grotesk", system-ui, sans-serif';
+  D.font.family = '"DM Sans", system-ui, sans-serif';
   D.font.size = 12;
   D.color = css('--muted');
   D.borderColor = css('--grid');

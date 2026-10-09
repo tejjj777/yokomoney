@@ -241,6 +241,7 @@ function normalizeMore(s, raw) {
   if (rm.groupSeen && typeof rm.groupSeen === 'object') for (const k of Object.keys(rm.groupSeen).slice(0, 200)) if (rm.groupSeen[k] === true) s.meta.groupSeen[k] = true;
   s.settings.groupCat = rs.groupCat ? String(rs.groupCat).slice(0, 40) : '';
   s.settings.lang = ['hi', 'te'].includes(rs.lang) ? rs.lang : 'en';
+  s.settings.chartColors = rs.chartColors === 'rainbow' ? 'rainbow' : 'yoko';
   const bk = rs.bank;
   s.settings.bank = bk && typeof bk === 'object' && date(bk.asOf) ? { amount: nn(bk.amount), use: bk.use === true, asOf: bk.asOf, spentBase: nn(bk.spentBase), incomeBase: nn(bk.incomeBase) } : null;
   s.yearlyBills = arr(raw.yearlyBills).map(x => ({ id: str(x.id, uid()), name: str(x.name, 'Yearly bill', 60), amount: nn(x.amount), due: date(x.due) || todayISO() }));
@@ -678,26 +679,34 @@ function studentSafeToSpend() {
 }
 
 function categoryDailyAverages(daysBack = 30) {
-  const t = todayDate();
+  // Wants are paced: what they spend per day so far keeps going. Needs and savings are mostly one-off
+  // (rent, fees, a transfer), so only the part of their plan not paid yet is spread over the days left.
+  // This matches the money weather, so the two never disagree.
+  const t = todayDate(), today = F.toISO(t);
   const cutoff = F.toISO(F.addDays(t, -daysBack));
-  const exps = (state.budget.expenses || []).filter(x => x.date >= cutoff && !x.recurringId);
-  const byCat = {};
-  exps.forEach(x => {
-    const c = state.budget.categories.find(k => k.id === x.categoryId);
-    const name = c ? c.name : 'Other';
-    byCat[name] = (byCat[name] || 0) + x.amount;
-  });
-  const first = exps.map(x => x.date).sort()[0];
-  const actualDays = first ? Math.max(1, F.daysBetween(F.parseDate(first), t) + 1) : Math.min(daysBack, Math.max(1, t.getDate()));
+  const al = allowanceLeft();
+  const exps = (state.budget.expenses || []).filter(x => x.date >= cutoff && x.date <= today && !x.recurringId);
+  const catOf = id => state.budget.categories.find(k => k.id === id);
+  const first = exps.filter(x => { const k = catOf(x.categoryId); return !k || k.type === 'wants'; }).map(x => x.date).sort()[0];
+  const sinceFirst = first ? F.daysBetween(F.parseDate(first), t) + 1 : 0;
+  const intoPeriod = al.start ? F.daysBetween(F.parseDate(al.start), t) + 1 : t.getDate();
+  const actualDays = Math.min(daysBack, Math.max(1, sinceFirst, intoPeriod));
+  const daysLeft = Math.max(1, al.daysLeft || 1);
   const out = {};
-  for (const [k, v] of Object.entries(byCat)) {
-    out[k] = v / actualDays;
-  }
-  if (!Object.keys(out).length) {
-    state.budget.categories.forEach(c => {
-      if (c.planned > 0) out[c.name] = c.planned / 30;
-    });
-  }
+  exps.forEach(x => {
+    const k = catOf(x.categoryId);
+    if (k && k.type !== 'wants') return;
+    const name = k ? k.name : 'Other';
+    out[name] = (out[name] || 0) + x.amount / actualDays;
+  });
+  state.budget.categories.forEach(k => {
+    if (k.type === 'wants') {
+      if (!(k.name in out) && !exps.length && k.planned > 0) out[k.name] = k.planned / 30;   // nothing logged yet: use the plan
+      return;
+    }
+    const left = (k.planned || 0) - (k.actual || 0);
+    if (left > 0) out[k.name] = (out[k.name] || 0) + left / daysLeft;
+  });
   return out;
 }
 
@@ -715,9 +724,10 @@ function habitsList() {
 }
 function studentRunOutForecast(sliderAdjustments = {}) {
   const al = allowanceLeft();
+  const bank = state.settings.bank && state.settings.bank.use ? bankBalanceNow() : null;
   const dailyAvgs = categoryDailyAverages(30);
   return F.forecastRunOut({
-    currentBalance: Math.max(0, al.balance),
+    currentBalance: Math.max(0, bank !== null ? bank : al.balance),
     daysLeft: al.daysLeft,
     dailySpendByCategory: dailyAvgs,
     sliderAdjustments,

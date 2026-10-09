@@ -338,7 +338,7 @@ function drawWrappedSquareCard(d, cardIndex) {
   c.width = S;
   c.height = S;
   const ctx = c.getContext('2d');
-  const font = (w, px) => `${w} ${px}px "Bricolage Grotesque", "Schibsted Grotesk", system-ui, -apple-system, sans-serif`;
+  const font = (w, px) => `${w} ${px}px "Space Grotesk", "DM Sans", system-ui, -apple-system, sans-serif`;
   const fit = (text, maxW) => {
     let s = String(text || '');
     if (ctx.measureText(s).width <= maxW) return s;

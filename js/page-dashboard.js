@@ -63,7 +63,7 @@ function runOutForecastCard(chartId = 'dash-forecast-chart') {
     <div class="card-head">
       <div>
         <h2>Run-out forecast</h2>
-        <p class="muted small">Projected balance until your next allowance based on 30-day average spend.</p>
+        <p class="muted small">Your money until the next allowance: wants at your current pace, plus bills not paid yet.</p>
       </div>
       <div id="forecast-status-badge" class="badge ${fc.willMakeIt ? 'badge-success' : 'badge-danger'}">
         ${fc.willMakeIt ? `You’ll make it with ${fmt(fc.endBalance)} left` : `Runs out ${fc.runOutDay ? fmtDate(F.parseDate(fc.runOutDay)) : 'soon'} (${Math.max(1, days - (fc.runOutDayIndex || 0))} days before allowance)`}

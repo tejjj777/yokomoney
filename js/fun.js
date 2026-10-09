@@ -411,7 +411,7 @@ function drawWrapped(d) {
   const W = 1080, H = 1350, c = document.createElement('canvas');
   c.width = W; c.height = H;
   const x = c.getContext('2d');
-  const font = (w, px) => `${w} ${px}px "Schibsted Grotesk", system-ui, sans-serif`;
+  const font = (w, px) => `${w} ${px}px "DM Sans", system-ui, sans-serif`;
   const rrect = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
   const fit = (text, maxW) => { let s = String(text); if (x.measureText(s).width <= maxW) return s; while (s.length > 1 && x.measureText(s + '…').width > maxW) s = s.slice(0, -1); return s + '…'; };
   const accent = (THEMES[state.settings.theme] || THEMES.yoko).chart[0];
@@ -634,6 +634,7 @@ function prefsHTML() {
   return `
   <div class="settings-group"><h3>Theme and sound</h3><div class="form-grid two">
     <fieldset class="theme-pick span-2"><legend class="field-label">Theme</legend>${THEME_KEYS.map(k => `<label class="theme-opt"><input type="radio" name="set-theme" id="set-theme-${k}" value="${k}" data-setting="theme" data-kind="select" ${resolvedTheme() === k ? 'checked' : ''}><span class="swatch" aria-hidden="true"><i style="background:${THEMES[k].swatch[0]}"></i><i style="background:${THEMES[k].swatch[1]}"></i></span>${esc(THEMES[k].label)}</label>`).join('')}</fieldset>
+    <div class="field"><label for="set-chartc">Chart colors</label><select id="set-chartc" class="select" data-setting="chartColors" data-kind="select"><option value="yoko" ${s.chartColors !== 'rainbow' ? 'selected' : ''}>YOKO theme (shades of your theme)</option><option value="rainbow" ${s.chartColors === 'rainbow' ? 'selected' : ''}>Rainbow (every slice a different color)</option></select></div>
     <div class="field"><span class="field-label">Sound effects</span><label class="check"><input type="checkbox" id="set-sound" data-setting="sound" data-kind="bool" ${s.sound ? 'checked' : ''}> Play sounds</label></div>
   </div></div>
   <div class="settings-group"><h3>Hours of work</h3><p class="small muted">Prices also show as how long you’d have to work for them.</p><div class="form-grid two">
