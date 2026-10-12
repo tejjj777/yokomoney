@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 27;   // bumped: Spend log by day
+const TOUR_VERSION = 28;   // bumped: Split beams
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -67,8 +67,8 @@ const CHAPTERS = [
     { route: 'budget/history', target: ['#history-card'], title: 'History', text: 'Every past month saved automatically, so you can look back and spot patterns.' }
   ] },
   { id: 'split', icon: '👥', title: 'Split', blurb: 'IOUs, bill splitting, UPI and live groups.', route: 'split/ious', tryIt: ['Split a bill', () => billSplitterModal()], steps: [
-    { route: 'split/ious', target: ['#view-split .stats-grid', '#w-balances'], title: 'Who owes who', text: 'What friends owe you and what you owe them, totalled per person so you never have to do the math.' },
-    { route: 'split/ious', target: ['#w-balances'], title: 'Settle up', text: 'Tap Settle up next to a name. If you owe them, pick GPay, PhonePe or Paytm and pay in one tap. If they owe you, copy your UPI ID or the ready-made message and send it. Then mark it settled.' },
+    { route: 'split/ious', target: ['#w-balances'], title: 'Who owes who', text: 'What friends owe you and what you owe them, totalled per person. The moving lines show which way the money goes.' },
+    { route: 'split/ious', target: ['.friend-list', '#w-balances'], title: 'Settle up', text: 'Tap Pay or Remind next to a name. If you owe them, pick GPay, PhonePe or Paytm and pay in one tap. If they owe you, copy your UPI ID or the ready-made message and send it. Then mark it settled.' },
     { route: 'split/ious', target: ['[data-action="split-bill"]', '#w-ious'], title: 'Split a bill from a photo', text: 'Snap the restaurant bill. YOKO! reads every item, you tap who had what, and tax and service charge get shared fairly. Your share goes into your expenses, the rest become IOUs.' },
     { route: 'split/ious', target: ['#w-ious'], title: 'IOUs', text: 'Lent someone ₹200 for an auto? Add an IOU with a due date so it doesn’t get forgotten.' },
     { route: 'split/groups', target: ['[data-action="create-group"]', '#view-split .view-head'], title: 'Live groups', text: 'For a flat, a trip or a club. Create a group and share the 6-letter code, or join with a friend’s code. Expenses anyone adds show up for everyone straight away, split equally or by amount, and your share lands in your own budget.' },
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, Budget limits are sliders, and Spend groups by day.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend and Split.', hidden: true, steps: [
+    { route: 'split/ious', target: ['#w-balances'], title: 'Money lines', text: 'Lines run between you and each friend. They flow toward you when a friend owes you, and away when you owe them. Tap Pay or Remind next to a name.' },
     { route: 'spend/log', target: ['#command-bar'], title: 'Type a spend', text: 'Type “120 chai” and tap Log it. Below, tap a chip to see one category. Spends are grouped by day.' },
     { route: 'budget/plan', target: ['#cat-card'], title: 'Drag to set a limit', text: 'Each category has a slider. Drag it and the new limit saves when you let go. The bar at the top shows how your income is split.' },
     { route: 'dashboard/overview', target: ['.bento .tile-green'], title: 'Home in tiles', text: 'Days to your next allowance, the category closest to its limit, the month so far and your streak. Tap a tile to go there.' },
@@ -335,8 +336,9 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Spend by day:</strong> type “120 chai” in the bar to log it, tap a chip to see one category, and see your month total, a weekend insight and what’s coming up.</li></ul>
+        <li><strong>Split, drawn out:</strong> moving lines show who owes who, with Pay and Remind next to each friend and your group right there.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Spend by day:</strong> type “120 chai” in the bar to log it, tap a chip to see one category, and see your month total, a weekend insight and what’s coming up.</li>
         <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li>
         <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>
         <li><strong>Menu on top:</strong> on a laptop the pages run along the top, so there is more room for your money.</li>

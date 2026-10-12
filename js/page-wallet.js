@@ -439,6 +439,56 @@ function personBalancesCard() {
   </div>`;
 }
 
+/** Split hero: money beams between you and each friend, a row per friend, and your group. */
+function splitBeams(owed, owe) {
+  const people = personBalances().filter(p => p.absNet > 0.004).sort((a, b) => b.absNet - a.absNet);
+  const shown = people.slice(0, 6);
+  const W = 560, cx = W / 2, cy = 190;
+  const n = shown.length, ANG = n <= 2 ? [Math.PI, 0] : n === 3 ? [-2.6, -0.54, Math.PI / 2] : [-2.6, -0.54, 2.6, 0.54, -Math.PI / 2, Math.PI / 2];
+  const nodes = shown.map((p, i) => {
+    const x = Math.round(cx + Math.cos(ANG[i]) * 200), y = Math.round(cy + Math.sin(ANG[i]) * 130);
+    const from = p.dir === 'owed' ? [x, y] : [cx, cy], to = p.dir === 'owed' ? [cx, cy] : [x, y];
+    const mx = (from[0] + to[0]) / 2, my = (from[1] + to[1]) / 2 - 30;
+    return { p, x, y, d: `M${from[0]} ${from[1]} Q${mx} ${my} ${to[0]} ${to[1]}`, i };
+  });
+  const initial = name => esc((String(name).match(/[A-Za-z0-9]/) || ['•'])[0].toUpperCase());
+  const short = name => esc(String(name).length > 10 ? String(name).slice(0, 9) + '…' : String(name));
+  const top = Math.min(cy - 56, ...nodes.map(o => o.y - 40)), bot = Math.max(cy + 56, ...nodes.map(o => o.y + 80));
+  const svg = n ? `<svg class="beams" viewBox="0 ${top} ${W} ${bot - top}" role="img" aria-label="Money between you and your friends: ${esc(shown.map(x => `${x.person} ${x.dir === 'owed' ? 'owes you' : 'you owe'} ${fmt(x.absNet)}`).join(', '))}">
+      ${nodes.map(o => `<path d="${o.d}" class="beam-track"></path><path d="${o.d}" class="beam-flow" pathLength="240" style="--d:${o.i}"></path>`).join('')}
+      <circle cx="${cx}" cy="${cy}" r="44" class="you-pulse"></circle>
+      <g class="beam-node"><circle cx="${cx}" cy="${cy}" r="44" class="you-dot"></circle><text x="${cx}" y="${cy + 10}" class="you-txt">You</text></g>
+      ${nodes.map(o => `<g class="beam-node" style="--d:${o.i}"><circle cx="${o.x}" cy="${o.y}" r="32" class="f-dot"></circle><text x="${o.x}" y="${o.y + 8}" class="f-init">${initial(o.p.person)}</text>
+        <text x="${o.x}" y="${o.y + 52}" class="f-name">${short(o.p.person)}</text><text x="${o.x}" y="${o.y + 70}" class="f-amt${o.p.dir === 'owed' ? ' in' : ''}">${o.p.dir === 'owed' ? 'owes you' : 'you owe'} ${esc(fmt(o.p.absNet))}</text></g>`).join('')}
+    </svg>` : `<p class="muted">No open IOUs. Split a bill or add an IOU and it shows up here.</p>`;
+  const rows = people.map((p, i) => {
+    const last = p.ious.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+    return `<div class="card friend-row" style="--d:${i}">
+      <span class="sp-ico" aria-hidden="true">${initial(p.person)}</span>
+      <div class="sp-main"><p class="sp-name">${esc(p.person)}</p><p class="small muted">${last && last.note ? esc(last.note) : plural(p.count, 'open IOU')}${p.count > 1 && last && last.note ? ` · ${plural(p.count, 'IOU')}` : ''}</p></div>
+      <span class="fr-amt${p.dir === 'owed' ? ' in' : ''}">${p.dir === 'owed' ? '+' : '−'}${fmt(p.absNet)}</span>
+      <button type="button" class="btn btn-sm${p.dir === 'owe' ? ' btn-primary' : ''}" data-action="settle-person" data-person="${esc(p.person)}">${p.dir === 'owed' ? 'Remind' : 'Pay'}</button>
+    </div>`;
+  }).join('');
+  const g = (state.groups || [])[0];
+  const mem = g && Array.isArray(g.members) ? g.members : [];
+  const groupTile = g ? `<div class="card bento-tile tile-green group-tile">
+      <div class="gt-top"><div><p class="gt-name">${esc(g.name)}</p><p class="small">Live group${mem.length ? ` · ${plural(mem.length, 'person', 'people')}` : ''} · code ${esc(g.joinCode || '')}</p></div>
+      ${mem.length ? `<span class="av-stack" aria-hidden="true">${mem.slice(0, 4).map(m => `<i>${initial(m.name || m.displayName || m)}</i>`).join('')}</span>` : ''}</div>
+      <div class="gt-actions"><button type="button" class="btn btn-sm btn-ink" data-action="group-view" data-id="${g.id}">Open group</button><button type="button" class="btn btn-sm btn-ink" data-action="group-add-expense" data-id="${g.id}">Add expense</button></div>
+    </div>` : `<div class="card bento-tile tile-green group-tile">
+      <p class="gt-name">Split with your flat</p><p class="small">Make a live group for a flat or a trip. Everyone adds spends and sees who owes who.</p>
+      <div class="gt-actions"><button type="button" class="btn btn-sm btn-ink" data-action="create-group">Create group</button><button type="button" class="btn btn-sm btn-ink" data-action="join-group">Join with code</button></div>
+    </div>`;
+  return `<div class="budget-split">
+    <section class="card beams-card" id="w-balances" aria-label="Who owes who">
+      <div class="beam-totals"><div><p class="small muted">You’re owed</p><p class="big-num in">${fmt(owed)}</p></div><div><p class="small muted">You owe</p><p class="big-num">${fmt(owe)}</p></div></div>
+      ${svg}${people.length > shown.length ? `<p class="small muted">Showing the ${shown.length} biggest. All ${people.length} are listed here.</p>` : ''}
+    </section>
+    <aside class="budget-aside friend-list">${rows}${groupTile}</aside>
+  </div>`;
+}
+
 function liveGroupsCard() {
   const groups = state.groups || [];
   if (!groups.length) {
@@ -478,12 +528,7 @@ function renderSplit() {
   const head = viewHeader('split', 'Split & Roommates', 'Split group bills, track who owes who, and settle up with roommates.',
     `<button type="button" class="btn btn-primary" data-action="split-bill">${ICON.receipt}<span>Split a bill</span></button>`);
 
-  const summaryCard = `<div class="stats-grid two" style="margin-bottom:16px">
-    ${stat('You are owed', fmt(owed), `${plural(open.filter(x => x.dir === 'owed').length, 'payment')} to come from friends`, owed > 0 ? 'tone-success' : '')}
-    ${stat('You owe', fmt(owe), `${plural(open.filter(x => x.dir === 'owe').length, 'IOU')} to pay back`, owe > 0 ? 'tone-danger' : '')}
-  </div>`;
-
-  const iousTab = summaryCard + personBalancesCard() + iouCard();
+  const iousTab = splitBeams(owed, owe) + iouCard();
   const historyTab = `<div class="card" id="w-settled">
     <div class="card-head"><div><h2>Settled history</h2><p class="muted small">Previous IOUs and bill settlements.</p></div></div>
     ${settled.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Person</th><th scope="col">Date settled</th><th class="num" scope="col">Amount</th><th scope="col">Note</th></tr></thead>
