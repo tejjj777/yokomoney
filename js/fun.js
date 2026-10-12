@@ -507,7 +507,7 @@ function parseCommand(q) {
     const amt = parseAmount(words[gi]);
     const rest = skip(words.slice(gi + 1), ['to', 'for', 'into']);
     const g = findByName(state.goals, rest.join(' ')) || findByName(state.goals, rest[0]);
-    if (amt && g) out.push({ parsed: true, label: `Add ${fmt(amt)} to ${g.name}`, run: () => addToGoal(g, amt, todayISO(), 'Quick add') });
+    if (amt && g) out.push({ parsed: true, chips: [['Amount', fmt(amt)], ['Goal', g.name], ['Date', 'Today']], label: `Add ${fmt(amt)} to ${g.name}`, run: () => addToGoal(g, amt, todayISO(), 'Quick add') });
   }
   // Debts: "pay 3000 credit"
   if (['pay', 'hit'].includes(low[0])) {
@@ -515,7 +515,7 @@ function parseCommand(q) {
     const rest = skip(words.slice(2), ['to', 'on', 'off']);
     const alive = state.debts.filter(d => d.balance > 0);
     const d = findByName(alive, rest.join(' ')) || findByName(alive, rest[0]);
-    if (amt && d) out.push({ parsed: true, label: `Log ${fmt(amt)} payment to ${d.name}`, run: () => logDebtPayment(d, amt, todayISO()) });
+    if (amt && d) out.push({ parsed: true, chips: [['Amount', fmt(amt)], ['Debt', d.name], ['Date', 'Today']], label: `Log ${fmt(amt)} payment to ${d.name}`, run: () => logDebtPayment(d, amt, todayISO()) });
   }
   // Expenses: "250 food", "spent 250 on food dinner", "add expense 250 food"
   let i = ['add', 'spent', 'spend', 'paid', 'expense'].includes(low[0]) ? 1 : 0;
@@ -526,7 +526,7 @@ function parseCommand(q) {
     const c = rest.length ? findByName(state.budget.categories, rest[0]) : null;
     if (c) {
       const note = rest.slice(1).join(' ').slice(0, 120);
-      out.push({ parsed: true, label: `Add ${fmt(amt)} expense to ${c.name}${note ? ` · “${note}”` : ''}`, run: () => { const r = addExpense({ categoryId: c.id, amount: amt, date: todayISO(), note }); commit(); expenseToast(amt, r); } });
+      out.push({ parsed: true, spend: amt, chips: [['Amount', fmt(amt)], ['Category', c.name]].concat(note ? [['Note', note]] : []).concat([['Date', 'Today']]), label: `Add ${fmt(amt)} expense to ${c.name}${note ? ` · “${note}”` : ''}`, run: () => { const r = addExpense({ categoryId: c.id, amount: amt, date: todayISO(), note }); commit(); expenseToast(amt, r); } });
     }
   }
   // Transport: "uber 320", "fuel 1500", "metro 40 office"
@@ -536,7 +536,7 @@ function parseCommand(q) {
     if (aT) {
       const mode = TRANSPORT_WORDS[low[tIdx]];
       const note = words.filter((w, k) => k !== tIdx && !parseAmount(w)).join(' ').slice(0, 120);
-      out.push({ parsed: true, label: `Log ${fmt(aT)} ${modeInfo(mode)[2]}${note ? ` · “${note}”` : ''} in Transport`,
+      out.push({ parsed: true, spend: aT, chips: [['Amount', fmt(aT)], ['Ride', modeInfo(mode)[2]], ['Category', 'Transport']].concat(note ? [['Note', note]] : []), label: `Log ${fmt(aT)} ${modeInfo(mode)[2]}${note ? ` · “${note}”` : ''} in Transport`,
         run: () => { addTransport({ mode, amount: aT, date: todayISO(), note, km: null, categoryId: defaultTransportCat() }); commit(); toast(`${modeInfo(mode)[1]} ${fmt(aT)} logged`); } });
     }
   }
@@ -621,8 +621,19 @@ function openPalette() {
     items = parseCommand(q).concat(q ? matches : statics).slice(0, 9);
     sel = Math.min(sel, Math.max(0, items.length - 1));
     const list = form.querySelector('#cmd-list');
+    const top = items[0] && items[0].parsed && items[0].chips ? items[0] : null;
+    const card = form.querySelector('#cmd-parsed');
+    if (top) {
+      let after = '';
+      if (top.spend && monthlyIncome() > 0) { try { const st = studentSafeToSpend(); after = `<p class="small">Safe to spend today goes to <strong class="cp-after">${fmtExact(Math.max(0, st.leftToday - top.spend))}</strong></p>`; } catch (e) { after = ''; } }
+      card.innerHTML = `<p class="cp-tag">Here’s what I’ll ${top.spend ? 'log' : 'do'}</p>
+        <div class="cp-chips">${top.chips.map(([k, v], i) => `<span class="cp-chip" style="--d:${i}"><b>${esc(k)}</b> ${esc(v)}</span>`).join('')}</div>
+        <div class="cp-foot">${after}<button type="button" class="btn btn-sm cp-go" data-cmd-run="0">${top.spend ? 'Log it' : 'Do it'} ↵</button></div>`;
+      card.hidden = false;
+    } else { card.hidden = true; card.innerHTML = ''; }
+    const badge = c => { const w = c.label.replace(/^(Go to|Add|Log|Open|Enter|Show)\s+/i, ''); return esc((w.match(/[A-Za-z0-9₹]/) || ['•'])[0].toUpperCase()); };
     list.innerHTML = items.length
-      ? items.map((c, i) => `<li role="option" id="cmd-opt-${i}" data-i="${i}" aria-selected="${i === sel}"><span>${esc(c.label)}</span><span class="cmd-tag">${c.parsed ? '↵ Do it' : 'Command'}</span></li>`).join('')
+      ? items.map((c, i) => `<li role="option" id="cmd-opt-${i}" data-i="${i}" aria-selected="${i === sel}"><span class="cmd-key" aria-hidden="true">${badge(c)}</span><span class="cmd-label">${esc(c.label)}</span><span class="cmd-tag">${c.parsed ? '↵ Do it' : /^Go to/.test(c.label) ? 'Page' : 'Action'}</span></li>`).join('')
       : '<li role="presentation" class="muted">No match. Try “250 food”, “save 500 laptop” or “pay 3000 credit”.</li>';
     if (items.length) inp.setAttribute('aria-activedescendant', `cmd-opt-${sel}`); else inp.removeAttribute('aria-activedescendant');
     const on = list.querySelector('[aria-selected="true"]');
@@ -631,8 +642,11 @@ function openPalette() {
   const run = i => { const c = items[i]; if (!c) return; closeModal(); setTimeout(() => c.run(), 0); };
   openModal({
     title: 'Command palette', submitLabel: 'Run', cancelLabel: 'Close',
-    body: `<div class="field"><label for="cmd-input">Type a command</label>
-      <input id="cmd-input" class="input" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-autocomplete="list" placeholder="250 food dinner · save 2k trip · pay 3000 credit"></div>
+    body: `<div class="cmd-bar"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><label for="cmd-input" class="sr-only">Type a command</label>
+      <input id="cmd-input" class="cmd-input" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-autocomplete="list" placeholder="250 food dinner · save 2k trip · pay 3000 credit">
+      <button type="button" class="cmd-esc" data-action="close-modal" aria-label="Close">Esc</button></div>
+      <div id="cmd-parsed" class="cmd-parsed" aria-live="polite" hidden></div>
+      <p class="cmd-head">${'Quick actions'}</p>
       <ul id="cmd-list" class="cmd-list" role="listbox" aria-label="Commands"></ul>
       <p class="help">Examples: <kbd>250 food</kbd> <kbd>spent 1.2k on fun movie</kbd> <kbd>save 500 laptop</kbd> <kbd>pay 3000 credit</kbd> <kbd>wrapped</kbd>. Use ↑ ↓ and Enter.</p>`,
     onMount: form => {
@@ -643,6 +657,8 @@ function openPalette() {
         else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); draw(form); }
       });
       form.querySelector('#cmd-list').addEventListener('click', e => { const li = e.target.closest('[data-i]'); if (li) run(Number(li.dataset.i)); });
+      form.querySelector('#cmd-parsed').addEventListener('click', e => { if (e.target.closest('[data-cmd-run]')) run(0); });
+      form.closest('.modal').classList.add('palette-modal');
       draw(form);
     },
     onSubmit: () => { run(sel); return false; }   // run() closes the palette itself

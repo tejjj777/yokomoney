@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 31;   // bumped: Settings sheet
+const TOUR_VERSION = 32;   // bumped: command palette
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'A live check of the app’s math (it should say 133 of 133), all the tutorials, and how to add YOKO! to your home screen so it opens like an app.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for every page and Settings.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for every page, Settings and the command palette.', hidden: true, steps: [
+    { target: ['#side-palette', '#palette-btn'], title: 'Type it, log it', text: 'Press Ctrl K (or the search button) and type “250 food dinner”. It shows exactly what it will log and how your safe-to-spend changes. Press Enter to log it.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings, tidied', text: 'Settings is now a set of cards with switches, sliding pickers for language and chart colors, a live sync light and the math check on Help.' },
     { route: 'debt/debts', target: ['#debt-hero'], title: 'Pick your order', text: 'Switch between highest interest first and smallest first. The date, the interest and the chart update right away.' },
     { route: 'goals/goals', target: ['.hang-card', '#view-goals .view-head'], title: 'Goal tags', text: 'Each goal is a tag. Tap Add to put money in with one tap, or + for another amount. The rings up top show your three biggest goals.' },
@@ -339,8 +340,9 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Settings, tidied:</strong> cards, on/off switches, sliding pickers for language and chart colors, a live sync light, and Help shows the math check passing.</li></ul>
+        <li><strong>Command palette:</strong> press Ctrl K and type “250 food dinner”. You see the amount, category and note as chips, what safe to spend becomes, then Log it.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Settings, tidied:</strong> cards, on/off switches, sliding pickers for language and chart colors, a live sync light, and Help shows the math check passing.</li>
         <li><strong>Debt, in order:</strong> your debt-free date with a chart that draws itself, a switch for highest interest first or smallest first, and your debts listed in the order to pay them.</li>
         <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
         <li><strong>Fixed:</strong> the tab pill no longer lands in the wrong spot when the page loads slowly.</li>

@@ -1700,3 +1700,40 @@ mark.hl span { position: relative; }
 .settings-modal .modal-body > * { min-width: 0; max-width: 100%; }
 .settings-modal .set-tabs .subtabs-inner { max-width: 100%; }
 .settings-modal .modal-body { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- Command palette (Bento × Zine) ---------- */
+.modal.palette-modal { max-width: 640px; align-self: flex-start; margin-top: max(16px, 10vh); border: 2px solid var(--primary); border-radius: 20px; box-shadow: 8px 8px 0 var(--hard); }
+.palette-modal .modal-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); padding: 0; border: 0; }
+.palette-modal .modal-foot { display: none; }
+.palette-modal .modal-body { padding: 0 0 8px; gap: 0; }
+.cmd-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 20px; border-bottom: 1px solid var(--border); }
+.cmd-bar svg { flex: none; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; }
+.cmd-input { flex: 1; min-width: 0; height: 44px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 18px; caret-color: var(--primary); }
+.cmd-input:focus { outline: none; }
+.cmd-input::placeholder { color: var(--muted); }
+.cmd-esc { flex: none; padding: 2px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.cmd-esc:hover { color: var(--text); border-color: var(--featured-border); }
+.cmd-parsed { margin: 16px 16px 4px; padding: 16px; border-radius: 14px; background: var(--tint); border: 1px solid var(--featured-border); display: flex; flex-direction: column; gap: 12px; animation: yk-in .35s var(--ease-out) both; }
+.cmd-parsed[hidden] { display: none; }
+.cp-tag { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--link); }
+.cp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-chip { display: inline-flex; gap: 6px; align-items: baseline; padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--featured-border); font-size: 14px; font-weight: 600; animation: yk-pop .4s var(--ease-spring) both; animation-delay: calc(var(--d, 0) * 70ms); }
+.cp-chip b { font-weight: 500; color: var(--muted); font-size: 12px; }
+.cp-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.cp-foot p { margin: 0; }
+.cp-after { color: var(--primary); }
+.cp-go { margin-left: auto; background: var(--primary); color: var(--on-primary); border: 2px solid #0A0A0A; box-shadow: 3px 3px 0 var(--hard); font-weight: 700; }
+.cp-go:hover { background: color-mix(in srgb, var(--primary) 85%, #fff); color: var(--on-primary); }
+.cmd-head { margin: 16px 20px 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.palette-modal .cmd-list { padding: 0 8px; max-height: min(330px, 45vh); }
+.palette-modal .cmd-list li { align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; transition: background-color .15s ease; }
+.palette-modal .cmd-list li:hover { background: var(--surface-hover); }
+.palette-modal .cmd-list li[aria-selected="true"] { background: var(--tint); }
+.cmd-key { width: 32px; height: 32px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-anton); font-size: 15px; background: var(--bg); color: var(--primary); border: 1px solid var(--featured-border); }
+.cmd-list li[aria-selected="true"] .cmd-key { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.cmd-label { flex: 1; min-width: 0; }
+.palette-modal .help { margin: 8px 20px 0; }
+@media (max-width: 599px) { .modal.palette-modal { margin-top: 8px; } .cmd-input { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .cmd-parsed, .cp-chip { animation: none; } }
+.palette-modal .cmd-input:focus, .palette-modal .cmd-input:focus-visible { outline: none; box-shadow: none; border: 0; }
+.cmd-bar:focus-within { box-shadow: inset 0 -2px 0 var(--primary); }
