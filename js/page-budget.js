@@ -18,13 +18,6 @@ function renderBudget() {
     <p class="stat-sub">${state.budget.incomeOverride !== null ? `Override · paycheck setup says ${fmt(auto)}` : `${irregularLine()} · <button type="button" class="linklike" data-action="log-income">Log income</button>`}</p>
     <div class="field no-print" style="margin-top:12px">${moneyInput({ id: 'income-override', bind: 'budget', field: 'incomeOverride', value: state.budget.incomeOverride, label: 'Manual override (leave blank to use paycheck)', kind: 'moneyOpt', placeholder: 'Use paycheck', srLabel: false })}</div>
   </div>`;
-  const remaining = `<div class="card stat stat-big ${b.remaining < 0 ? 'tone-danger' : 'featured'}" style="grid-column:span 2">
-    <p class="stat-label">${b.remaining < 0 ? 'Overspent this month' : 'Remaining this month'}</p>
-    <p class="stat-value">${fmt(b.remaining < 0 ? -b.remaining : b.remaining)}</p>
-    <p class="stat-sub">Income ${fmt(b.income)} − spent ${fmt(b.actual)} · ${b.unplanned >= 0 ? `${fmt(b.unplanned)} not yet planned` : `plan is ${fmt(-b.unplanned)} over income`}</p>
-    <div class="progress ${b.actual > b.income ? 'over' : ''}" style="margin-top:12px" role="progressbar" aria-label="Share of income spent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${b.income > 0 ? Math.round(clamp(b.actual / b.income * 100, 0, 100)) : 0}"><span style="width:${b.income > 0 ? clamp(b.actual / b.income * 100, 0, 100) : 0}%"></span></div>
-  </div>`;
-  const statsRow = `<div class="stats-grid">${incomeCard}${remaining}${(() => { const al = dailyAllowance(); return stat('Daily allowance', fmt(al.over ? 0 : al.perDay), al.over ? 'You’ve overspent this month' : al.byPayday ? `a day until your next allowance (${plural(al.daysLeft, 'day')})` : `a day for the ${al.daysLeft} day${al.daysLeft === 1 ? '' : 's'} left this month`, al.over ? 'tone-danger' : ''); })()}</div>`;
 
   const split = splitSummary();
   const bucketRow = (bk, list) => {
@@ -51,16 +44,66 @@ function renderBudget() {
       <td class="actions no-print"><button type="button" class="icon-btn carry-btn ${c.carry ? 'on' : ''}" data-action="toggle-carry" data-id="${c.id}" aria-pressed="${c.carry ? 'true' : 'false'}" title="${c.carry ? 'Unspent money carries to next month' : 'Carry unspent money to next month'}" aria-label="Carry unspent ${esc(c.name)} money to next month">↻</button><button type="button" class="icon-btn danger" data-action="delete-category" data-id="${c.id}" aria-label="Delete ${esc(c.name)}">${ICON.trash}</button></td>
     </tr>`;
   };
+  // Bento × Zine plan: hero with the allocation bar, slider rows, planned vs actual, carry over
+  const month = FULL_MONTHS[todayDate().getMonth()];
+  const shade = i => `color-mix(in srgb, var(--primary) ${[100, 62, 38, 80, 50, 90, 70, 28][i % 8]}%, ${i % 8 === 3 || i % 8 === 5 ? '#fff' : '#000'})`;
+  const planCats = cats.filter(c => c.planned > 0);
+  const barTotal = Math.max(b.income, b.planned, 1);
+  const leftNow = b.remaining;
+  const budgetHero = `<div class="card budget-hero" id="budget-hero">
+    <div class="bh-left">
+      <span class="hero-chip">${leftNow < 0 ? `Overspent in ${month}` : `Left to spend in ${month}`}</span>
+      <p class="big-num bh-amount">${fmt(Math.abs(leftNow))}</p>
+      <p class="small muted">Income ${fmt(b.income)} − spent ${fmt(b.actual)}</p>
+    </div>
+    <div class="bh-right">
+      <div class="bh-top small"><span class="muted">Income ${fmt(b.income)}</span><span class="${b.unplanned >= 0 ? 'bh-free' : 'bh-over'}">${b.unplanned >= 0 ? `${fmt(b.unplanned)} not planned yet` : `${fmt(-b.unplanned)} more than your income`}</span></div>
+      <div class="alloc-bar" role="img" aria-label="How your income is planned across categories">${planCats.map((c, i) => `<span class="seg" title="${esc(c.name)} ${esc(fmt(c.planned))}" style="width:${(c.planned / barTotal * 100).toFixed(2)}%;background:${shade(i)}"></span>`).join('')}</div>
+      <div class="alloc-legend small">${planCats.map((c, i) => `<span><i style="background:${shade(i)}"></i>${esc(c.name)}</span>`).join('')}</div>
+    </div>
+  </div>`;
+  const niceStep = mx => { const r = mx / 120, p = Math.pow(10, Math.floor(Math.log10(Math.max(1, r)))); return [1, 2, 5, 10].map(k => k * p).find(k => k >= r) || p; };
+  const slideRow = c => {
+    const carry = c.carryIn || 0, lim = c.planned + carry, ratio = lim > 0 ? c.actual / lim : (c.actual > 0 ? 2 : 0);
+    const over = c.actual > lim + 0.004, close = !over && lim > 0 && ratio >= 0.75;
+    const top = Math.max(b.income * 0.4, c.planned * 2, c.actual * 1.2, 1000), step = niceStep(top), mx = Math.ceil(top / step) * step;
+    const note = over ? `Over by ${fmt(c.actual - lim)}` : lim > 0 && ratio >= 1 ? (c.type === 'savings' ? 'Saved in full' : 'Limit reached') : close ? 'Close to limit' : c.actual === 0 ? 'Nothing yet' : `${fmt(lim - c.actual)} left`;
+    return `<div class="card slide-row${over || close ? ' is-hot' : ''}">
+      <div class="sr-head"><button type="button" class="linklike sr-name" data-action="cat-expenses" data-id="${c.id}">${esc(c.name)}</button><span class="small sr-note">${note}${carry > 0.004 ? ` · +${fmt(carry)} carried` : ''}</span></div>
+      <input id="cat-range-${c.id}" class="cat-range" type="range" min="0" max="${mx}" step="${step}" value="${c.planned}" data-slide="cat" data-id="${c.id}" aria-label="${esc(c.name)} limit" aria-valuetext="${esc(fmt(c.planned))}">
+      <p class="big-num sr-limit" data-limit-for="${c.id}">${fmt(c.planned)}</p>
+      <div class="sr-foot"><div class="progress${over ? ' over' : ''}" aria-hidden="true"><span style="width:${clamp(ratio * 100, 0, 100)}%"></span></div><span class="small muted">${fmt(c.actual)} spent</span></div>
+    </div>`;
+  };
+  const sliders = `<section class="slide-list" id="cat-card" aria-label="Category limits">${cats.length ? cats.map(slideRow).join('') : '<p class="muted">No categories. Add one to start planning.</p>'}
+    <div class="no-print slide-actions"><button type="button" class="btn btn-sm" data-action="add-category">${ICON.plus}<span>Add category</span></button></div></section>`;
+  const pvaCats = cats.filter(c => c.planned > 0 || c.actual > 0).sort((x, y) => y.planned - x.planned).slice(0, 6);
+  const pvaMax = Math.max(1, ...pvaCats.map(c => Math.max(c.planned, c.actual)));
+  const pvaCard = pvaCats.length ? `<div class="card pva-card"><h2 class="tile-h">Planned vs actual</h2>
+    <p class="pva-key small muted"><span><i class="k-plan"></i>Planned</span><span><i class="k-act"></i>Spent</span></p>
+    <div class="pva" role="img" aria-label="Planned and spent for your biggest categories">${pvaCats.map((c, i) => `<span class="pva-col" style="--d:${i}"><i class="p" style="height:${Math.max(2, c.planned / pvaMax * 100)}%"></i><i class="a" style="height:${Math.max(1, c.actual / pvaMax * 100)}%"></i></span>`).join('')}</div>
+    <div class="pva-names small muted">${pvaCats.map(c => `<span>${esc(c.name)}</span>`).join('')}</div></div>` : '';
+  const carryPick = cats.filter(c => c.type !== 'savings').map(c => ({ c, left: c.planned + (c.carryIn || 0) - c.actual })).filter(x => x.left > 0.5).sort((x, y) => y.left - x.left)[0];
+  const carryCard = carryPick ? `<div class="card bento-tile tile-green carry-tile">
+    <span class="tile-label">Carry over</span>
+    <span class="carry-amt">${fmt(carryPick.left)} from ${esc(carryPick.c.name)}</span>
+    <span class="small">${carryPick.c.carry ? 'It rolls into next month when this one closes.' : 'Roll what you don’t spend into next month.'}</span>
+    <button type="button" class="btn btn-sm btn-ink" data-action="toggle-carry" data-id="${carryPick.c.id}" aria-pressed="${carryPick.c.carry ? 'true' : 'false'}">${carryPick.c.carry ? 'Stop carrying' : 'Carry it over'}</button>
+  </div>` : '';
+  const al = dailyAllowance();
+  const sideStats = `<div class="card stat"><p class="stat-label">Daily allowance</p><p class="stat-value">${fmt(al.over ? 0 : al.perDay)}</p><p class="stat-sub">${al.over ? 'You’ve overspent this month' : al.byPayday ? `a day until your next allowance (${plural(al.daysLeft, 'day')})` : `a day for the ${plural(al.daysLeft, 'day')} left this month`}</p></div>${incomeCard}`;
+  const planTop = budgetHero + `<div class="budget-split">${sliders}<aside class="budget-aside">${pvaCard}${carryCard}${sideStats}</aside></div>`;
+
   const groups = split.rows.map(bk => ({ bk, list: cats.filter(c => c.bucketId === bk.id) }));
   const loose = cats.filter(c => !split.rows.some(bk => bk.id === c.bucketId));
   const catRows = groups.filter(g => g.list.length || g.bk.monthly > 0).map(g => bucketRow(g.bk, g.list) + g.list.map(catRow).join('')).join('')
     + (loose.length ? bucketRow(null, loose) + loose.map(catRow).join('') : '');
-  const catCard = `<div class="card mb" id="cat-card">
-    <div class="card-head"><div><h2>Categories</h2><p class="muted small">Grouped by the paycheck bucket they come out of. Spent is added up from your expense log.</p></div>
+  const catCard = `<div class="card mb" id="cat-edit">
+    <div class="card-head"><div><h2>Edit categories</h2><p class="muted small">Rename, change type or bucket, carry over (↻) or delete. Grouped by the paycheck bucket they come out of.</p></div>
       <div class="actions no-print"><button type="button" class="btn btn-sm" data-action="add-category">${ICON.plus}<span>Add category</span></button>
       ${moreMenu([mi('Close month early (if your month ends on payday)', 'new-month'), csvItem('budget', 'budget')])}</div></div>
-    ${cats.length ? `<div class="table-wrap"><table class="cat-table"><thead><tr><th scope="col">Category</th><th scope="col">Type</th><th scope="col">Planned</th><th scope="col">Spent</th><th class="num" scope="col">Left</th>${last ? '<th class="num" scope="col">Last month</th>' : ''}<th scope="col">Bucket</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead>
-      <tbody>${catRows}</tbody><tfoot><tr><td>Total</td><td></td><td class="num" style="text-align:left">${fmt(b.planned)}</td><td class="num" style="text-align:left">${fmt(b.actual)}</td><td class="num ${b.planned - b.actual < 0 ? 'tone-danger-text' : ''}">${fmt(b.planned - b.actual)}</td>${last ? `<td class="num">${fmt(sum(last.cats, k => k.actual))}</td>` : ''}<td></td><td></td></tr></tfoot></table></div>`
+    ${cats.length ? `<details class="collapsible" data-open-key="cat-table" ${openAttr('cat-table')}><summary>All ${cats.length} categories</summary><div class="details-body"><div class="table-wrap"><table class="cat-table"><thead><tr><th scope="col">Category</th><th scope="col">Type</th><th scope="col">Planned</th><th scope="col">Spent</th><th class="num" scope="col">Left</th>${last ? '<th class="num" scope="col">Last month</th>' : ''}<th scope="col">Bucket</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>${catRows}</tbody><tfoot><tr><td>Total</td><td></td><td class="num" style="text-align:left">${fmt(b.planned)}</td><td class="num" style="text-align:left">${fmt(b.actual)}</td><td class="num ${b.planned - b.actual < 0 ? 'tone-danger-text' : ''}">${fmt(b.planned - b.actual)}</td>${last ? `<td class="num">${fmt(sum(last.cats, k => k.actual))}</td>` : ''}<td></td><td></td></tr></tfoot></table></div></div></details>`
       : '<p class="muted">No categories. Add one to start planning.</p>'}
   </div>`;
 
@@ -109,7 +152,7 @@ function renderBudget() {
   </div>`;
 
   const html = head + intro + tabbed('budget', {
-    plan: statsRow + incomeLogCard() + catCard + `<div class="grid-2">${ruleCard}${splitCard()}</div>`,
+    plan: planTop + incomeLogCard() + catCard + `<div class="grid-2">${ruleCard}${splitCard()}</div>`,
     where: whereCard() + `<div class="grid-2">${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned (no actual spending yet)' : ''), 'budget-doughnut', sp.list.length > 0, 'Add planned or actual amounts to see this chart.', '', true)}${chartCard('Planned vs actual', 'By category', 'budget-bar', hasBar, 'Add amounts to compare planned and actual.')}</div>`,
     yearly: yearlyCard(),
     history: whereCard() + historyCard() +

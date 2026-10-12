@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 25;   // bumped: Home bento and top nav
+const TOUR_VERSION = 26;   // bumped: Budget sliders
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -57,9 +57,9 @@ const CHAPTERS = [
     { route: 'spend/cash', target: ['#w-cash'], title: 'Cash', text: 'Took ₹500 out of the ATM? Log it here so cash spends don’t vanish from your budget. You can also log auto, metro and cab trips from the + button.' }
   ] },
   { id: 'budget', icon: '📊', title: 'Budget', blurb: 'Your plan, your income, and what changed.', route: 'budget/plan', steps: [
-    { route: 'budget/plan', target: ['#view-budget .stats-grid'], title: 'The month at a glance', text: 'Income, how much is left, and your daily allowance for the rest of the month.' },
-    { route: 'budget/plan', target: ['#income-log', '#view-budget .stats-grid', '#cat-card'], title: 'Income', text: 'Pocket money, part-time pay, money from home. Log what comes in so the plan matches reality. If your allowance comes at random times, mark it as irregular when you set it up.' },
-    { route: 'budget/plan', target: ['#cat-card'], title: 'Category limits', text: 'Set a limit for each category, or add your own with Add category (or “+ New category” while logging a spend). Tap ↻ to carry unspent money into next month. You get a heads-up at 80% and 100%.' },
+    { route: 'budget/plan', target: ['#budget-hero'], title: 'The month at a glance', text: 'How much is left this month, and a bar showing how your income is split across categories.' },
+    { route: 'budget/plan', target: ['#income-log', '#budget-hero'], title: 'Income', text: 'Pocket money, part-time pay, money from home. Log what comes in so the plan matches reality. If your allowance comes at random times, mark it as irregular when you set it up.' },
+    { route: 'budget/plan', target: ['#cat-card'], title: 'Category limits', text: 'Drag a slider to change a limit. Add your own with Add category (or “+ New category” while logging a spend). Edit categories lets you rename, change type or bucket, and tap ↻ to carry unspent money into next month. You get a heads-up at 80% and 100%.' },
     { route: 'budget/plan', target: ['#cat-card'], title: 'Freeze a category', text: 'Trying to cut back on something? Freeze it for 7 to 30 days from Goals → Challenges. If you log a spend there, YOKO! reminds you how many days you have left.' },
     { route: 'budget/plan', target: ['#view-budget .grid-2'], title: '50 / 30 / 20 check', text: 'Compares your needs, wants and savings with the common 50/30/20 split. Next to it, your allowance is split into pots like Hostel & Mess, Daily spending and Savings.' },
     { route: 'budget/where', target: ['#where-card'], title: 'Where did it go?', text: 'This month against the same point last month, category by category. You see right away what went up and what went down.' },
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, and the menu sits on top on a laptop.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, and Budget limits are sliders.', hidden: true, steps: [
+    { route: 'budget/plan', target: ['#cat-card'], title: 'Drag to set a limit', text: 'Each category has a slider. Drag it and the new limit saves when you let go. The bar at the top shows how your income is split.' },
     { route: 'dashboard/overview', target: ['.bento .tile-green'], title: 'Home in tiles', text: 'Days to your next allowance, the category closest to its limit, the month so far and your streak. Tap a tile to go there.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'A new look', text: 'Bold numbers, green frames and a little motion. Safe to spend now counts up when you open Home.' },
     { route: 'spend/log', target: ['#view-spend .subtabs-inner'], title: 'Sliding tabs', text: 'The green pill slides to the tab you pick, on every page.' }
@@ -333,9 +334,10 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>
-        <li><strong>Menu on top:</strong> on a laptop the pages run along the top, so there is more room for your money.</li></ul>
+        <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>
+        <li><strong>Menu on top:</strong> on a laptop the pages run along the top, so there is more room for your money.</li>
         <li><strong>New look:</strong> bold numbers, green frames and smooth motion. Money counts up, cards slide in, tabs glide.</li>
         <li><strong>Yoko is back:</strong> your pet is the green blob again.</li>
         <li><strong>What’s new on Home:</strong> a button next to Scan receipt, so you can open this anytime.</li>

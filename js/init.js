@@ -42,6 +42,11 @@ function bindEvents() {
   document.addEventListener('input', e => {
     const el = e.target;
     if (el.id === 'whatif-range') { updateWhatIf(); return; }
+    if (el.dataset && el.dataset.slide === 'cat') {   // Budget slider: show the new limit while dragging, save on release
+      const v = fmt(Number(el.value) || 0), t = document.querySelector(`[data-limit-for="${el.dataset.id}"]`);
+      if (t) t.textContent = v;
+      el.setAttribute('aria-valuetext', v); return;
+    }
     if (el.dataset && el.dataset.filter && !el.closest('#modal-root')) {
       ui.expFilter = Object.assign(ui.expFilter || emptyExpFilter(), { [el.dataset.filter]: el.value });
       scheduleRender(el.tagName === 'SELECT' || el.type === 'date' ? 0 : 250); return;
