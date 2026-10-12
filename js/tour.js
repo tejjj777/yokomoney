@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 26;   // bumped: Budget sliders
+const TOUR_VERSION = 27;   // bumped: Spend log by day
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -45,8 +45,8 @@ const CHAPTERS = [
     { route: 'budget/plan', target: ['[data-action="budget-autopilot"]', '#cat-card'], title: 'Budget Autopilot', text: 'Tap “Set my budgets for me” and it suggests a limit for each category based on how you really spend.' }
   ] },
   { id: 'spend', icon: '💸', title: 'Spend', blurb: 'Every expense, where it goes, and when.', route: 'spend/log', steps: [
-    { route: 'spend/log', target: ['#view-spend .exact-card'], title: 'Exact numbers up top', text: 'Left to spend today, left until your next allowance, and what you’ve spent today. To the paisa, no rounding.' },
-    { route: 'spend/log', target: ['#exp-log .exp-filter', '#exp-log'], title: 'Expense log', text: 'Everything you’ve logged this month. Search by shop, note or amount, or filter by category and date. Tap the pencil to edit or the bin to delete. Deleted by mistake? Hit Undo at the bottom.' },
+    { route: 'spend/log', target: ['#view-spend .exact-card'], title: 'Exact numbers', text: 'Next to your spends: left to spend today, left until your next allowance, and what you’ve spent today. To the paisa, no rounding.' },
+    { route: 'spend/log', target: ['#exp-log .chip-row', '#exp-log'], title: 'Expense log', text: 'Everything you’ve logged this month, grouped by day. Type a spend in the bar at the top, tap a chip to see one category, or search by shop, note or amount. Tap the pencil to edit or the bin to delete. Deleted by mistake? Hit Undo at the bottom.' },
     { route: 'spend/log', target: ['#quickadd-btn'], title: 'Ways to add a spend', text: 'Type it in, scan the receipt, paste the SMS your bank or UPI app sends, or import a whole bank statement (CSV or PDF). It learns which shop goes in which category, so it gets smarter each time.' },
     { route: 'spend/log', target: ['#exp-log'], title: 'One bill, many categories', text: 'Big grocery run with snacks and toiletries? “Split an expense” spreads one payment across categories.' },
     { route: 'spend/categories', target: ['#view-spend .subtabs-inner'], title: 'Categories', text: 'How much each category has used of its limit this month, with a chart. Anything close to its limit shows up in amber or red.' },
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, and Budget limits are sliders.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, Budget limits are sliders, and Spend groups by day.', hidden: true, steps: [
+    { route: 'spend/log', target: ['#command-bar'], title: 'Type a spend', text: 'Type “120 chai” and tap Log it. Below, tap a chip to see one category. Spends are grouped by day.' },
     { route: 'budget/plan', target: ['#cat-card'], title: 'Drag to set a limit', text: 'Each category has a slider. Drag it and the new limit saves when you let go. The bar at the top shows how your income is split.' },
     { route: 'dashboard/overview', target: ['.bento .tile-green'], title: 'Home in tiles', text: 'Days to your next allowance, the category closest to its limit, the month so far and your streak. Tap a tile to go there.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'A new look', text: 'Bold numbers, green frames and a little motion. Safe to spend now counts up when you open Home.' },
@@ -334,8 +335,9 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li></ul>
+        <li><strong>Spend by day:</strong> type “120 chai” in the bar to log it, tap a chip to see one category, and see your month total, a weekend insight and what’s coming up.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li>
         <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>
         <li><strong>Menu on top:</strong> on a laptop the pages run along the top, so there is more room for your money.</li>
         <li><strong>New look:</strong> bold numbers, green frames and smooth motion. Money counts up, cards slide in, tabs glide.</li>

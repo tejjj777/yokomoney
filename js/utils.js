@@ -71,6 +71,8 @@ const TRANSPORT_MODES = [
 const TRANSPORT_KEYS = TRANSPORT_MODES.map(m => m[0]);
 const TRANSPORT_WORDS = { fuel: 'fuel', petrol: 'fuel', diesel: 'fuel', cng: 'fuel', charging: 'fuel', cab: 'cab', uber: 'cab', ola: 'cab', rapido: 'cab', taxi: 'cab', lyft: 'cab',
   auto: 'auto', rickshaw: 'auto', metro: 'metro', train: 'metro', rail: 'metro', bus: 'bus', flight: 'flight', parking: 'parking', toll: 'parking', fastag: 'parking', repair: 'service', tyre: 'service', tire: 'service' };
+const DOW_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /* ---------- Countries: currency, tax year, date order ---------- */

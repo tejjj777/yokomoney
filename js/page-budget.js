@@ -182,6 +182,14 @@ function renderBudget() {
   };
 }
 
+/** “Tomorrow”, “Sat 17 Oct” for a date in the next few weeks. */
+function dayLabelFuture(d, t) {
+  const diff = Math.round((d - t) / 864e5);
+  if (diff <= 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  return `${DOW_SHORT[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
 /* =========================================================
    VIEW: SPEND
    ========================================================= */
@@ -203,16 +211,6 @@ function renderSpend() {
   const head = viewHeader('spend', 'Spend', `${FULL_MONTHS[t.getMonth()]} ${t.getFullYear()}`,
     `<button type="button" class="btn btn-primary" data-action="add-expense">${ICON.plus}<span>Add expense</span></button>`);
 
-  const expCard = `<div class="card mb" id="exp-log">
-    <div class="card-head"><div><h2>Expense log</h2><p class="muted small">${filtering ? `${plural(allExps.length, 'match', 'matches')} · ${fmt(sum(allExps, x => x.amount))} in total${allExps.length > exps.length ? `. Showing newest ${exps.length}` : ''}` : `This month${olderCount ? `. Search to find ${olderCount} older ones` : ''}`}.</p>${jarLine ? `<p class="small" style="margin-top:4px">${jarLine}</p>` : ''}</div>
-      <div class="actions no-print">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), csvItem('expenses', 'expenses')])}</div></div>
-    ${expFilterBar(ef, cats)}
-    ${exps.length ? `<div class="table-wrap"><table class="exp-table"><thead><tr><th scope="col">Date</th><th scope="col" class="exp-cat-col">Category</th><th scope="col">Note</th><th class="num" scope="col">Amount</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-      ${exps.map(x => `<tr><td class="exp-date">${x.date.slice(0, 4) === ym.slice(0, 4) ? fmtDate(F.parseDate(x.date)).replace(/,? \d{4}$/, '') : fmtDate(F.parseDate(x.date))}</td><td class="exp-cat-col">${esc(catName(x.categoryId))}</td><td><span class="exp-cat-m small muted">${esc(catName(x.categoryId))}<br></span>${esc(x.note) || '<span class="muted">-</span>'}${x.splitId ? ' <span class="badge badge-neutral">split</span>' : ''}${x.photo ? ` <button type="button" class="linklike small" data-action="show-photo" data-id="${x.id}">Receipt photo</button>` : ''}${x.roundup ? `<br><span class="small muted">🫙 +${fmt(x.roundup.amount)} rounded up</span>` : ''}</td><td class="num font-bold">${fmt(x.amount)}<span class="exp-feel"><br>${feelsLike(x.amount)}</span></td>
-      <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-expense" data-id="${x.id}" aria-label="Edit expense of ${esc(fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-expense" data-id="${x.id}" aria-label="Delete expense of ${esc(fmt(x.amount))}">${ICON.trash}</button></td></tr>`).join('')}
-      </tbody></table></div>` : (filtering ? '<p class="muted">Nothing matches. Try fewer filters.</p>' : '<p class="muted">No expenses logged yet this month. Tap "+ Add expense" or paste a bank message.</p>')}
-  </div>`;
-
   const catBreakdown = `<div class="grid-2">
     ${chartCard('Spending by category', sp.useActual ? 'Actual this month' : (sp.list.length ? 'Planned' : ''), 'spend-doughnut', sp.list.length > 0, 'Log expenses to see this chart.', '', true)}
     <div class="card">
@@ -222,15 +220,82 @@ function renderSpend() {
     </div>
   </div>`;
 
+  // Bento × Zine log: add bar, category chips, spends grouped by day, month tile, insight, coming up
+  const tISO = todayISO(), yISO = F.toISO(F.addDays(t, -1));
+  const catOf = id => cats.find(x => x.id === id);
+  const dayLabel = iso => {
+    if (iso === tISO) return 'Today';
+    if (iso === yISO) return 'Yesterday';
+    const d = F.parseDate(iso), diff = Math.round((t - d) / 864e5);
+    if (diff > 0 && diff < 7) return FULL_DAYS[d.getDay()];
+    return iso.slice(0, 4) === ym.slice(0, 4) ? fmtDate(d).replace(/,? \d{4}$/, '') : fmtDate(d);
+  };
+  const monthExps = state.budget.expenses.filter(x => x.date.slice(0, 7) === ym);
+  const counts = {};
+  monthExps.forEach(x => { counts[x.categoryId] = (counts[x.categoryId] || 0) + 1; });
+  const chipCats = cats.filter(c => counts[c.id]).sort((x, y) => counts[y.id] - counts[x.id]).slice(0, 6);
+  if (ef.cat && !chipCats.some(c => c.id === ef.cat) && catOf(ef.cat)) chipCats.push(catOf(ef.cat));
+  const chips = `<div class="chip-row no-print" role="group" aria-label="Show one category">${[{ id: '', name: 'All' }].concat(chipCats).map(c => `<button type="button" class="chip${ef.cat === c.id ? ' on' : ''}" data-action="exp-chip" data-cat="${c.id}" aria-pressed="${ef.cat === c.id}">${esc(c.name)}</button>`).join('')}</div>`;
+  const groupsByDay = [];
+  exps.forEach(x => { const last = groupsByDay[groupsByDay.length - 1]; if (last && last.iso === x.date) last.list.push(x); else groupsByDay.push({ iso: x.date, list: [x] }); });
+  let rowN = 0;
+  const spendRow = x => {
+    const c = catOf(x.categoryId), name = c ? c.name : 'Deleted category';
+    const meta = [esc(name), x.splitId ? 'split' : '', x.roundup ? `+${fmt(x.roundup.amount)} rounded up` : ''].filter(Boolean).join(' · ');
+    return `<div class="spend-row" style="--d:${Math.min(rowN++, 12)}">
+      <span class="sp-ico${c && c.type === 'wants' ? ' hot' : ''}" aria-hidden="true">${esc((name.match(/[A-Za-z0-9]/) || ['•'])[0].toUpperCase())}</span>
+      <div class="sp-main"><p class="sp-name">${esc(x.note) || esc(name)}</p><p class="small muted">${meta}${x.photo ? ` · <button type="button" class="linklike small" data-action="show-photo" data-id="${x.id}">Receipt photo</button>` : ''}</p></div>
+      <span class="sp-right"><span class="sp-amt">${fmt(x.amount)}</span>
+      <span class="sp-act no-print"><button type="button" class="icon-btn" data-action="edit-expense" data-id="${x.id}" aria-label="Edit expense of ${esc(fmt(x.amount))}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-expense" data-id="${x.id}" aria-label="Delete expense of ${esc(fmt(x.amount))}">${ICON.trash}</button></span></span>
+    </div>`;
+  };
+  const dayList = exps.length ? groupsByDay.map(g => `<div class="day-group"><p class="day-head"><strong>${dayLabel(g.iso)}</strong><span>${fmt(sum(g.list, x => x.amount))}</span></p>${g.list.map(spendRow).join('')}</div>`).join('')
+    : `<p class="muted">${filtering ? 'Nothing matches. Try fewer filters.' : 'No spends logged yet this month. Type one above, like “120 chai”.'}</p>`;
+  const logMain = `<section class="slide-list" id="exp-log" aria-label="Expense log">
+    ${commandBarHTML({ spend: true })}
+    ${chips}
+    <div class="exp-tools no-print">${expFilterBar(ef, cats)}<div class="actions">${moreMenu([mi('Add an expense', 'add-expense'), mi('Split an expense', 'split-expense'), mi('Scan a receipt', 'scan-receipt'), mi('Paste a bank message', 'import-sms'), csvItem('expenses', 'expenses')])}</div></div>
+    <p class="small muted">${filtering ? `${plural(allExps.length, 'match', 'matches')} · ${fmt(sum(allExps, x => x.amount))} in total${allExps.length > exps.length ? `. Showing newest ${exps.length}` : ''}` : `This month${olderCount ? `. Search to find ${olderCount} older ones` : ''}`}.${jarLine ? ` ${jarLine}` : ''}</p>
+    ${dayList}
+  </section>`;
+  const monthTotal = sum(monthExps, x => x.amount);
+  const topSpend = cats.filter(c => c.actual > 0).sort((x, y) => y.actual - x.actual).slice(0, 6);
+  const topSum = sum(topSpend, c => c.actual) || 1;
+  const monthTile = `<div class="card bento-tile tile-green month-tile">
+    <span class="tile-label">${FULL_MONTHS[t.getMonth()]} so far</span>
+    <span class="big-num">${fmt(monthTotal)}</span>
+    ${topSpend.length ? `<span class="mt-stack" role="img" aria-label="Biggest categories this month">${topSpend.map((c, i) => `<i style="width:${(c.actual / topSum * 100).toFixed(2)}%;background:color-mix(in srgb, #0A0A0A ${[100, 70, 50, 35, 22, 12][i]}%, var(--primary))"></i>`).join('')}</span>
+    <span class="small mt-names">${topSpend.map(c => esc(c.name)).join(', ')}</span>` : ''}
+  </div>`;
+  // Weekend vs weekday, last 28 days of everyday spends (no rent-style repeats, no savings or loan payments)
+  const from28 = F.toISO(F.addDays(t, -27));
+  const everyday = state.budget.expenses.filter(x => x.date >= from28 && x.date <= tISO && !x.recurringId && (() => { const c = catOf(x.categoryId); return !c || (c.type !== 'savings' && !/loan|debt|emi/i.test(c.name)); })());
+  let insight = '';
+  if (everyday.length >= 5) {
+    const isWknd = iso => { const d = F.parseDate(iso).getDay(); return d === 0 || d === 6; };
+    let wkndDays = 0; for (let i = 0; i < 28; i++) if (isWknd(F.toISO(F.addDays(t, -i)))) wkndDays++;
+    const wk = everyday.filter(x => isWknd(x.date)), wd = everyday.filter(x => !isWknd(x.date));
+    const aWk = sum(wk, x => x.amount) / wkndDays, aWd = sum(wd, x => x.amount) / (28 - wkndDays);
+    const side = aWk >= aWd ? wk : wd, r = aWk >= aWd ? aWk / Math.max(aWd, 1) : aWd / Math.max(aWk, 1);
+    const byCat = {}; side.forEach(x => { byCat[x.categoryId] = (byCat[x.categoryId] || 0) + x.amount; });
+    const topC = Object.keys(byCat).sort((x, y) => byCat[y] - byCat[x]).slice(0, 2).map(id => (catOf(id) || { name: 'Deleted category' }).name);
+    const line = r < 1.2 ? 'Your weekdays and weekends cost <mark class="hl"><span>about the same</span></mark> per day.'
+      : `You spend <mark class="hl"><span>${r >= 10 ? Math.round(r) : r.toFixed(1)}× more</span></mark> a day on ${aWk >= aWd ? 'weekends than on weekdays' : 'weekdays than on weekends'}.`;
+    insight = `<div class="card insight-card"><p class="ins-tag">Insight</p><p class="ins-line">${line}</p><p class="small muted">Last 4 weeks of everyday spends. ${topC.length && r >= 1.2 ? `Most of it is ${topC.map(esc).join(' and ')}.` : ''}</p></div>`;
+  }
+  const soon = (state.recurring || []).filter(r => r.active).map(r => ({ r, d: recurringNext(r) })).filter(x => x.d && (x.d - t) / 864e5 <= 30).sort((x, y) => x.d - y.d).slice(0, 4);
+  const comingUp = soon.length ? `<div class="card coming-card"><h2 class="tile-h">Coming up</h2>${soon.map(x => `<div class="cu-row"><div><p class="sp-name">${esc(x.r.name)}</p><p class="small muted">${dayLabelFuture(x.d, t)}</p></div><span class="sp-amt">${fmt(x.r.amount)}</span></div>`).join('')}
+    <a class="small" href="#spend/recurring">All repeating spends</a></div>` : '';
   const stsSp = monthlyIncome() > 0 ? studentSafeToSpend() : null;
-  const exactCard = stsSp ? `<div class="card mb exact-card"><div class="exact-grid">
+  const exactCard = stsSp ? `<div class="card exact-card"><div class="exact-grid">
       <div><p class="stat-label">Left to spend today</p><p class="exact-val">${fmtExact(stsSp.leftToday)}</p></div>
       <div><p class="stat-label">${stsSp.fromBank ? 'In your bank' : 'Left this period'}</p><p class="exact-val">${fmtExact(stsSp.balanceNow)}</p></div>
       <div><p class="stat-label">Spent today</p><p class="exact-val">${fmtExact(stsSp.spentToday)}</p></div>
       <div><p class="stat-label">Left this week</p><p class="exact-val">${fmtExact(stsSp.weekLeft)}</p></div>
     </div></div>` : '';
-  const html = head + exactCard + tabbed('spend', {
-    log: expCard,
+  const logTab = `<div class="budget-split">${logMain}<aside class="budget-aside">${monthTile}${exactCard}${insight}${comingUp}</aside></div>`;
+  const html = head + tabbed('spend', {
+    log: logTab,
     categories: catBreakdown,
     insights: ghostSpendingCard() + timeOfDayCard() + spendingHeatmapCard(),
     recurring: recurringCard(),
@@ -241,6 +306,7 @@ function renderSpend() {
     html,
     charts() {
       if (sp.list.length) spendChart('spend-doughnut');
+      bindCommandBar();
       bindGhostSpendingCard();
       bindSpendingHeatmap();
     }

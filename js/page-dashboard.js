@@ -57,7 +57,6 @@ function safeToSpendHero(week, maxDay) {
 }
 
 /** Home bento: the money tiles from the Bento × Zine design, built from real data. */
-const DOW_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function homeBento() {
   if (!(monthlyIncome() > 0)) return safeToSpendHero();
   const t = todayDate();

@@ -155,6 +155,7 @@ const MORE_ACTIONS = {
     c.planned = monthly; commit(); toast(`“${c.name}” now plans ${fmt(monthly)} a month`);
   },
   'exp-more': () => { ui.expMore = !(ui.expMore || expFilterActive(Object.assign(emptyExpFilter(), ui.expFilter, { q: '', cat: '' }))); render(); const el = document.getElementById(ui.expMore ? 'exp-min' : 'exp-q'); if (el) el.focus(); },
+  'exp-chip': el => { ui.expFilter = Object.assign(ui.expFilter || emptyExpFilter(), { cat: el.dataset.cat || '' }); render(); const b = document.querySelector(`.chip[data-cat="${el.dataset.cat || ''}"]`); if (b) b.focus(); },
   'exp-clear': () => { ui.expFilter = emptyExpFilter(); ui.expMore = false; render(); const el = document.getElementById('exp-q'); if (el) el.focus(); },
   'split-expense': () => splitExpenseForm(),
   'cat-expenses': el => { ui.expFilter = Object.assign(emptyExpFilter(), { cat: el.dataset.id, from: periodRange().from }); location.hash = '#budget/spending'; render(); },

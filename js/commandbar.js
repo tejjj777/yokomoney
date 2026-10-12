@@ -116,15 +116,17 @@ function aiContext() {
    ========================================================= */
 let isRecording = false;
 
-function commandBarHTML() {
+function commandBarHTML(opts = {}) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micBtn = SpeechRecognition ? `<button type="button" class="btn icon-btn" id="cb-mic" aria-label="Use voice" title="Use voice">${ICON.mic}</button>` : '';
-  
-  return `<div class="card mb cb-card" id="command-bar">
+  const ph = opts.spend ? 'Type a spend, like “120 chai”' : 'Ask AI: ‘can I afford a 1500 concert on Saturday?’ or ‘spent 120 on chai’';
+  return `<div class="card mb cb-card${opts.spend ? ' cb-spend' : ''}" id="command-bar">
     <div class="cb-input-row">
-      <input type="text" id="cb-input" class="input cb-input" placeholder="Ask AI: 'can I afford a 1500 concert on Saturday?' or 'spent 120 on chai'">
+      <span class="cb-plus" aria-hidden="true">${ICON.plus}</span>
+      <label class="sr-only" for="cb-input">${opts.spend ? 'Type a spend' : 'Ask AI or log a spend'}</label>
+      <input type="text" id="cb-input" class="input cb-input" placeholder="${ph}" autocomplete="off">
       ${micBtn}
-      <button type="button" class="btn btn-primary" id="cb-send">Send</button>
+      <button type="button" class="btn btn-primary" id="cb-send">${opts.spend ? 'Log it' : 'Send'}</button>
     </div>
     <div id="cb-result" class="cb-result" hidden></div>
   </div>`;
@@ -141,7 +143,9 @@ function bindCommandBar() {
 
   const executeCommand = async (rawText) => {
     if (!rawText.trim()) return;
-    const text = F.normalizeAmounts(rawText);   // "2 lakh" → 200000, "fifty k" → 50000
+    let text = F.normalizeAmounts(rawText);   // "2 lakh" → 200000, "fifty k" → 50000
+    // On Spend the bar is for logging, so "120 chai" means "spent 120 on chai"
+    if (bar.classList.contains('cb-spend') && /\d/.test(text) && !/[?]|\b(?:afford|how|what|can|should|set|spent|paid|bought|add|log)\b/i.test(text)) text = 'spent ' + text.trim();
     inp.disabled = true;
     btn.disabled = true;
     res.hidden = false;
