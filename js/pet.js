@@ -61,38 +61,49 @@ function triggerPetReaction(type, customText, opts = {}) {
   }, 4500);
   return { type, text, mood };
 }
+/** The pet is a little crow: dark slate feathers, a grey beak, big eyes that show its mood. */
 function petSVG(mood, stage) {
+  const INK = '#F3F3F3';   // closed eyes and brows are drawn light so they read on dark feathers
+  const open = (dy = 0) => `<circle cx="44" cy="${50 + dy}" r="8.5" fill="#fff"/><circle cx="76" cy="${50 + dy}" r="8.5" fill="#fff"/><circle cx="45" cy="${51 + dy}" r="4.6" fill="#0A0A0A"/><circle cx="77" cy="${51 + dy}" r="4.6" fill="#0A0A0A"/><circle cx="46.6" cy="${49 + dy}" r="1.6" fill="#fff"/><circle cx="78.6" cy="${49 + dy}" r="1.6" fill="#fff"/>`;
   const eyes = {
-    ecstatic: '<path d="M38 50q6-8 12 0M70 50q6-8 12 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
-    happy: '<circle cx="44" cy="50" r="5" fill="#0A0A0A"/><circle cx="76" cy="50" r="5" fill="#0A0A0A"/><circle cx="46" cy="48" r="1.6" fill="#fff"/><circle cx="78" cy="48" r="1.6" fill="#fff"/>',
-    meh: '<path d="M38 51h12M70 51h12" stroke="#0A0A0A" stroke-width="4" stroke-linecap="round"/>',
-    worried: '<circle cx="44" cy="52" r="5" fill="#0A0A0A"/><circle cx="76" cy="52" r="5" fill="#0A0A0A"/><path d="M36 40l14 4M84 40l-14 4" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"/>',
-    sad: '<circle cx="44" cy="52" r="5" fill="#0A0A0A"/><circle cx="76" cy="52" r="5" fill="#0A0A0A"/><path d="M84 58q3 8 0 10q-3-2 0-10z" fill="#6CC4FF"/>',
-    sleepy: '<path d="M38 52q6 5 12 0M70 52q6 5 12 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>'
-  }[mood] || eyes.happy;
-  const mouth = {
-    ecstatic: '<path d="M46 64q14 16 28 0z" fill="#0A0A0A"/>',
-    happy: '<path d="M48 66q12 10 24 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
-    meh: '<path d="M50 70h20" stroke="#0A0A0A" stroke-width="4" stroke-linecap="round"/>',
-    worried: '<path d="M50 72q10-6 20 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
-    sad: '<path d="M48 74q12-10 24 0" stroke="#0A0A0A" stroke-width="4" fill="none" stroke-linecap="round"/>',
-    sleepy: '<ellipse cx="60" cy="70" rx="5" ry="4" fill="#0A0A0A"/><text x="90" y="30" font-size="14" font-weight="700" fill="currentColor" font-family="Space Grotesk, sans-serif">z</text><text x="99" y="20" font-size="10" font-weight="700" fill="currentColor" font-family="Space Grotesk, sans-serif">z</text>'
-  }[mood] || mouth.happy;
+    ecstatic: `<path d="M37 52q7-9 14 0M69 52q7-9 14 0" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    happy: open(),
+    meh: `<path d="M37 51h14M69 51h14" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
+    worried: open(2) + `<path d="M35 38l14 5M85 38l-14 5" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`,
+    sad: open(2) + '<path d="M85 60q3 8 0 10q-3-2 0-10z" fill="#6CC4FF"/>',
+    sleepy: `<path d="M37 51q7 6 14 0M69 51q7 6 14 0" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`
+  }[mood] || open();
+  const closedBeak = '<path d="M49 59l11-7 11 7z" fill="#A7AEBA"/><path d="M49 59l11 13 11-13z" fill="#6B7380"/>';
+  const beak = {
+    ecstatic: '<path d="M49 58l11-7 11 7z" fill="#A7AEBA"/><path d="M51 63l9 12 9-12z" fill="#6B7380"/><path d="M50 59h20l-2 4H52z" fill="#3A1414"/>',
+    sad: '<path d="M51 61l9-5 9 5z" fill="#A7AEBA"/><path d="M51 61l9 13 9-13z" fill="#6B7380"/>',
+    sleepy: closedBeak + `<text x="90" y="30" font-size="14" font-weight="700" fill="currentColor" font-family="Space Grotesk, sans-serif">z</text><text x="99" y="20" font-size="10" font-weight="700" fill="currentColor" font-family="Space Grotesk, sans-serif">z</text>`
+  }[mood] || closedBeak;
+  const blush = '<ellipse cx="33" cy="63" rx="5" ry="3.5" fill="#FF8FA3" opacity=".6"/><ellipse cx="87" cy="63" rx="5" ry="3.5" fill="#FF8FA3" opacity=".6"/>';
+  const head = stage >= 2 && stage < 3
+    ? '<path d="M50 24q-7-14 1-19q3 8 5 19zM58 21q-1-17 8-20q-1 10-3 20zM67 24q5-13 13-12q-5 7-8 13z" fill="#2A2F3A" stroke="#4A5262" stroke-width="1.5" stroke-linejoin="round"/>'   // crest
+    : '<path d="M57 21q-3-9 4-13q0 7-1 13z" fill="#2A2F3A" stroke="#4A5262" stroke-width="1.5" stroke-linejoin="round"/>';   // little tuft
   const extra = [
-    '<path d="M60 20q-2-10 6-14q2 8-6 14z" fill="var(--primary-dark)"/><path d="M60 20q-6-6-12-4q4 7 12 4z" fill="var(--primary-dark)"/>',   // sprout
-    '<circle cx="34" cy="62" r="5" fill="#FF8FA3" opacity=".55"/><circle cx="86" cy="62" r="5" fill="#FF8FA3" opacity=".55"/>',               // blush
-    '<path d="M28 34l-6-14 12 8zM92 34l6-14-12 8z" fill="var(--primary-dark)"/><circle cx="34" cy="62" r="5" fill="#FF8FA3" opacity=".55"/><circle cx="86" cy="62" r="5" fill="#FF8FA3" opacity=".55"/>',   // ears
-    '<path d="M42 22l6-14 6 10 6-12 6 12 6-10 6 14z" fill="#F5C542" stroke="#B8860B" stroke-width="1.5"/><circle cx="34" cy="62" r="5" fill="#FF8FA3" opacity=".55"/><circle cx="86" cy="62" r="5" fill="#FF8FA3" opacity=".55"/>'   // crown
+    '',
+    blush,
+    blush,
+    blush + '<path d="M42 22l6-14 6 10 6-12 6 12 6-10 6 14z" fill="#F5C542" stroke="#B8860B" stroke-width="1.5"/>'   // crown
   ][stage] || '';
   const scale = [0.78, 0.88, 0.96, 1][stage] || 1;
-  return `<svg class="pet-svg pet-${mood}" viewBox="0 0 120 110" width="120" height="110" role="img" aria-label="${esc(state.settings.petName)} looks ${mood}">
+  return `<svg class="pet-svg pet-${mood}" viewBox="0 0 120 110" width="120" height="110" role="img" aria-label="${esc(state.settings.petName)} the crow looks ${mood}">
     <g transform="translate(60 100) scale(${scale}) translate(-60 -100)">
       <ellipse cx="60" cy="102" rx="34" ry="5" fill="#000" opacity=".35"/>
-      <path class="pet-body" d="M60 18c26 0 42 20 42 46c0 24-16 36-42 36S18 88 18 64C18 38 34 18 60 18z" fill="var(--primary)"/>
-      ${extra}${eyes}${mouth}</g></svg>`;
+      <path d="M86 84l24 2-8 5 12 7-26-2z" fill="#1F232B" stroke="#4A5262" stroke-width="1.5" stroke-linejoin="round"/>
+      ${head}
+      <path class="pet-wing pet-wing-l" d="M22 58q-12 16-2 32q10-4 12-18z" fill="#1F232B" stroke="#4A5262" stroke-width="1.5" stroke-linejoin="round"/>
+      <path class="pet-wing pet-wing-r" d="M98 58q12 16 2 32q-10-4-12-18z" fill="#1F232B" stroke="#4A5262" stroke-width="1.5" stroke-linejoin="round"/>
+      <path class="pet-body" d="M60 18c26 0 42 20 42 46c0 24-16 36-42 36S18 88 18 64C18 38 34 18 60 18z" fill="#2A2F3A" stroke="#4A5262" stroke-width="2"/>
+      <ellipse cx="60" cy="80" rx="22" ry="16" fill="#353B48"/>
+      <path d="M50 99v6M50 99l-5 5M50 99l5 5M70 99v6M70 99l-5 5M70 99l5 5" stroke="#7A818E" stroke-width="2.5" stroke-linecap="round"/>
+      ${eyes}${beak}${extra}</g></svg>`;
 }
 const petStage = idx => (idx >= 6 ? 3 : idx >= 4 ? 2 : idx >= 2 ? 1 : 0);
-const STAGE_NOTE = ['gets rosy cheeks at level 3', 'grows ears at level 5', 'gets a crown at level 7', 'has earned its crown'];
+const STAGE_NOTE = ['gets rosy cheeks at level 3', 'grows a head crest at level 5', 'gets a crown at level 7', 'has earned its crown'];
 function petCard() {
   const baseMood = petMood();
   const reaction = ui.petReaction && ui.petReaction.expiresAt > Date.now() ? ui.petReaction : null;
@@ -106,7 +117,7 @@ function petCard() {
   return `<div class="card pet-card" id="pet-card">
     <button type="button" class="pet-btn" data-action="pet-poke" aria-label="Poke ${esc(state.settings.petName)}">${petSVG(mood, stage)}</button>
     <div class="pet-info"><p class="pet-say" aria-live="polite">“${esc(line)}”</p>
-      <h2>${esc(state.settings.petName)} <span class="muted small" style="font-weight:500">· your pet</span></h2>
+      <h2>${esc(state.settings.petName)} <span class="muted small" style="font-weight:500">· your crow</span></h2>
       <p class="small"><strong>Level ${lv.index + 1} · ${lv.name}</strong> <span class="muted">· ${Math.round(state.xp.total).toLocaleString()} XP</span></p>
       <div class="progress pet-xp" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(lv.progress * 100)}"><span style="width:${lv.progress * 100}%"></span></div>
       <p class="small muted">${lv.next ? `${(lv.next - state.xp.total).toLocaleString()} XP until ${F.LEVELS[lv.index + 1][1]}.` : 'Max level.'} XP comes from logging, saving, paying off debt and learning tricks. ${esc(state.settings.petName)} ${STAGE_NOTE[stage]}.</p>
