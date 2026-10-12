@@ -254,6 +254,8 @@ main:focus { box-shadow: none; }
 }
 .icon-btn:hover { background: var(--tint); color: var(--text); }
 .icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger-text); }
+a.btn { text-decoration: none; }
+.check a { color: var(--link); font-weight: 600; text-underline-offset: 2px; }
 .linklike { background: none; border: 0; padding: 0; color: var(--link); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
 /* Form controls */
