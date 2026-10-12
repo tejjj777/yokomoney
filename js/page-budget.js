@@ -68,7 +68,7 @@ function renderBudget() {
     const over = c.actual > lim + 0.004, close = !over && lim > 0 && ratio >= 0.75;
     const top = Math.max(b.income * 0.4, c.planned * 2, c.actual * 1.2, 1000), step = niceStep(top), mx = Math.ceil(top / step) * step;
     const note = over ? `Over by ${fmt(c.actual - lim)}` : lim > 0 && ratio >= 1 ? (c.type === 'savings' ? 'Saved in full' : 'Limit reached') : close ? 'Close to limit' : c.actual === 0 ? 'Nothing yet' : `${fmt(lim - c.actual)} left`;
-    return `<div class="card slide-row${over || close ? ' is-hot' : ''}">
+    return `<div class="card slide-row${over || close ? ' is-hot' : ''}" data-cat-id="${c.id}" data-vt-target="cat-${c.id}">
       <div class="sr-head"><button type="button" class="linklike sr-name" data-action="cat-expenses" data-id="${c.id}">${esc(c.name)}</button><span class="small sr-note">${note}${carry > 0.004 ? ` · +${fmt(carry)} carried` : ''}</span></div>
       <input id="cat-range-${c.id}" class="cat-range" type="range" min="0" max="${mx}" step="${step}" value="${c.planned}" data-slide="cat" data-id="${c.id}" aria-label="${esc(c.name)} limit" aria-valuetext="${esc(fmt(c.planned))}">
       <p class="big-num sr-limit" data-limit-for="${c.id}">${fmt(c.planned)}</p>
@@ -242,7 +242,7 @@ function renderSpend() {
   const spendRow = x => {
     const c = catOf(x.categoryId), name = c ? c.name : 'Deleted category';
     const meta = [esc(name), x.splitId ? 'split' : '', x.roundup ? `+${fmt(x.roundup.amount)} rounded up` : ''].filter(Boolean).join(' · ');
-    return `<div class="spend-row" style="--d:${Math.min(rowN++, 12)}">
+    return `<div class="spend-row" data-exp-id="${x.id}" style="--d:${Math.min(rowN++, 12)}">
       <span class="sp-ico${c && c.type === 'wants' ? ' hot' : ''}" aria-hidden="true">${esc((name.match(/[A-Za-z0-9]/) || ['•'])[0].toUpperCase())}</span>
       <div class="sp-main"><p class="sp-name">${esc(x.note) || esc(name)}</p><p class="small muted">${meta}${x.photo ? ` · <button type="button" class="linklike small" data-action="show-photo" data-id="${x.id}">Receipt photo</button>` : ''}</p></div>
       <span class="sp-right"><span class="sp-amt">${fmt(x.amount)}</span>

@@ -178,6 +178,7 @@ function addExpense({ categoryId, amount, date, note, noRoundup }) {
     } else roundup = 0;
   }
   state.budget.expenses.push(exp);
+  if (typeof queueFly === 'function') queueFly(amount, categoryId, exp.id);
   flagPriceChange(exp);
   if (date < state.meta.startedAt) state.meta.startedAt = date;
   return { cat, roundup, goal, exp };

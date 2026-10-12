@@ -135,7 +135,7 @@ function renderGoals() {
     const quick = i.reached ? 0 : Math.min(step, Math.max(0, Math.ceil(i.remaining)));
     const eta = i.reached ? 'Goal reached. Nice.' : i.reverse && Number.isFinite(i.reverse.months) && i.reverse.months <= 1200 ? `At ${fmt(g.planMonthly !== null ? g.planMonthly : i.required)} a month: done by ${fmtMonthYear(i.reverse.date)}`
       : i.dl && i.monthsLeft > 0 ? `${fmt(i.required)} a month to make it by ${fmtDate(i.dl)}` : i.dl ? `Deadline passed · ${fmt(i.remaining)} to go` : 'No deadline';
-    return `<article class="card hang-card${g.id === leadId ? ' is-lead' : ''}" data-goal="${g.id}" aria-labelledby="goal-h-${g.id}">
+    return `<article class="card hang-card${g.id === leadId ? ' is-lead' : ''}" data-goal="${g.id}" data-vt-target="goal-${g.id}" aria-labelledby="goal-h-${g.id}">
       <span class="hang-hole" aria-hidden="true"></span>
       <div class="hc-top"><h3 id="goal-h-${g.id}">${esc(g.name)}</h3><span class="hc-pct">${Math.round(i.pct)}%</span></div>
       <div class="hc-bar" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(i.pct)}"><span style="width:${i.pct}%"></span></div>

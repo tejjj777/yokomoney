@@ -1755,3 +1755,59 @@ mark.hl span { position: relative; }
 }
 @media (min-width: 768px) and (max-width: 1439px) { .side-foot kbd { display: none; } }
 @media (min-width: 768px) and (max-width: 1023px) { .sidebar { padding: 0 16px; column-gap: 8px; } .sidebar .nav-link { padding: 8px 10px; } .side-foot .nav-link { padding: 8px; } }
+
+/* ---------- Change motion ---------- */
+/* Odometer digits */
+.odo-d { display: inline-block; height: 1lh; overflow: hidden; vertical-align: top; }
+.odo-s span { display: block; height: 1lh; }
+/* Flying spend chip */
+.fly-chip { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; padding: 6px 12px; border-radius: 999px; background: var(--primary); color: var(--on-primary); border: 2px solid #0A0A0A; box-shadow: 3px 3px 0 var(--hard); font-family: var(--font-display); font-weight: 700; font-size: 15px; white-space: nowrap; will-change: transform, opacity; }
+/* Where it lands */
+.yk-hit { animation: yk-hit .9s var(--ease-out); }
+@keyframes yk-hit { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 70%, transparent); } 25% { transform: scale(1.03); } 100% { box-shadow: 0 0 0 14px transparent; transform: none; } }
+.nav-link.yk-hit, .tab-link.yk-hit, .safe-hero-amount.yk-hit { animation: yk-pop .5s var(--ease-spring); }
+/* Home rows are links now */
+a.bw-row { color: inherit; text-decoration: none; border-radius: 8px; transition: background-color .15s ease; }
+a.bw-row:hover { background: var(--surface-hover); }
+
+/* ---------- Page transitions (View Transitions) ---------- */
+.topbar { view-transition-name: yk-topbar; }
+.view-head h1 { view-transition-name: yk-title; }
+@media (min-width: 768px) { .sidebar { view-transition-name: yk-sidebar; } }
+@media (max-width: 767px) { .tabbar { view-transition-name: yk-tabbar; } .tab-link[aria-current="page"] .icon { view-transition-name: yk-nav; } }
+::view-transition-old(root) { animation: yk-vt-out .14s ease-in both; }
+::view-transition-new(root) { animation: yk-vt-in .38s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes yk-vt-out { to { opacity: 0; } }
+@keyframes yk-vt-in { from { opacity: 0; } }
+::view-transition-group(yk-nav), ::view-transition-group(yk-shared) { animation-duration: .5s; animation-timing-function: cubic-bezier(.3,1.25,.45,1); }
+::view-transition-group(yk-title) { animation-duration: .4s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+::view-transition-old(yk-title) { animation: yk-vt-title-out .2s ease-in both; }
+::view-transition-new(yk-title) { animation: yk-vt-title-in .4s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes yk-vt-title-out { to { opacity: 0; filter: blur(6px); transform: translateY(-8px); } }
+@keyframes yk-vt-title-in { from { opacity: 0; filter: blur(6px); transform: translateY(8px); } }
+::view-transition-old(yk-shared), ::view-transition-new(yk-shared) { height: 100%; object-fit: cover; }
+::view-transition-group(yk-topbar), ::view-transition-group(yk-sidebar), ::view-transition-group(yk-tabbar) { animation: none; }
+::view-transition-old(yk-topbar), ::view-transition-old(yk-sidebar), ::view-transition-old(yk-tabbar) { display: none; }
+::view-transition-new(yk-topbar), ::view-transition-new(yk-sidebar), ::view-transition-new(yk-tabbar) { animation: none; }
+/* The page-title animation would double up with the morph */
+html:active-view-transition .view-head h1 { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .yk-hit { animation: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+.odo-s { display: flex; flex-direction: column; width: max-content; will-change: transform; }
+.odo-s span { width: max-content; }
+/* Digit cells get headroom so tall glyphs never bleed into the next digit */
+.odo-d { height: 1.4lh; margin: -0.2lh 0; }
+.odo-s span { height: 1.4lh; padding-top: 0.2lh; box-sizing: border-box; }
+
+/* Top menu: one green pill glides under the links */
+@media (min-width: 768px) {
+  .sidebar .nav-list { position: relative; }
+  .nav-pill { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 10px; background: var(--primary); box-shadow: 0 0 0 0 transparent; pointer-events: none; transition: transform .5s cubic-bezier(.3,1.3,.45,1), width .5s cubic-bezier(.3,1.3,.45,1), height .3s ease; }
+  .sidebar .nav-list > li { position: relative; z-index: 1; }
+  .sidebar .nav-list.has-pill .nav-link[aria-current="page"] { background: transparent; }
+  .sidebar .nav-link { transition: color .3s ease, transform .18s ease; }
+}
+@media (max-width: 767px) { .nav-pill { display: none; } }
+@media (prefers-reduced-motion: reduce) { .nav-pill { transition: none; } }

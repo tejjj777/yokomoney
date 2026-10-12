@@ -103,7 +103,8 @@ function bindEvents() {
     redirectOldHash();
     const route = currentRoute(), sameRoute = route === lastRoute;
     lastRoute = route;
-    render(); window.scrollTo(0, 0);
+    if (sameRoute || typeof pageTransition !== 'function') { render(); window.scrollTo(0, 0); }
+    else pageTransition(() => { render(); window.scrollTo(0, 0); });
     const tab = sameRoute && document.querySelector('.subtab[aria-selected="true"]');
     (tab || document.getElementById('main')).focus({ preventScroll: true });   // switching tabs keeps you on the tab bar
   });

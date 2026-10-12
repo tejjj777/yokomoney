@@ -82,7 +82,7 @@ function homeBento() {
       <span class="tile-label">${nextPayInfo() ? 'Next allowance in' : 'Days left this month'}</span>
       <span class="tile-big"><span class="big-num">${daysPay}</span> <span class="tile-unit">${daysPay === 1 ? 'day' : 'days'}</span></span>
     </button>
-    ${hot ? `<a class="card bento-tile" href="#budget/plan">
+    ${hot ? `<a class="card bento-tile" href="#budget/plan" data-vt="cat-${hot.c.id}" data-cat-id="${hot.c.id}">
       <span class="tile-row"><span class="muted">${esc(hot.c.name)}</span><span class="tile-flag">${hot.r >= 1 ? 'Over limit' : hot.r >= 0.75 ? 'Close to limit' : 'On track'}</span></span>
       <span class="big-num tile-accent">${Math.round(hot.r * 100)}%</span>
       <span class="muted small">${hot.r >= 1 ? `${fmt(hot.c.actual - hot.c.planned)} over its limit` : `${fmt(dayLeft)} a day keeps you on track`}</span>
@@ -98,11 +98,11 @@ function homeBento() {
     </div>
     ${where.length ? `<div class="card bento-wide">
       <div class="tile-head"><h2>Where it went</h2><a href="#spend/categories">All categories</a></div>
-      ${where.map(c => { const pct = c.planned > 0 ? Math.min(100, c.actual / c.planned * 100) : 100; return `<div class="bw-row"><span>${esc(c.name)}</span><span class="bw-bar"><i class="${c.planned > 0 && c.actual / c.planned >= 0.75 ? 'warn' : ''}" style="width:${pct}%"></i></span><span class="bw-amt">${fmt(c.actual)}</span></div>`; }).join('')}
+      ${where.map(c => { const pct = c.planned > 0 ? Math.min(100, c.actual / c.planned * 100) : 100; return `<a class="bw-row" href="#budget/plan" data-vt="cat-${c.id}" data-cat-id="${c.id}"><span>${esc(c.name)}</span><span class="bw-bar"><i class="${c.planned > 0 && c.actual / c.planned >= 0.75 ? 'warn' : ''}" style="width:${pct}%"></i></span><span class="bw-amt">${fmt(c.actual)}</span></a>`; }).join('')}
     </div>` : ''}
     ${goals.length ? `<div class="card bento-wide">
       <div class="tile-head"><h2>Saving for</h2><a href="#goals/goals">All goals</a></div>
-      ${goals.map((g, i) => { const gi = goalInfo(g), pct = Math.min(100, Math.round(gi.pct)); return `<a class="hang-tag${i === 0 ? ' is-lead' : ''}" href="#goals/goals"><span class="hang-hole" aria-hidden="true"></span><span class="hang-body"><span class="hang-top"><strong>${esc(g.name)}</strong><span class="hang-pct">${pct}%</span></span><span class="hang-bar"><i style="width:${pct}%"></i></span><span class="small">${fmt(g.saved)} of ${fmt(g.target)}</span></span></a>`; }).join('')}
+      ${goals.map((g, i) => { const gi = goalInfo(g), pct = Math.min(100, Math.round(gi.pct)); return `<a class="hang-tag${i === 0 ? ' is-lead' : ''}" href="#goals/goals" data-vt="goal-${g.id}"><span class="hang-hole" aria-hidden="true"></span><span class="hang-body"><span class="hang-top"><strong>${esc(g.name)}</strong><span class="hang-pct">${pct}%</span></span><span class="hang-bar"><i style="width:${pct}%"></i></span><span class="small">${fmt(g.saved)} of ${fmt(g.target)}</span></span></a>`; }).join('')}
     </div>` : ''}
   </div>`;
 }
