@@ -6,12 +6,12 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 24;   // bumped: Bento × Zine look and motion
+const TOUR_VERSION = 25;   // bumped: Home bento and top nav
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
     { title: 'Hey, welcome to YOKO!', text: `<img class="welcome-logo" src="${LOGO_URI}" alt="YOKO! Student">This app helps you see where your allowance goes before it’s gone. No bank login needed. Use the arrow keys or the buttons to move along, and Esc to stop whenever you like.` },
-    { target: ['#side-nav', '#tab-nav'], title: 'Six main screens', text: 'Home, Spend, Budget, Split, Goals and Debt. Tap any of them at the bottom of the screen (or on the left on a laptop). Each screen has tabs along the top for the details.' },
+    { target: ['#side-nav', '#tab-nav'], title: 'Six main screens', text: 'Home, Spend, Budget, Split, Goals and Debt. Tap any of them at the bottom of the screen (or along the top on a laptop). Each screen has tabs along the top for the details.' },
     { target: ['#quickadd-btn'], title: 'The green + button', text: 'This is how you add almost anything: an expense, a receipt photo, a bank message, cash in or out, a bill to split, income, your pocket money, a recurring payment, a semester fee, a goal, a gift, a subscription, an IOU or a travel trip.' },
     { target: ['#palette-btn'], title: 'Search and shortcuts', text: 'Type things like “250 food”, “save 500 laptop” or “pay 3000 credit” and hit Enter. It also finds any screen or setting. On a laptop, Ctrl+K opens it.' },
     { target: ['#privacy-btn'], title: 'Hide your numbers', text: 'Tap the eye when someone’s looking over your shoulder. Every amount gets blurred until you tap it again.' },
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'A new look with bold numbers and smooth motion.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Home is now a set of tiles, and the menu sits on top on a laptop.', hidden: true, steps: [
+    { route: 'dashboard/overview', target: ['.bento .tile-green'], title: 'Home in tiles', text: 'Days to your next allowance, the category closest to its limit, the month so far and your streak. Tap a tile to go there.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'A new look', text: 'Bold numbers, green frames and a little motion. Safe to spend now counts up when you open Home.' },
     { route: 'spend/log', target: ['#view-spend .subtabs-inner'], title: 'Sliding tabs', text: 'The green pill slides to the tab you pick, on every page.' }
   ] }
@@ -332,9 +333,11 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>New look:</strong> bold numbers, green frames and smooth motion. Money counts up, cards slide in, tabs glide.</li>
-        <li><strong>Yoko is back:</strong> your pet is the green blob again.</li></ul>
+        <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>
+        <li><strong>Menu on top:</strong> on a laptop the pages run along the top, so there is more room for your money.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>New look:</strong> bold numbers, green frames and smooth motion. Money counts up, cards slide in, tabs glide.</li>
+        <li><strong>Yoko is back:</strong> your pet is the green blob again.</li>
         <li><strong>What’s new on Home:</strong> a button next to Scan receipt, so you can open this anytime.</li>
         <li><strong>Fixed:</strong> this screen and the tour no longer vanish when the app updates.</li>
         <li><strong>Change graph color:</strong> switch Spending by category between YOKO theme and Rainbow, right on the chart.</li>

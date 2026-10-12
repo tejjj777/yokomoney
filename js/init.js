@@ -5,7 +5,7 @@
    INIT
    ========================================================= */
 function buildChrome() {
-  document.getElementById('side-nav').innerHTML = ROUTES.map(r => `<li><a class="nav-link" href="#${r.id}" data-route="${r.id}">${ICON[r.icon]}<span>${r.long || r.label}</span></a></li>`).join('');
+  document.getElementById('side-nav').innerHTML = ROUTES.map(r => `<li><a class="nav-link" href="#${r.id}" data-route="${r.id}">${ICON[r.icon]}<span class="nl-long">${r.long || r.label}</span><span class="nl-short">${r.short || r.label}</span></a></li>`).join('');
   document.getElementById('tab-nav').innerHTML = ROUTES.map(r => `<a class="tab-link" href="#${r.id}" data-route="${r.id}">${ICON[r.icon]}<span>${r.short || r.label}</span></a>`).join('');
   document.getElementById('side-settings').innerHTML = `${ICON.settings}<span>Settings</span>`;
   document.getElementById('settings-mobile-btn').innerHTML = ICON.settings;

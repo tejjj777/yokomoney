@@ -6,7 +6,7 @@
    ========================================================= */
 
 /** Safe-to-spend hero: the biggest element on Home. */
-function safeToSpendHero() {
+function safeToSpendHero(week, maxDay) {
   const inc = monthlyIncome();
   if (!(inc > 0)) {   // no allowance yet: nothing is "overspent", there's just nothing to divide
     return `<div class="card safe-hero" id="safe-hero">
@@ -21,7 +21,7 @@ function safeToSpendHero() {
   const t = todayDate();
   const statusLabel = sts.status === 'green' ? 'On track' : sts.status === 'amber' ? 'Tight pace' : 'Overspent';
 
-  return `<div class="card safe-hero safe-${sts.status}" id="safe-hero">
+  return `<div class="card safe-hero safe-${sts.status}${week ? ' in-bento' : ''}" id="safe-hero">
     <svg class="hero-beam no-print" aria-hidden="true" focusable="false"><rect pathLength="100"></rect></svg>
     <div class="safe-hero-header">
       <p class="safe-hero-label">Safe to spend today</p>
@@ -45,6 +45,7 @@ function safeToSpendHero() {
         <span>· ${plural(sts.daysLeft, 'day')} left</span>
       </div>
     </div>
+    ${week ? `<div class="hero-week" aria-label="Spending each day this week">${week.map(d => `<span class="hw-col"><i class="${d.today ? 'today' : ''}" style="height:${Math.max(4, Math.round(d.amt / maxDay * 100))}%"></i><b>${d.label}</b></span>`).join('')}</div>` : ''}
     ${(() => { const due = billsDueSoon(); return due.length ? `<div class="safe-due">${due.slice(0, 3).map(b => `<span>${b.date === todayISO() ? 'Due today' : 'Due tomorrow'}: <strong>${esc(b.name)}</strong> ${fmtExact(b.amount)}</span>`).join('')}</div>` : ''; })()}
     <div class="safe-hero-actions no-print">
       <button type="button" class="btn btn-primary btn-sm" data-action="add-expense">${ICON.plus}<span>Log expense</span></button>
@@ -52,6 +53,58 @@ function safeToSpendHero() {
       <button type="button" class="btn btn-sm" data-action="open-paycheck"><span>Edit allowance</span></button>
       ${sts.status === 'red' ? `<button type="button" class="btn btn-sm btn-warn" data-action="ask-topup"><span>Ask for a top-up</span></button>` : ''}
     </div>
+  </div>`;
+}
+
+/** Home bento: the money tiles from the Bento × Zine design, built from real data. */
+const DOW_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function homeBento() {
+  if (!(monthlyIncome() > 0)) return safeToSpendHero();
+  const t = todayDate();
+  const al = allowanceLeft(), b = budgetTotals(), sk = streakInfo();
+  const daysPay = nextPayInfo() ? al.daysLeft : F.daysLeftInMonth(t);
+  const week = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = F.addDays(t, -i), iso = F.toISO(d);
+    week.push({ label: i === 0 ? 'Today' : DOW_SHORT[d.getDay()], amt: sum(state.budget.expenses.filter(x => x.date === iso), x => x.amount), today: i === 0, noWants: !sk.spend.has(iso) });
+  }
+  const maxDay = Math.max(1, ...week.map(d => d.amt));
+  const cats = state.budget.categories.filter(c => c.planned > 0 && c.type !== 'savings');
+  const hot = cats.map(c => ({ c, r: c.actual / c.planned })).sort((x, y) => y.r - x.r)[0];
+  const usedPct = b.planned > 0 ? Math.round(b.actual / b.planned * 100) : 0;
+  const ringLen = 2 * Math.PI * 48, ringOn = Math.min(1, usedPct / 100) * ringLen;
+  const where = state.budget.categories.filter(c => c.actual > 0).sort((x, y) => y.actual - x.actual).slice(0, 5);
+  const goals = state.goals.slice().sort((x, y) => goalInfo(y).pct - goalInfo(x).pct).slice(0, 3);
+  const dayLeft = hot ? Math.max(0, hot.c.planned - hot.c.actual) / Math.max(1, daysPay) : 0;
+  const month = FULL_MONTHS[t.getMonth()];
+  return `<div class="bento">
+    ${safeToSpendHero(week, maxDay)}
+    <button type="button" class="card bento-tile tile-green" data-action="open-paycheck" aria-label="${daysPay} days to your next allowance. Edit allowance">
+      <span class="tile-label">${nextPayInfo() ? 'Next allowance in' : 'Days left this month'}</span>
+      <span class="tile-big"><span class="big-num">${daysPay}</span> <span class="tile-unit">${daysPay === 1 ? 'day' : 'days'}</span></span>
+    </button>
+    ${hot ? `<a class="card bento-tile" href="#budget/plan">
+      <span class="tile-row"><span class="muted">${esc(hot.c.name)}</span><span class="tile-flag">${hot.r >= 1 ? 'Over limit' : hot.r >= 0.75 ? 'Close to limit' : 'On track'}</span></span>
+      <span class="big-num tile-accent">${Math.round(hot.r * 100)}%</span>
+      <span class="muted small">${hot.r >= 1 ? `${fmt(hot.c.actual - hot.c.planned)} over its limit` : `${fmt(dayLeft)} a day keeps you on track`}</span>
+    </a>` : ''}
+    <div class="card bento-tile tile-ring">
+      <svg width="104" height="104" viewBox="0 0 120 120" role="img" aria-label="${usedPct}% of the ${month} budget used"><circle cx="60" cy="60" r="48" class="ring-bg"></circle><circle cx="60" cy="60" r="48" class="ring-on" style="stroke-dasharray:${ringOn.toFixed(1)} 999"></circle></svg>
+      <span><span class="big-num">${usedPct}%</span><span class="muted small">of ${month} used<br>${fmt(b.actual)} of ${fmt(b.planned)}</span></span>
+    </div>
+    <div class="card bento-tile tile-streak">
+      <span class="muted">No-spend streak</span>
+      <span class="tile-big"><span class="big-num">${sk.current}</span> <span class="tile-unit muted">${sk.current === 1 ? 'day' : 'days'}</span></span>
+      <span class="streak-dots" aria-label="Last 7 days, filled means no spending on wants">${week.map(d => `<i class="${d.noWants ? 'on' : ''}"></i>`).join('')}</span>
+    </div>
+    ${where.length ? `<div class="card bento-wide">
+      <div class="tile-head"><h2>Where it went</h2><a href="#spend/categories">All categories</a></div>
+      ${where.map(c => { const pct = c.planned > 0 ? Math.min(100, c.actual / c.planned * 100) : 100; return `<div class="bw-row"><span>${esc(c.name)}</span><span class="bw-bar"><i class="${c.planned > 0 && c.actual / c.planned >= 0.75 ? 'warn' : ''}" style="width:${pct}%"></i></span><span class="bw-amt">${fmt(c.actual)}</span></div>`; }).join('')}
+    </div>` : ''}
+    ${goals.length ? `<div class="card bento-wide">
+      <div class="tile-head"><h2>Saving for</h2><a href="#goals/goals">All goals</a></div>
+      ${goals.map((g, i) => { const gi = goalInfo(g), pct = Math.min(100, Math.round(gi.pct)); return `<a class="hang-tag${i === 0 ? ' is-lead' : ''}" href="#goals/goals"><span class="hang-hole" aria-hidden="true"></span><span class="hang-body"><span class="hang-top"><strong>${esc(g.name)}</strong><span class="hang-pct">${pct}%</span></span><span class="hang-bar"><i style="width:${pct}%"></i></span><span class="small">${fmt(g.saved)} of ${fmt(g.target)}</span></span></a>`; }).join('')}
+    </div>` : ''}
   </div>`;
 }
 
@@ -202,13 +255,12 @@ function renderDashboard() {
     html += emptyState('Nothing here yet', 'Set your student allowance to build your budget and daily safe-to-spend amount. Or explore with sample data.', 'open-paycheck', 'Set allowance', 'dashboard');
   }
 
-  const overview = sampleBanner() + backupBanner() + (typeof budgetNudgeBanner === 'function' ? budgetNudgeBanner() : '') + subCheckCard() + commandBarHTML() + safeToSpendHero() +
-    `<div class="stats-grid three">
+  const overview = sampleBanner() + backupBanner() + (typeof budgetNudgeBanner === 'function' ? budgetNudgeBanner() : '') + homeBento() + subCheckCard() + commandBarHTML() +
+    `<div class="stats-grid home-stats">
       ${stat('Monthly allowance', fmt(inc), `${state.income.irregular ? `${irregularLine()} · <button type="button" class="linklike" data-action="log-income">Log income</button>` : `${next ? `Next allowance ${daysLabel(next.days).toLowerCase()} · ` : ''}<button type="button" class="linklike" data-action="open-paycheck">Edit</button>`}`, 'featured')}
       ${al.byPayday
         ? stat('Left until payday', fmt(al.balance), inc > 0 ? `${fmtPct(al.spent / inc * 100)} of this allowance spent` : 'Track spending', al.balance < 0 ? 'tone-danger' : '')
         : stat('Left this month', fmt(b.remaining), inc > 0 ? `${fmtPct(b.actual / inc * 100)} of allowance spent` : 'Track spending', b.remaining < 0 ? 'tone-danger' : '')}
-      ${stat('No-spend streak', `${plural(sk.current, 'day')}`, `Longest: ${plural(sk.longest, 'day')}`)}
     </div>` +
     savingsCard('dash-savings-chart') +
     runOutForecastCard('dash-forecast-chart') +
