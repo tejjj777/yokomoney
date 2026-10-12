@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 28;   // bumped: Split beams
+const TOUR_VERSION = 29;   // bumped: Goals rings and tags
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -77,7 +77,7 @@ const CHAPTERS = [
   ] },
   { id: 'goals', icon: '🎯', title: 'Goals & Savings', blurb: 'What you save, what you want, and staying on track.', route: 'goals/savings', tryIt: ['Try “Should I buy it?”', () => shouldIBuy()], steps: [
     { route: 'goals/savings', target: ['#savings-card'], title: 'How much you save', text: 'Your total, this month, savings rate and a six-month chart. Money added to goals and spent in savings categories both count.' },
-    { route: 'goals/goals', target: ['.goal-card', '#view-goals .view-head'], title: 'Goals', text: 'A laptop, a trip, an emergency fund. Give it a target and a deadline and YOKO! tells you how much to save each month. Tap Add money whenever you put some aside.' },
+    { route: 'goals/goals', target: ['.hang-card', '#view-goals .view-head'], title: 'Goals', text: 'A laptop, a trip, an emergency fund. Give it a target and a deadline and YOKO! tells you how much to save each month. Tap the Add button on a tag whenever you put some aside, or + for another amount. Plan and history has the details.' },
     { route: 'goals/wishlist', target: ['#wishlist-card'], title: 'Wishlist with a 48-hour wait', text: 'Want something pricey? Add it here first. After 48 hours you decide if you still want it. Most of the time, you won’t. “Should I buy it?” gives you a straight yes, wait or no based on your budget.' },
     { route: 'goals/challenges', target: ['#challenges-card'], title: 'Challenges', text: 'No-spend days, a spending cap, the 52-week savings challenge, or freezing a category like food delivery. Finish them for bonus XP.' },
     { route: 'goals/gifts', target: ['#gifts-card', '#view-goals .view-head'], title: 'Gifts', text: 'Birthdays and festivals coming up, with a budget for each so they don’t sneak up on you.' }
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend and Split.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend, Split and Goals.', hidden: true, steps: [
+    { route: 'goals/goals', target: ['.hang-card', '#view-goals .view-head'], title: 'Goal tags', text: 'Each goal is a tag. Tap Add to put money in with one tap, or + for another amount. The rings up top show your three biggest goals.' },
     { route: 'split/ious', target: ['#w-balances'], title: 'Money lines', text: 'Lines run between you and each friend. They flow toward you when a friend owes you, and away when you owe them. Tap Pay or Remind next to a name.' },
     { route: 'spend/log', target: ['#command-bar'], title: 'Type a spend', text: 'Type “120 chai” and tap Log it. Below, tap a chip to see one category. Spends are grouped by day.' },
     { route: 'budget/plan', target: ['#cat-card'], title: 'Drag to set a limit', text: 'Each category has a slider. Drag it and the new limit saves when you let go. The bar at the top shows how your income is split.' },
@@ -336,8 +337,10 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Split, drawn out:</strong> moving lines show who owes who, with Pay and Remind next to each friend and your group right there.</li></ul>
+        <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
+        <li><strong>Fixed:</strong> the tab pill no longer lands in the wrong spot when the page loads slowly.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Split, drawn out:</strong> moving lines show who owes who, with Pay and Remind next to each friend and your group right there.</li>
         <li><strong>Spend by day:</strong> type “120 chai” in the bar to log it, tap a chip to see one category, and see your month total, a weekend insight and what’s coming up.</li>
         <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li>
         <li><strong>Home in tiles:</strong> safe to spend with your week, next allowance, the category closest to its limit, the month ring, streak, where it went and goals.</li>

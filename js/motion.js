@@ -3,7 +3,7 @@
    Runs after every render (see render() in router.js). Animations only play when you open a page or tab,
    not on every re-render, and never with reduced motion or when printing. */
 'use strict';
-const Motion = { lastKey: '', tabPos: {}, enterTimer: null, counters: [] };
+const Motion = { lastKey: '', tabPos: {}, enterTimer: null, counters: [], tabRO: null };
 const motionOK = () => !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) && document.documentElement.dataset.theme !== 'print';
 
 /** Called at the end of render(). */
@@ -42,8 +42,21 @@ function slideSubtabs(view, route, fresh) {
     ind.style.transition = 'none'; place(from);
     void ind.offsetWidth;
     ind.style.transition = ''; place(to);
-  } else place(to);
+  } else { ind.style.transition = 'none'; place(to); void ind.offsetWidth; ind.style.transition = ''; }
   Motion.tabPos[route] = to;
+  // Fonts or layout can shift the tab after this runs; keep the pill on it
+  if (window.ResizeObserver) {
+    if (Motion.tabRO) Motion.tabRO.disconnect();
+    Motion.tabRO = new ResizeObserver(() => {
+      if (!cur.isConnected) return;
+      const p = { x: cur.offsetLeft, y: cur.offsetTop, w: cur.offsetWidth, h: cur.offsetHeight };
+      const was = Motion.tabPos[route];
+      if (was && was.x === p.x && was.y === p.y && was.w === p.w && was.h === p.h) return;
+      ind.style.transition = 'none'; place(p); void ind.offsetWidth; ind.style.transition = '';
+      Motion.tabPos[route] = p;
+    });
+    Motion.tabRO.observe(cur); Motion.tabRO.observe(inner);
+  }
 }
 
 /** Big money numbers count up from zero to their real value. The final text is always the original. */

@@ -155,6 +155,17 @@ const MORE_ACTIONS = {
     c.planned = monthly; commit(); toast(`“${c.name}” now plans ${fmt(monthly)} a month`);
   },
   'exp-more': () => { ui.expMore = !(ui.expMore || expFilterActive(Object.assign(emptyExpFilter(), ui.expFilter, { q: '', cat: '' }))); render(); const el = document.getElementById(ui.expMore ? 'exp-min' : 'exp-q'); if (el) el.focus(); },
+  'goal-quick-add': el => {
+    const g = state.goals.find(x => x.id === el.dataset.id), amt = Number(el.dataset.amt) || 0; if (!g || amt <= 0) return;
+    addToGoal(g, amt, todayISO(), '');
+    const card = document.querySelector(`.hang-card[data-goal="${g.id}"]`);
+    if (!card) return;
+    const b = card.querySelector('.hc-add'); if (b) b.focus();
+    if (!motionOK()) return;
+    const burst = document.createElement('span'); burst.className = 'tag-burst'; burst.setAttribute('aria-hidden', 'true');
+    burst.innerHTML = Array.from({ length: 18 }, (_, k) => { const a = k / 18 * Math.PI * 2, d = 60 + (k % 4) * 20; return `<i style="--dx:${Math.round(Math.cos(a) * d)}px;--dy:${Math.round(Math.sin(a) * d - 30)}px;--r:${k * 47}deg"></i>`; }).join('');
+    card.appendChild(burst); setTimeout(() => burst.remove(), 1100);
+  },
   'exp-chip': el => { ui.expFilter = Object.assign(ui.expFilter || emptyExpFilter(), { cat: el.dataset.cat || '' }); render(); const b = document.querySelector(`.chip[data-cat="${el.dataset.cat || ''}"]`); if (b) b.focus(); },
   'exp-clear': () => { ui.expFilter = emptyExpFilter(); ui.expMore = false; render(); const el = document.getElementById('exp-q'); if (el) el.focus(); },
   'split-expense': () => splitExpenseForm(),
