@@ -1789,8 +1789,8 @@ a.bw-row:hover { background: var(--surface-hover); }
 ::view-transition-group(yk-topbar), ::view-transition-group(yk-sidebar), ::view-transition-group(yk-tabbar) { animation: none; }
 ::view-transition-old(yk-topbar), ::view-transition-old(yk-sidebar), ::view-transition-old(yk-tabbar) { display: none; }
 ::view-transition-new(yk-topbar), ::view-transition-new(yk-sidebar), ::view-transition-new(yk-tabbar) { animation: none; }
-/* The page-title animation would double up with the morph */
-html:active-view-transition .view-head h1 { animation: none; }
+/* The title only animates once: not again after a page morph, not when you switch tabs on the same page */
+.yk-keep-title .view-head h1 { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .yk-hit { animation: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }

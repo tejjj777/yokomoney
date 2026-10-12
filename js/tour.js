@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 35;   // bumped: rolling numbers, flying spends, page morphs
+const TOUR_VERSION = 36;   // bumped: no double title animation
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -341,10 +341,11 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
+        <li><strong>Fixed:</strong> switching pages or tabs no longer plays the title animation twice.</li></ul>
+      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
         <li><strong>Rolling numbers:</strong> when an amount changes, its digits roll to the new value and bars glide to their new size.</li>
         <li><strong>Spends fly:</strong> log a spend and a little chip flies to its category, then the category pulses.</li>
-        <li><strong>Pages morph:</strong> tap a Home tile and it grows into the page it opens. Titles blur into each other and the menu pill slides across.</li></ul>
-      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Pages morph:</strong> tap a Home tile and it grows into the page it opens. Titles blur into each other and the menu pill slides across.</li>
         <li><strong>Centered menu:</strong> on a laptop, Home, Spend, Budget, Split, Goals and Debt now sit in the middle of the top bar.</li>
         <li><strong>Centered titles:</strong> page titles, their buttons and tabs now sit in the middle.</li>
         <li><strong>Command palette:</strong> press Ctrl K and type “250 food dinner”. You see the amount, category and note as chips, what safe to spend becomes, then Log it.</li>

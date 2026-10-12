@@ -12,8 +12,9 @@ function afterRenderMotion(route) {
   if (!view) return;
   const sel = view.querySelector('.subtab[aria-selected="true"]');
   const key = route + '/' + (sel ? sel.id : '');
-  const fresh = key !== Motion.lastKey;
+  const fresh = key !== Motion.lastKey, samePage = Motion.lastKey.split('/')[0] === route;
   Motion.lastKey = key;
+  if (fresh) view.classList.toggle('yk-keep-title', samePage || Motion.inVT);
   slideSubtabs(view, route, fresh);
   placeNavPill(route !== Motion.navRoute); Motion.navRoute = route;
   if (!fresh) changeMotion(view, key);
@@ -119,7 +120,7 @@ document.addEventListener('change', e => {
 const TICK_SEL = '.safe-hero-amount, .big-num, .stat-value, .exact-val, .dr-amt, .fr-amt, .hc-pct';
 const MORPH_SEL = '.progress > span, .hc-bar > span, .bw-bar i, .hang-bar i, .alloc-bar .seg, .pva-col i, .hero-week i, .mt-stack i, .ring-on, .gr-on, .seg-ind';
 const MORPH_PROPS = ['width', 'height', 'strokeDasharray', 'strokeDashoffset'];
-Object.assign(Motion, { snap: null, fly: null, origin: null, vt: '', navRoute: '' });
+Object.assign(Motion, { snap: null, fly: null, origin: null, vt: '', navRoute: '', inVT: false });
 
 /** Remember what every number and bar looked like, so the next render of the same page can animate the change. */
 function snapMotion(view, key) {
@@ -228,8 +229,9 @@ document.addEventListener('click', e => {
 /** Swap pages with a view transition when the browser can; run() does the actual render. */
 function pageTransition(run) {
   if (!document.startViewTransition || !motionOK() || document.hidden) { Motion.vt = ''; run(); return; }
+  Motion.inVT = true;
   const vt = document.startViewTransition(() => {
-    run();
+    try { run(); } finally { Motion.inVT = false; }
     const t = Motion.vt && document.querySelector(`[data-vt-target="${Motion.vt}"]`);
     if (t) { t.style.viewTransitionName = 'yk-shared'; t.scrollIntoView({ block: 'center' }); }
   });
