@@ -1748,3 +1748,10 @@ mark.hl span { position: relative; }
 .dl-head { justify-content: center; text-align: center; flex-direction: column; align-items: center; }
 .dl-head p { flex: none; }
 [id^="view-"] > .subtabs .subtabs-inner { justify-content: center; }
+@media (min-width: 768px) {
+  .sidebar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 16px; }
+  .sidebar > nav { grid-column: 2; max-width: calc(100vw - 48px); }
+  .sidebar .side-foot { grid-column: 3; justify-self: end; }
+}
+@media (min-width: 768px) and (max-width: 1439px) { .side-foot kbd { display: none; } }
+@media (min-width: 768px) and (max-width: 1023px) { .sidebar { padding: 0 16px; column-gap: 8px; } .sidebar .nav-link { padding: 8px 10px; } .side-foot .nav-link { padding: 8px; } }
