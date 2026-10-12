@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 23;   // bumped: pet is now a crow
+const TOUR_VERSION = 24;   // bumped: Bento × Zine look and motion
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -30,7 +30,7 @@ const CHAPTERS = [
     { route: 'dashboard/overview', target: ['#forecast-card'], title: 'Will I make it?', text: 'This line is where your balance is heading, based on how you spent in the last 30 days. If it hits zero before your allowance, you’ll see the day it runs out.' },
     { route: 'dashboard/overview', target: ['#forecast-card .slider-panel', '#forecast-card'], title: 'Your habits', text: 'These are things you spend on often. Tap Edit habits to write your own, with what each costs. Drag a slider and the line moves right away.' },
     { route: 'dashboard/overview', target: ['#semester-card'], title: 'Semester plan', text: 'Add the expensive months coming up, like exam fees or a fest. It tells you if what you’re saving now will cover them.' },
-    { route: 'dashboard/overview', target: ['#pet-card'], title: 'Meet your crow', text: 'Your money pet is a crow. It earns XP when you log spends, stick to your budget and finish challenges, and it reacts to how your month is going. Rename it in Settings.' },
+    { route: 'dashboard/overview', target: ['#pet-card'], title: 'Meet Yoko', text: 'Your money pet. It earns XP when you log spends, stick to your budget and finish challenges, and it reacts to how your month is going. Rename it in Settings.' },
     { route: 'dashboard/overview', target: ['#quests-card'], title: 'Coming up', text: 'Challenges in progress, things on your wishlist, birthdays you’re buying gifts for and bills due soon, all in one list.' },
     { route: 'dashboard/overview', target: ['#sub-check', '#safe-hero'], title: 'Subscription check-in', text: 'Once a month YOKO! asks if you actually used each subscription. If you didn’t, it shows what it costs you in a year, so cancelling is an easy call.' },
     { route: 'dashboard/forecast', target: ['#weather', '#view-dashboard .subtabs-inner'], title: 'Money weather', text: 'A quick mood check for your month. Sunny when you’re on track, stormy when things are getting tight.' },
@@ -96,8 +96,9 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Your pet is now a crow.', hidden: true, steps: [
-    { route: 'dashboard/overview', target: ['#pet-card', '#view-dashboard .view-head'], title: 'Your pet is a crow', text: 'Same pet, new look. Tap it and it flaps. It gets rosy cheeks at level 3, a head crest at level 5 and a crown at level 7.' }
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'A new look with bold numbers and smooth motion.', hidden: true, steps: [
+    { route: 'dashboard/overview', target: ['#safe-hero'], title: 'A new look', text: 'Bold numbers, green frames and a little motion. Safe to spend now counts up when you open Home.' },
+    { route: 'spend/log', target: ['#view-spend .subtabs-inner'], title: 'Sliding tabs', text: 'The green pill slides to the tab you pick, on every page.' }
   ] }
 ];
 const CHAPTER_ORDER = ['quick', 'dashboard', 'ai', 'spend', 'budget', 'split', 'goals', 'debt', 'settings'];
@@ -331,7 +332,8 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Your pet is a crow:</strong> tap it and it flaps. It grows a crest at level 5 and a crown at level 7.</li></ul>
+        <li><strong>New look:</strong> bold numbers, green frames and smooth motion. Money counts up, cards slide in, tabs glide.</li>
+        <li><strong>Yoko is back:</strong> your pet is the green blob again.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
         <li><strong>What’s new on Home:</strong> a button next to Scan receipt, so you can open this anytime.</li>
         <li><strong>Fixed:</strong> this screen and the tour no longer vanish when the app updates.</li>

@@ -1,6 +1,7 @@
 /* Fonts, bundled locally (assets/fonts) so they work offline.
    DM Sans for reading: round, friendly letters with a proper rupee sign.
-   Space Grotesk for titles, buttons, tabs and the big money figures. */
+   Space Grotesk for card titles, buttons, tabs and nav.
+   Anton for page titles and the big money figures. */
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/dm-sans-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/dm-sans-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url("../assets/fonts/dm-sans-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
@@ -9,6 +10,8 @@
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url("../assets/fonts/dm-sans-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url("../assets/fonts/dm-sans-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @font-face { font-family: "DM Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url("../assets/fonts/dm-sans-latin-ext-700-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/anton-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/anton-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500; font-display: swap; src: url("../assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500; font-display: swap; src: url("../assets/fonts/space-grotesk-latin-ext-500-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 600; font-display: swap; src: url("../assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
@@ -653,14 +656,6 @@ body.has-undo .toast { bottom: calc(var(--tabbar-h) + 76px + env(safe-area-inset
 .pet-btn { border: 0; background: none; padding: 0; cursor: pointer; flex: none; color: var(--muted); border-radius: 16px; }
 .pet-svg { display: block; transform-origin: 50% 100%; animation: pet-idle 3.2s ease-in-out infinite; }
 .pet-svg.boing { animation: pet-boing .5s ease; }
-.pet-wing { transform-box: fill-box; }
-.pet-wing-l { transform-origin: 100% 0; }
-.pet-wing-r { transform-origin: 0 0; }
-.pet-svg.boing .pet-wing-l { animation: pet-flap-l .25s ease 2; }
-.pet-svg.boing .pet-wing-r { animation: pet-flap-r .25s ease 2; }
-@keyframes pet-flap-l { 50% { transform: rotate(28deg); } }
-@keyframes pet-flap-r { 50% { transform: rotate(-28deg); } }
-@media (prefers-reduced-motion: reduce) { .pet-svg, .pet-svg.boing, .pet-svg.boing .pet-wing { animation: none; } }
 .pet-sad, .pet-sleepy { animation-duration: 5s; }
 @keyframes pet-idle { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, .97); } }
 @keyframes pet-boing { 0% { transform: scale(1); } 30% { transform: scale(1.12, .86); } 60% { transform: scale(.94, 1.08) translateY(-8px); } 100% { transform: scale(1); } }
@@ -1225,3 +1220,93 @@ h1, h2, h3, .view-head h1, .card-head h2, .card-head h3, .btn, .tab-link, .nav-l
 .chart-color { display: grid; gap: 4px; justify-items: end; flex: none; }
 .chart-color .select-sm { min-height: 36px; width: auto; padding: 4px 32px 4px 12px; font-size: 13px; }
 @media (max-width: 767px) { .chart-color { justify-items: start; } .chart-color .select-sm { font-size: 16px; } }
+
+/* =========================================================
+   BENTO × ZINE: bold type, hard green shadows, motion
+   ========================================================= */
+:root {
+  --font-anton: "Anton", "Space Grotesk", "DM Sans", system-ui, sans-serif;
+  --hard: color-mix(in srgb, var(--primary) 40%, #000);
+  --beam: color-mix(in srgb, var(--primary) 30%, #fff);
+  --radius: 18px;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.3, 1.35, .5, 1);
+}
+:root[data-theme="print"] { --hard: transparent; }
+
+/* Type: Anton for page titles and big money */
+.view-head h1 { font-family: var(--font-anton); font-weight: 400; font-size: 40px; line-height: 1.1; letter-spacing: .2px; }
+@media (max-width: 560px) { .view-head h1 { font-size: 34px; } }
+.stat-value, .big-num, .safe-hero-amount, .mw-hero-amount { font-family: var(--font-anton); font-weight: 400; letter-spacing: .3px; }
+.stat-value { font-size: 28px; line-height: 1.15; }
+.stat-big .stat-value { font-size: 36px; }
+@media (max-width: 400px) { .stat-value { font-size: 24px; } }
+.big-num { font-size: 38px; line-height: 1.1; }
+
+/* Cards lift with a hard shadow on hover */
+@media (hover: hover) {
+  .stats-grid > .card, .grid-cards > .card, .grid-2 > .card { transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out), border-color .2s ease; }
+  .stats-grid > .card:hover, .grid-cards > .card:hover, .grid-2 > .card:hover { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--hard); border-color: var(--featured-border); }
+}
+
+/* Safe to spend: green frame, hard shadow, a light beam running round the edge */
+.safe-hero { border: 2px solid var(--primary); box-shadow: 6px 6px 0 var(--hard); border-radius: 20px; }
+.safe-hero-label { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--primary); color: var(--on-primary); font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.safe-hero-amount { font-size: clamp(56px, 15vw, 112px); line-height: 1.02; color: var(--primary); letter-spacing: .5px; }
+.safe-hero.safe-red .safe-hero-amount { color: var(--danger-text); }
+.hero-beam { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.hero-beam rect { x: 1px; y: 1px; width: calc(100% - 2px); height: calc(100% - 2px); rx: 18px; fill: none; stroke: var(--beam); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 9 91; animation: yk-beam 5.5s linear infinite; }
+
+/* Buttons: hard shadow, press-in, a shine sweep on hover */
+.btn-primary { border: 2px solid #0A0A0A; box-shadow: 3px 3px 0 var(--hard); position: relative; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease, background .15s; }
+.btn-primary:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--hard); }
+.btn-primary:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--hard); }
+.btn-primary::after { content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 40%; background: rgba(255, 255, 255, .38); transform: skewX(-20deg); transition: left .55s ease; pointer-events: none; }
+.btn-primary:hover::after { left: 140%; }
+.btn:not(.btn-primary):active { transform: translateY(1px); }
+
+/* Page tabs: one green pill that slides to the tab you pick */
+.subtabs-inner.has-ind { position: relative; }
+.subtab-ind { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 9px; background: var(--primary); pointer-events: none; transition: transform .45s var(--ease-spring), width .45s var(--ease-spring), height .3s ease; }
+.subtabs-inner.has-ind .subtab { position: relative; z-index: 1; transition: color .25s ease; }
+.subtabs-inner.has-ind .subtab[aria-selected="true"] { background: transparent; box-shadow: none; color: var(--on-primary); }
+.subtabs-inner.has-ind .subtab[aria-selected="true"]:hover { background: transparent; }
+
+/* Nav: the current page is a solid green pill */
+.nav-link { transition: background .15s, color .15s, transform .15s var(--ease-out); }
+.nav-link:hover { transform: translateX(3px); }
+.nav-link[aria-current="page"] { background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.nav-link[aria-current="page"] .icon { color: var(--on-primary); }
+.tab-link .icon { padding: 3px 14px; border-radius: 999px; box-sizing: content-box; transition: background .2s ease, color .2s ease; }
+.tab-link[aria-current="page"] .icon { background: var(--primary); color: var(--on-primary); animation: yk-pop .35s var(--ease-spring); }
+
+/* Progress bars are squarer and grow in */
+.progress { border-radius: 4px; }
+.progress > span { background: var(--primary); }
+
+/* Toast: a black pill that pops out like a dynamic island */
+.toast { background: #000; color: var(--text); border: 1px solid var(--featured-border); border-radius: 999px; padding: 12px 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+.toast.show { animation: yk-island .45s var(--ease-out); }
+
+/* Dialogs pop in with a green frame */
+.modal { border: 1px solid var(--featured-border); animation: yk-modal .28s var(--ease-out); }
+@media (min-width: 640px) { .modal { border: 2px solid var(--primary); box-shadow: 8px 8px 0 var(--hard), var(--shadow-lg); } }
+
+/* Entrance: when you open a page or tab, its cards rise in one after another */
+.yk-enter .view-head h1 { animation: yk-title .6s var(--ease-out) both; }
+.yk-enter .card { animation: yk-in .55s var(--ease-out) both; animation-delay: calc(var(--yk-i, 0) * 45ms + 60ms); }
+.yk-enter .progress > span { animation: yk-grow .9s var(--ease-out) both; animation-delay: .3s; }
+
+@keyframes yk-in { from { opacity: 0; transform: translateY(16px); } }
+@keyframes yk-title { from { opacity: 0; transform: translateY(40%); clip-path: inset(0 0 100% 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 -20% 0); } }
+@keyframes yk-grow { from { width: 0; } }
+@keyframes yk-beam { to { stroke-dashoffset: -100; } }
+@keyframes yk-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes yk-island { 0% { opacity: 0; transform: translateX(-50%) scale(.5, .6); } 60% { opacity: 1; transform: translateX(-50%) scale(1.04, 1); } 100% { transform: translateX(-50%) scale(1); } }
+@keyframes yk-modal { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) {
+  .yk-enter .card, .yk-enter .view-head h1, .yk-enter .progress > span, .hero-beam rect, .toast.show, .modal, .tab-link[aria-current="page"] .icon { animation: none !important; }
+  .subtab-ind, .btn-primary, .nav-link { transition: none !important; }
+  .btn-primary::after { display: none; }
+}
+@media print { .hero-beam, .subtab-ind { display: none !important; } .safe-hero, .btn-primary { box-shadow: none !important; } }

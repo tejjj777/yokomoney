@@ -51,6 +51,7 @@ function render() {
   }
   fitNumbers();
   window.scrollTo(0, scrollY);
+  if (typeof afterRenderMotion === 'function') { try { afterRenderMotion(route); } catch (e) { console.warn('Motion skipped', e); } }
 }
 /** Shrink big amounts to fit their box instead of breaking them mid-number. */
 function fitNumbers() {

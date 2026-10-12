@@ -22,6 +22,7 @@ function safeToSpendHero() {
   const statusLabel = sts.status === 'green' ? 'On track' : sts.status === 'amber' ? 'Tight pace' : 'Overspent';
 
   return `<div class="card safe-hero safe-${sts.status}" id="safe-hero">
+    <svg class="hero-beam no-print" aria-hidden="true" focusable="false"><rect pathLength="100"></rect></svg>
     <div class="safe-hero-header">
       <p class="safe-hero-label">Safe to spend today</p>
       <span class="small muted">${next ? `Next allowance ${daysLabel(next.days).toLowerCase()}` : (state.income.irregular ? 'Irregular allowance' : `${F.daysLeftInMonth(t)} days left this month`)}</span>
