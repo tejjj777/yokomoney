@@ -20,12 +20,32 @@ function hexA(hex, a) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 function destroyCharts() { for (const k of Object.keys(charts)) { try { charts[k].destroy(); } catch (e) { /* ignore */ } delete charts[k]; } }
+/** Chart.js isn't part of the first load. It's fetched the first time a chart is drawn (or when the app goes idle),
+    from the copy in assets/ (cached for offline use), with the CDN as a backup. */
+let chartLoading = null;
+function ensureChart() {
+  if (hasChart()) return Promise.resolve(true);
+  if (!chartLoading) {
+    chartLoading = loadScript('assets/chart.umd.min.js')
+      .catch(() => loadScript('https://cdn.jsdelivr.net/npm/chart.js@4'))
+      .then(() => { if (!hasChart()) throw new Error('Chart.js missing'); setupChartDefaults(); return true; })
+      .catch(() => { chartLoading = null; return false; });
+  }
+  return chartLoading;
+}
 function makeChart(id, config) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (!hasChart()) { el.parentElement.innerHTML = '<p class="chart-fallback">Charts need an internet connection to load Chart.js. Everything else works offline.</p>'; return; }
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(el, config);
+  const draw = () => {
+    if (!el.isConnected) return;   // the page re-rendered while Chart.js was loading
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(el, config);
+  };
+  if (hasChart()) { draw(); return; }
+  ensureChart().then(ok => {
+    if (ok) draw();
+    else if (el.isConnected) el.parentElement.innerHTML = '<p class="chart-fallback">Charts need an internet connection the first time. Everything else works offline.</p>';
+  });
 }
 function setupChartDefaults() {
   if (!hasChart()) return;

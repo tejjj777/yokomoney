@@ -145,7 +145,8 @@ function init() {
   dailyTick();           // new month → history; recurring payments; rewards
   render();
   try { startI18n(); } catch (e) { console.warn('Language setup failed', e); }
-  runSelfTests();
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || /[?&]selftest\b/.test(location.search)) ensureSelfTests().then(() => runSelfTests({ log: true })).catch(() => {});   // only while developing, or with ?selftest
+  setTimeout(() => (window.requestIdleCallback || (f => f()))(() => ensureChart()), 2500);   // fetch Chart.js once the app is idle, so charts and printing are ready
   restoreBackupLink();   // reconnect the auto-backup file, if one was linked
   setupPwa();            // install-as-app, only when served from a website
   bindSync(); startSync();   // account sync, if signed in

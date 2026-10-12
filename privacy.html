@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0A0A0A">
+<title>Privacy Policy · YOKO! Student</title>
+<meta name="description" content="How YOKO! Student handles your data: it stays on your device, sync is end-to-end encrypted, and nothing is sold or used for ads.">
+<link rel="canonical" href="https://yokomoney.netlify.app/privacy.html">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<meta property="og:title" content="Privacy Policy · YOKO! Student">
+<meta property="og:description" content="Your data stays on your device. Sync is end-to-end encrypted. Nothing is sold or used for ads.">
+<meta property="og:image" content="https://yokomoney.netlify.app/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/legal.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<header><div class="bar"><a href="./" aria-label="YOKO! Student home"><img src="assets/logo.png" alt="YOKO!" width="115" height="30"></a><a class="back" href="./">Open the app</a></div></header>
+<main id="main">
+  <h1>Privacy Policy</h1>
+  <p class="meta">YOKO! Student by YOKOMONEY · Last updated 12 October 2026</p>
+
+  <div class="summary">
+    <p><strong>The short version.</strong></p>
+    <p>Your money data lives on your device. If you turn on sync, it is locked with your passphrase before it leaves your device, so we can’t read it.</p>
+    <p>We never sell your data, show ads or share it for marketing. Our visitor counter uses no cookies.</p>
+  </div>
+
+  <h2>Who we are</h2>
+  <p>YOKO! Student (“YOKO!”, “we”) is a free money planner for students, run by YOKOMONEY. Our support email is being set up and will be listed here soon.<!-- support email --></p>
+
+  <h2>What stays on your device</h2>
+  <p>Everything you enter (allowance, income, spends, budgets, goals, roommates, notes and settings) is saved in your browser’s storage on your device. It doesn’t leave your device unless you use one of the features below. Receipts, bill photos and bank messages you paste are read on your device too.</p>
+  <p>Clearing your browser data, or using “Reset all data” in Settings, deletes it. Back it up first with the export or backup options in Settings.</p>
+
+  <h2>What leaves your device, and why</h2>
+  <div class="wrap"><table>
+    <thead><tr><th scope="col">When you use</th><th scope="col">What is sent</th><th scope="col">Where it goes</th></tr></thead>
+    <tbody>
+      <tr><td>Sync across devices (optional)</td><td>Your email address and sign-in records, to sign you in. A copy of your app data that is end-to-end encrypted with your passphrase, so only you can open it, plus the time of each save and the device type (like “iPhone”).</td><td>Supabase, our database host (servers in Japan)</td></tr>
+      <tr><td>Live groups (optional)</td><td>The group name, the display names members choose, UPI IDs if members add them, and the shared expenses (what, how much, who paid, who owes). This is visible to everyone in the group and is <strong>not</strong> end-to-end encrypted.</td><td>Supabase</td></tr>
+      <tr><td>The AI command bar (optional)</td><td>What you type (up to 500 characters) and rounded totals from the app, such as how much you can spend today. Never your names, notes or UPI IDs.</td><td>Our Supabase function, which passes it to Groq to write the answer. Groq’s own privacy policy applies to that step.</td></tr>
+      <tr><td>Opening the app</td><td>Anonymous visit counts: the page, the site you came from, browser, screen size and rough country. No cookies, no tracking across other sites.</td><td>GoatCounter, our visitor counter</td></tr>
+      <tr><td>Opening the app</td><td>Your IP address and browser details, as with any website.</td><td>Our hosts, Netlify and GitHub Pages, and the jsDelivr code server when live groups or a backup copy of the chart library load</td></tr>
+    </tbody>
+  </table></div>
+  <p>Budget alerts and reminders are made on your device. We don’t send push notifications from a server.</p>
+
+  <h2>What we don’t do</h2>
+  <ul>
+    <li>We don’t sell, rent or trade your data.</li>
+    <li>We don’t show ads or share data with advertisers.</li>
+    <li>We don’t connect to your bank. You choose what to type, paste or scan.</li>
+    <li>We can’t read your synced data. If you lose both your passphrase and your recovery key, we can’t recover it for you.</li>
+  </ul>
+
+  <h2>How long we keep it</h2>
+  <ul>
+    <li>Data on your device: until you delete it.</li>
+    <li>Your account and synced copy: until you delete your account (Settings → Sync across devices → Delete account). This removes both straight away.</li>
+    <li>Live group data: until the expenses are deleted in the group. To remove a whole group, contact us.</li>
+    <li>AI requests: our function doesn’t store them.</li>
+    <li>Visit counts: kept as totals.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>You can see, export, correct and delete your data in the app at any time. You can also contact us to ask what we hold about you, to correct it, or to delete it. We aim to reply within 7 days. If you are not happy with our answer, you can contact the data protection authority where you live (in India, the Data Protection Board of India).</p>
+
+  <h2>Children</h2>
+  <p>YOKO! is made for students. If you are under 18, please use it with a parent or guardian’s permission, especially before turning on sync or live groups.</p>
+
+  <h2>Security</h2>
+  <p>The app is served only over HTTPS. Sync uses AES-256 encryption with a key made from your passphrase on your device. Database rows are locked so each person can only reach their own. No system is perfectly secure, so keep your passphrase and recovery key private.</p>
+
+  <h2>Changes</h2>
+  <p>If we change this policy, we’ll update the date at the top and mention big changes in the app’s “What’s new”.</p>
+</main>
+<footer><div class="bar"><span>© 2026 YOKOMONEY</span><span><a href="./">App</a><a href="terms.html">Terms</a></span></div></footer>
+</body>
+</html>

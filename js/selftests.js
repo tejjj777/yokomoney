@@ -1,13 +1,13 @@
 /**
  * Self-tests for the math above. Logs PASS/FAIL to the console and returns the results.
  */
-function runSelfTests() {
+function runSelfTests({ log = false } = {}) {   // log: print every check to the console (startup while developing)
   const F = FinMath;
   const results = [];
   const close = (a, b, tol = 0.01) => Math.abs(a - b) <= tol;
   const check = (name, ok, detail = '') => {
     results.push({ name, ok: !!ok, detail });
-    (ok ? console.info : console.error)(`${ok ? 'PASS' : 'FAIL'} · ${name}${detail ? ' · ' + detail : ''}`);
+    if (log || !ok) (ok ? console.info : console.error)(`${ok ? 'PASS' : 'FAIL'} · ${name}${detail ? ' · ' + detail : ''}`);
   };
 
   // EMI
@@ -381,6 +381,6 @@ function runSelfTests() {
   }
 
   const passed = results.filter(r => r.ok).length;
-  console.info(`Self-tests: ${passed}/${results.length} passed`);
+  if (log) console.info(`Self-tests: ${passed}/${results.length} passed`);
   return { passed, total: results.length, results };
 }

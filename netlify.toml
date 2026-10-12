@@ -1,17 +1,9 @@
+# Netlify builds a smaller copy of the app (see tools/build.mjs) and serves dist/.
+# Headers live in _headers, so they also apply when dist/ is uploaded by drag and drop.
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
 
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-
-[[headers]]
-  for = "/manifest.webmanifest"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+[build.environment]
+  NODE_VERSION = "22"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"

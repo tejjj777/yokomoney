@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0A">
+<title>Page not found · YOKO! Student</title>
+<style>
+  :root { --bg: #0A0A0A; --card: #141414; --line: #262626; --text: #FFFFFF; --muted: #A3A3A3; --green: #7ED957; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: grid; place-items: center; min-height: 100vh; padding: 16px;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  main { width: 100%; max-width: 420px; background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 28px 24px; text-align: center; }
+  .logo { font: 400 44px/1 Impact, "Anton", "Arial Black", sans-serif; color: var(--green); letter-spacing: 1px; text-shadow: 3px 3px 0 #000; margin: 0 0 18px; }
+  .code { display: inline-block; background: var(--green); color: var(--bg); font-weight: 700; font-size: 14px; border-radius: 999px; padding: 4px 12px; margin-bottom: 12px; }
+  h1 { font-size: 24px; line-height: 1.2; margin: 0 0 8px; }
+  p { color: var(--muted); margin: 0 0 22px; }
+  a.btn { display: inline-block; background: var(--green); color: var(--bg); font-weight: 700; text-decoration: none; border-radius: 12px; padding: 12px 20px; min-height: 44px; }
+  a.btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="logo" aria-hidden="true">YOKO!</p>
+  <span class="code">404</span>
+  <h1>This page doesn’t exist</h1>
+  <p>The link may be old or mistyped. Your money and plans are safe in the app.</p>
+  <a class="btn" id="home" href="/">Open YOKO!</a>
+</main>
+<script>
+  // GitHub Pages serves the app from /yokomoney/, Netlify from the root.
+  if (/github\.io$/.test(location.hostname)) document.getElementById('home').href = '/yokomoney/';
+</script>
+</body>
+</html>

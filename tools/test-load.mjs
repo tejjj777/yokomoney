@@ -46,6 +46,7 @@ for (const s of scriptMatches) {
   vm.runInContext(code, vctx);
 }
 
+vm.runInContext(fs.readFileSync('js/selftests.js', 'utf8'), vctx);   // loaded on demand in the app
 console.log('\nRunning self-tests in context:');
 const res = vm.runInContext('runSelfTests()', vctx);
 console.log('\nResult: Passed', res.passed, '/', res.total);

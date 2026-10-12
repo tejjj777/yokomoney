@@ -1,0 +1,6 @@
+# YOKO! Student · https://yokomoney.netlify.app
+# Every crawler, search and AI, is welcome. The app keeps your data on your device, so there is nothing private to crawl.
+User-agent: *
+Allow: /
+
+Sitemap: https://yokomoney.netlify.app/sitemap.xml

@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 36;   // bumped: no double title animation
+const TOUR_VERSION = 37;   // bumped: privacy, terms, support email, faster start
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -94,9 +94,10 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Money', text: 'Add your monthly work hours and prices also show as how long you’d work for them. Add savings that aren’t in a goal to see how long your money would last.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Account', text: 'Make an account to use YOKO! on more than one device. Everything is locked with your passphrase before it leaves your phone. Keep your recovery key somewhere safe.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
-    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'A live check of the app’s math (it should say 133 of 133), all the tutorials, and how to add YOKO! to your home screen so it opens like an app.' }
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'A live check of the app’s math (it should say 133 of 133), all the tutorials, how to add YOKO! to your home screen, and our Privacy Policy, Terms and support email.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Money that moves: rolling numbers, flying spends and pages that morph.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Privacy, terms and support in Settings, and a faster start.', hidden: true, steps: [
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help and legal', text: 'Settings → Help now has our Privacy Policy, Terms of Use and a support email. Your data still stays on your device.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Watch it move', text: 'Log a spend and it flies to its category while safe to spend rolls down digit by digit. Tap a Home tile and it grows into the page it opens.' },
     { target: ['#side-palette', '#palette-btn'], title: 'Type it, log it', text: 'Press Ctrl K (or the search button) and type “250 food dinner”. It shows exactly what it will log and how your safe-to-spend changes. Press Enter to log it.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings, tidied', text: 'Settings is now a set of cards with switches, sliding pickers for language and chart colors, a live sync light and the math check on Help.' },
@@ -341,8 +342,13 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Fixed:</strong> switching pages or tabs no longer plays the title animation twice.</li></ul>
+        <li><strong>Help and legal:</strong> Settings → Help has our Privacy Policy, Terms of Use and a support email.</li>
+        <li><strong>Sign in:</strong> tick a box to agree to the Terms and Privacy Policy when you sign in.</li>
+        <li><strong>Faster start:</strong> the app loads less on open. Charts load when you need them.</li>
+        <li><strong>Share it:</strong> sending a YOKO! link now shows a proper preview card.</li>
+        <li><strong>Wrong link?</strong> A mistyped address now shows a YOKO! page with a way back.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Fixed:</strong> switching pages or tabs no longer plays the title animation twice.</li>
         <li><strong>Rolling numbers:</strong> when an amount changes, its digits roll to the new value and bars glide to their new size.</li>
         <li><strong>Spends fly:</strong> log a spend and a little chip flies to its category, then the category pulses.</li>
         <li><strong>Pages morph:</strong> tap a Home tile and it grows into the page it opens. Titles blur into each other and the menu pill slides across.</li>

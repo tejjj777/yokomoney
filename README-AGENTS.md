@@ -18,10 +18,10 @@ Read this first, every session. Plain HTML/CSS/JS. No framework, no build step. 
 | `sw.js` | Service worker. Page + `js/` + `css/` are network-first, assets cache-first |
 | `js/theme-boot.js` | Runs in `<head>`: applies saved theme before first paint |
 | `js/finmath.js` | `FinMath` (alias `F` in app code): payoff sims, dates, `parseSms`, `parseSmsBatch`, `parseStatementCsv`, `categorize`, `parseReceipt`, `parsePayslip`, `levelFor`, `splitShares`, `monthForecast`, `safeToSpend`, `forecastRunOut`, `semesterPlan` |
-| `js/selftests.js` | `runSelfTests()` |
+| `js/selftests.js` | `runSelfTests({ log })`. **Not a `<script>` tag**: loaded on demand by `ensureSelfTests()` (`js/payslip.js`) |
 | `js/utils.js` | `STORAGE_KEY`, `APP_NAME`, `THEMES`, `ROUTES` (Student: dashboard, spend, budget, split, goals), `ICON`, `COUNTRIES`, `CURRENCIES`, `uid`, `esc`, `nn`, `clamp`, `todayISO`, `parseNum`, `fmt` (money), `fmtDate` and friends |
 | `js/state.js` | `defaultState`, `normalizeState`, `normalizeMore`, `loadState`, `save`, global `state` and `ui`, `sampleState`, derived values: `monthlyIncome`, `budgetTotals`, `spentByCategory`, `syncActuals`, `debtPlan`, `goalInfo`, `studentSafeToSpend`, `categoryDailyAverages`, `studentRunOutForecast`, `studentSemesterPlan` |
-| `js/charts.js` | Chart.js helpers: `makeChart`, `doughnut`, `spendChart`, `debtLineChart`, `forecastLineChart` |
+| `js/charts.js` | Chart.js helpers (Chart.js itself loads on demand: `ensureChart()`): `makeChart`, `doughnut`, `spendChart`, `debtLineChart`, `forecastLineChart` |
 | `js/ui-shared.js` | `TABS` (page tabs), `tabbed`, `moreMenu` (⋯ menus), `mi`, `viewHeader`, `stat`, `emptyState`, `chartCard`, `moneyInput` |
 | `js/page-dashboard.js` | `renderDashboard`, `safeToSpendHero`, `runOutForecastCard`, `semesterCard`, `openSemesterModal` |
 | `js/page-debt.js` | `renderDebt`, `emiCard` |
@@ -110,3 +110,15 @@ One-time setup: `npm install` then `npx playwright install chromium`.
 - **Command bar** (`js/commandbar.js`) sends `{ text, context: aiContext(), today }`. `aiContext()` sends rounded numbers only (no names, notes or UPI IDs). Intents: add/ask/afford/budget/whatif from the app's own math, `chat` shows the AI's `reply`, `down` = AI failed and the on-device parser didn't understand. Waits 6 s when the device parser understood the message, 16 s otherwise.
 - **UPI** (`js/bill-split.js`): `upiSectionHTML()` + `bindUpiSection()` are shared by Settle up and group settle. You owe them: their UPI ID, a Pay link (Android gets `intent://pay?...#Intent;scheme=upi;end`, never `target="_blank"`) and a QR. They owe you: your own UPI ID (`state.settings.myUpiId`) and a QR for them to scan. `isUpiId()` checks name@bank. `copyText()` has a fallback for blocked clipboards.
 - Test: `node tests/upi-ai-check.mjs` (Android user agent, mocked AI: chat, down, afford, slow).
+
+
+## Session 11: launch checklist (SEO, legal, speed)
+- **Main address is https://yokomoney.netlify.app** (canonical, og:url, robots.txt, sitemap.xml, llms.txt all point there). GitHub Pages still serves the source as-is.
+- **Netlify serves a build.** `npm run build` (`tools/build.mjs`) joins the body `<script>` files in `index.html` order into one minified `dist/js/app.min.js`, minifies CSS, rewrites `dist/index.html` and `dist/sw.js`, and copies the rest. `netlify.toml` runs it and publishes `dist/`; headers are in `_headers` so a drag-and-drop upload of `dist/` gets them too. `dist/` is not committed. Never rename top-level names to rely on minifying: top-level names are kept as-is.
+- **Self-tests load on demand.** `selftests.js` is not a script tag. Startup runs them (with console output) only on localhost or with `?selftest`; Settings → Help loads them when opened. In tests call `await ensureSelfTests()` before `runSelfTests()`.
+- **Chart.js loads on demand** (`ensureChart()` in `js/charts.js`, also prefetched ~2.5 s after start when idle). `makeChart` draws when it arrives; don't touch `window.Chart` directly.
+- **Legal and contact:** `privacy.html`, `terms.html` (styles in `assets/legal.css`), under the name YOKOMONEY. `SUPPORT_EMAIL` in `js/utils.js` (also hard-coded in both pages). Settings → Help → "Contact and legal". Sign-in requires ticking the Terms/Privacy box. Update both pages when what leaves the device changes.
+- **Visit counts:** GoatCounter, `GOATCOUNTER_CODE` in `js/utils.js` (empty = off). `countVisit(route)` in `js/router.js` sends only the page name, never the full hash (it can hold sign-in tokens). Off on localhost.
+- **Robot check:** `CAPTCHA_SITE_KEY` in `js/sync.js` (Cloudflare Turnstile, empty = off). Needs CAPTCHA turned on in Supabase → Authentication → Attack Protection with the matching secret.
+- **Service worker:** only the app page (`/` or `/index.html`) is cached as `./index.html`. Other pages (privacy, terms, 404) are cached under their own URL, and failed responses are never cached.
+- `404.html` is self-contained (works at any path on both hosts). `assets/og-image.png` is the 1200x630 share image.

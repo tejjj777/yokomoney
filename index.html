@@ -5,20 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0A">
 <title>YOKO! Student · Personal Finance Planner</title>
+<meta name="description" content="YOKO! Student is a free money planner for students. Track pocket money, see what you can safely spend each day, split bills with roommates and reach savings goals.">
+<link rel="canonical" href="https://yokomoney.netlify.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YOKO! Student">
+<meta property="og:title" content="YOKO! Student · Money planner for students">
+<meta property="og:description" content="Track pocket money, see what you can safely spend today, split bills with roommates and save for goals. Free, works offline.">
+<meta property="og:url" content="https://yokomoney.netlify.app/">
+<meta property="og:image" content="https://yokomoney.netlify.app/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YOKO! Student app showing what you can safely spend today">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="YOKO! Student · Money planner for students">
+<meta name="twitter:description" content="Track pocket money, see what you can safely spend today, split bills with roommates and save for goals.">
+<meta name="twitter:image" content="https://yokomoney.netlify.app/assets/og-image.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"YOKO! Student","url":"https://yokomoney.netlify.app/","applicationCategory":"FinanceApplication","operatingSystem":"Any (web browser)","browserRequirements":"Requires JavaScript","description":"A free money planner for students: pocket money tracking, a daily safe-to-spend amount, bill splitting with roommates and savings goals.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR"},"publisher":{"@type":"Organization","name":"YOKOMONEY","url":"https://yokomoney.netlify.app/"}}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="js/theme-boot.js"></script>
-<!-- Chart.js: bundled copy in assets/ so charts work offline; falls back to the CDN if the file is missing. -->
-<script src="assets/chart.umd.min.js"></script>
-<script>window.Chart || document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');</script>
+<!-- Chart.js loads on demand (ensureChart in js/charts.js), so it doesn't slow the first load. -->
 <link rel="stylesheet" href="css/app.css">
 </head>
 
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
+<noscript><p style="padding:24px;font:16px system-ui;color:#fff;background:#0a0a0a">YOKO! Student is a free money planner for students. It needs JavaScript turned on to run. <a href="privacy.html" style="color:#7ED957">Privacy</a> · <a href="terms.html" style="color:#7ED957">Terms</a></p></noscript>
 
 <header class="topbar">
   <a class="brand" href="#dashboard" aria-label="YOKO! home"><img class="brand-logo yoko-logo" alt="YOKO!" width="130" height="34"></a>
@@ -83,7 +100,6 @@
 
 <!-- Scripts run in this order and share one global scope. Order matters: see README-AGENTS.md. -->
 <script src="js/finmath.js"></script>
-<script src="js/selftests.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/state.js"></script>

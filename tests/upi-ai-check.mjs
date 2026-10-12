@@ -35,7 +35,7 @@ const wide = p => p.evaluate(() => document.documentElement.scrollWidth > docume
 // ---------- self-tests ----------
 {
   const { ctx, p } = await page();
-  const st = await p.evaluate(() => { const r = runSelfTests(); return { passed: r.passed, total: r.total, failed: r.results.filter(x => !x.ok).map(x => x.name) }; });
+  const st = await p.evaluate(async () => { await ensureSelfTests(); const r = runSelfTests(); return { passed: r.passed, total: r.total, failed: r.results.filter(x => !x.ok).map(x => x.name) }; });
   check(`self-tests ${st.passed}/${st.total}`, st.passed === st.total, st.failed.join('; '));
   await ctx.close();
 }

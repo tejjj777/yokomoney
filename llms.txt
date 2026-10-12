@@ -1,0 +1,18 @@
+# YOKO! Student
+
+> A free money planner web app for students, made by YOKOMONEY. It tracks pocket money and part-time income, shows a daily "safe to spend" amount, splits bills with roommates, and helps students save for goals. It works offline and keeps data on the device; optional sync is end-to-end encrypted.
+
+## What it does
+- Safe to spend today: one daily number based on allowance, bills still due and spending so far
+- Run-out forecast: whether the money lasts until the next allowance
+- Semester plan: sets money aside for fees, exams and trips
+- Spending log, budget categories, recurring payments and a subscription catcher
+- Split bills and IOUs with roommates, with UPI pay links and QR codes (India)
+- Savings goals, wishlist, challenges and a money pet that levels up
+- Paste a bank SMS or statement, or scan a receipt (read on the device) to log spends
+- An AI command bar for logging spends and asking "can I afford this?"
+
+## Links
+- [App](https://yokomoney.netlify.app/)
+- [Privacy Policy](https://yokomoney.netlify.app/privacy.html)
+- [Terms of Use](https://yokomoney.netlify.app/terms.html)

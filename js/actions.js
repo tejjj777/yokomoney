@@ -236,12 +236,12 @@ const ACTIONS = {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     closeModal(true); commit(); showOnboarding();
   },
-  'run-tests': () => {
+  'run-tests': () => ensureSelfTests().then(() => {
     const r = runSelfTests();
     const out = document.getElementById('test-out');
     if (out) out.innerHTML = `<p class="small ${r.passed === r.total ? 'tone-success-text' : 'tone-danger-text'}" style="margin:8px 0;font-weight:600">${r.passed}/${r.total} passed</p>
       <ul class="test-list">${r.results.map(x => `<li class="${x.ok ? 'tone-success-text' : 'tone-danger-text'}">${x.ok ? '✓' : '✗'} ${esc(x.name)}</li>`).join('')}</ul>`;
-  }
+  }).catch(() => toast('Checks couldn’t load. Connect and try again.'))
 };
 
 // GROUP_ACTIONS is a top-level const in js/groups.js, so it is not a window property: refer to it by name

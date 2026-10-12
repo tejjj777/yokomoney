@@ -12,6 +12,13 @@ function loadScript(src) {
     document.head.appendChild(el);
   });
 }
+/** The self-checks aren't part of the normal app load. This fetches them the first time they're needed. */
+let selfTestsLoading = null;
+function ensureSelfTests() {
+  if (typeof runSelfTests === 'function') return Promise.resolve();
+  if (!selfTestsLoading) selfTestsLoading = loadScript('js/selftests.js').catch(e => { selfTestsLoading = null; throw e; });
+  return selfTestsLoading;
+}
 /** pdf.js + its worker as plain scripts: the worker then runs on the main thread, which also works from file://. */
 function loadPdfJs() {
   if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve(window.pdfjsLib);

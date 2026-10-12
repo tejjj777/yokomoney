@@ -29,7 +29,7 @@ const wide = p => p.evaluate(() => document.documentElement.scrollWidth > docume
 // fresh start + self-tests
 let ctx = await b.newContext({ viewport: { width: 360, height: 640 } }), p = await ctx.newPage(); watch(p, 'fresh');
 await p.goto(BASE + 'index.html'); await p.waitForTimeout(1200);
-const st = await p.evaluate(() => { const r = runSelfTests(); return { passed: r.passed, total: r.total, failed: r.results.filter(x => !x.ok).map(x => x.name) }; });
+const st = await p.evaluate(async () => { await ensureSelfTests(); const r = runSelfTests(); return { passed: r.passed, total: r.total, failed: r.results.filter(x => !x.ok).map(x => x.name) }; });
 await p.screenshot({ path: `${OUT}/fresh.png` }); await ctx.close();
 
 // every page and tab, seeded with sample data
@@ -58,7 +58,7 @@ for (const [w, h, tag] of [[360, 640, 'm'], [1280, 800, 'd']]) {
 ctx = await b.newContext({ viewport: { width: 360, height: 640 } }); p = await ctx.newPage(); watch(p, 'offline');
 await p.goto(BASE + 'index.html'); await p.evaluate(() => navigator.serviceWorker.ready); await p.waitForTimeout(2000);
 await ctx.setOffline(true); await p.reload(); await p.waitForTimeout(1500);
-const off = await p.evaluate(() => ({ ok: !!document.querySelector('.view:not([hidden])') && typeof runSelfTests === 'function', title: document.title }));
+const off = await p.evaluate(() => ({ ok: !!document.querySelector('.view:not([hidden])') && typeof ensureSelfTests === 'function', title: document.title }));
 for (const x of ['#budget/plan', '#spend/log', '#split/ious', '#goals/goals']) { await p.evaluate(y => { location.hash = y; }, x); await p.waitForTimeout(300); }
 await p.screenshot({ path: `${OUT}/offline.png` });
 await ctx.close(); await b.close(); server.close();

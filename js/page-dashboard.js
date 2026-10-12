@@ -231,7 +231,7 @@ function savingsCard(chartId = 'dash-savings-chart') {
   </div>`;
 }
 function drawSavingsChart(id) {
-  const el = document.getElementById(id); if (!el || !window.Chart) return;
+  const el = document.getElementById(id); if (!el) return;
   const s = savingsInfo();
   makeChart(id, { type: 'bar', data: { labels: s.months.map(m => m.label), datasets: [{ label: 'Saved', data: s.months.map(m => Math.round(m.amount * 100) / 100), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7ED957', borderRadius: 6 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtExact(c.parsed.y) } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => fmtCompactSafe(v) } } } } });

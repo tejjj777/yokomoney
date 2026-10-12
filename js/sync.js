@@ -277,7 +277,28 @@ function authErrText(e, what) {
   if (what === 'verify' && (e.status === 403 || e.status === 400 || /expired|invalid/i.test(e.message))) return 'That code didn’t work. Check it, or send a new one.';
   return e.message || 'Something went wrong. Try again.';
 }
-const sendSignInEmail = email => sbCall('/auth/v1/otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { method: 'POST', auth: false, body: { email, create_user: true } });
+/* ---------- Robot check on sign-in (Cloudflare Turnstile), off until a site key is set ----------
+   To turn on: make a Turnstile widget at dash.cloudflare.com, paste its site key here, and in Supabase →
+   Authentication → Attack Protection turn on CAPTCHA with Turnstile and its secret key. */
+const CAPTCHA_SITE_KEY = '';
+const Captcha = { token: '' };
+const captchaSlotHTML = () => (CAPTCHA_SITE_KEY ? '<div id="acc-captcha" style="margin-top:12px;min-height:65px"></div>' : '');
+function mountCaptcha(form) {
+  if (!CAPTCHA_SITE_KEY) return;
+  Captcha.token = '';
+  const el = form.querySelector('#acc-captcha');
+  (window.turnstile ? Promise.resolve() : loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'))
+    .then(() => {
+      if (!el || !el.isConnected) return;
+      window.turnstile.render(el, { sitekey: CAPTCHA_SITE_KEY, theme: 'dark', callback: t => { Captcha.token = t; }, 'expired-callback': () => { Captcha.token = ''; }, 'error-callback': () => { Captcha.token = ''; } });
+    })
+    .catch(() => fieldErr(form, 'acc-agree-err', 'The robot check couldn’t load. Check your connection.'));
+}
+const sendSignInEmail = email => {
+  const body = { email, create_user: true };
+  if (Captcha.token) { body.gotrue_meta_security = { captcha_token: Captcha.token }; Captcha.token = ''; }   // each check works once
+  return sbCall('/auth/v1/otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { method: 'POST', auth: false, body });
+};
 function syncSignIn(prefill) {
   if (!canCrypto()) { toast('Sync works when YOKO! is opened from its website (https), not from a saved file.', 5000); return; }
   openModal({
@@ -285,10 +306,16 @@ function syncSignIn(prefill) {
     body: `<p>Sign in with your email to use YOKO! on any device. New here? This makes your account. We’ll email you a sign-in link.</p>
       <p class="small muted">Your data is locked with a passphrase on this device before it’s sent. Nobody else can read it, not even us.</p>
       <div class="field"><label for="acc-email">Email</label><input id="acc-email" class="input" type="email" inputmode="email" autocomplete="email" maxlength="200" value="${esc(prefill || (Sync.acc && Sync.acc.email) || '')}" aria-describedby="acc-email-err"></div>
-      <p class="field-error" id="acc-email-err"></p>`,
+      <p class="field-error" id="acc-email-err"></p>
+      <label class="check small" style="margin-top:12px;min-height:44px"><input type="checkbox" id="acc-agree" aria-describedby="acc-agree-err"> <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></span></label>
+      <p class="field-error" id="acc-agree-err"></p>${captchaSlotHTML()}`,
+    onMount: form => mountCaptcha(form),
     onSubmit: form => {
       const email = form.querySelector('#acc-email').value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr(form, 'acc-email-err', 'Enter a valid email.'); return false; }
+      if (!form.querySelector('#acc-agree').checked) { fieldErr(form, 'acc-agree-err', 'Tick the box to agree before signing in.'); form.querySelector('#acc-agree').focus(); return false; }
+      fieldErr(form, 'acc-agree-err', '');
+      if (CAPTCHA_SITE_KEY && !Captcha.token) { fieldErr(form, 'acc-agree-err', 'Wait for the “not a robot” check to finish.'); return false; }
       const done = busyBtn(form, 'Sending…');
       sendSignInEmail(email)
         .then(() => syncCodeStep(email))
@@ -309,6 +336,7 @@ function syncCodeStep(email) {
       form.querySelector('#acc-has-code').addEventListener('click', e => { form.querySelector('#acc-code-wrap').hidden = false; sub.hidden = false; e.target.hidden = true; form.querySelector('#acc-code').focus(); });
       form.querySelector('#acc-other').addEventListener('click', () => syncSignIn(email));
       form.querySelector('#acc-resend').addEventListener('click', e => {
+        if (CAPTCHA_SITE_KEY) { syncSignIn(email); return; }   // a new robot check is needed for every email
         e.target.disabled = true;
         sendSignInEmail(email)
           .then(() => fieldErr(form, 'acc-code-err', 'Sent again.'))

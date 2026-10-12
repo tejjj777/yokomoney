@@ -40,6 +40,7 @@ function render() {
   document.querySelectorAll('[data-route]').forEach(a => a.getAttribute('data-route') === route ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
   const r = ROUTES.find(x => x.id === route) || ROUTES[0];
   document.title = `${r.long || r.label} · ${APP_NAME}`;
+  countVisit(route);
 
   if (focusId) {
     const el = document.getElementById(focusId);
@@ -52,6 +53,25 @@ function render() {
   fitNumbers();
   window.scrollTo(0, scrollY);
   if (typeof afterRenderMotion === 'function') { try { afterRenderMotion(route); } catch (e) { console.warn('Motion skipped', e); } }
+}
+/** Anonymous visit counts (GoatCounter: no cookies). Only the page name is sent, never the rest of the address
+    (it can hold sign-in tokens or deep-link details). Off on localhost, from a saved file, or when no code is set. */
+const Visits = { last: '', pending: '', loading: false };
+function countVisit(route) {
+  if (!GOATCOUNTER_CODE || route === Visits.last || location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  Visits.last = route;
+  const send = path => { try { window.goatcounter.count({ path: '/' + path, title: `${path} · ${APP_NAME}` }); } catch (e) { /* counting is optional */ } };
+  if (window.goatcounter && window.goatcounter.count) { send(route); return; }
+  Visits.pending = route;
+  if (Visits.loading) return;
+  Visits.loading = true;
+  const el = document.createElement('script');
+  el.async = true; el.src = 'https://gc.zgo.at/count.js';
+  el.dataset.goatcounter = `https://${GOATCOUNTER_CODE}.goatcounter.com/count`;
+  el.dataset.goatcounterSettings = '{"no_onload":true}';
+  el.onload = () => { if (Visits.pending) send(Visits.pending); Visits.pending = ''; };
+  el.onerror = () => { Visits.pending = ''; };   // blocked (ad blocker, offline): don't try again this visit
+  document.head.appendChild(el);
 }
 /** Shrink big amounts to fit their box instead of breaking them mid-number. */
 function fitNumbers() {
