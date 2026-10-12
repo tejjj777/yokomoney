@@ -47,24 +47,28 @@ function renderDebt() {
 
   // Debts table + never-pays-off warnings
   const warnings = [];
-  const rows = state.debts.map(d => {
+  state.debts.forEach(d => {
     const mi = d.balance * F.monthlyRate(d.rate);
-    const never = F.neverPaysOff(d.balance, d.rate, d.minPayment);
-    const n = F.monthsToPayoff(d.balance, d.rate, d.minPayment);
-    if (never) warnings.push(`<div class="alert alert-danger" role="alert">${ICON.warn}<div><strong>${esc(d.name)} will never be paid off</strong> at its minimum. The payment (${fmt(d.minPayment)}) doesn’t exceed the monthly interest (${fmt(mi)}). Pay more than ${fmt(mi)} a month.</div></div>`);
-    return `<tr>
-      <th scope="row" style="text-transform:none;font-size:14px;color:var(--text);letter-spacing:0">${esc(d.name)}</th>
-      <td class="num">${fmt(d.balance)}</td><td class="num">${fmtRate(d.rate)}</td><td class="num">${fmt(d.minPayment)}</td><td class="num">${fmt(mi)}</td>
-      <td>${d.balance <= 0 ? '<span class="badge badge-success">Paid off</span>' : never ? '<span class="badge badge-danger">Never</span>' : `<span class="badge badge-neutral">${monthsLabel(n)}</span>`}</td>
-      <td class="actions no-print"><button type="button" class="icon-btn" data-action="edit-debt" data-id="${d.id}" aria-label="Edit ${esc(d.name)}">${ICON.edit}</button>
-        <button type="button" class="icon-btn danger" data-action="delete-debt" data-id="${d.id}" aria-label="Delete ${esc(d.name)}">${ICON.trash}</button></td></tr>`;
+    if (F.neverPaysOff(d.balance, d.rate, d.minPayment)) warnings.push(`<div class="alert alert-danger" role="alert">${ICON.warn}<div><strong>${esc(d.name)} will never be paid off</strong> at its minimum. The payment (${fmt(d.minPayment)}) doesn’t exceed the monthly interest (${fmt(mi)}). Pay more than ${fmt(mi)} a month.</div></div>`);
+  });
+  const orderIds = chosen.order.concat(state.debts.filter(d => !chosen.order.includes(d.id)).map(d => d.id));
+  const debtRows = orderIds.map(id => byId[id]).filter(Boolean).map((d, i) => {
+    const dead = d.balance <= 0, start = Math.max(d.startBalance || 0, d.balance), paid = start > 0 ? clamp((1 - d.balance / start) * 100, 0, 100) : 100;
+    const never = !dead && F.neverPaysOff(d.balance, d.rate, d.minPayment), m = chosen.payoffMonth[d.id];
+    const first = i === 0 && !dead;
+    return `<div class="card debt-row${first ? ' is-next' : ''}${dead ? ' is-done' : ''}" style="--d:${i}">
+      <span class="dr-order${first ? ' hot' : ''}" aria-hidden="true">${dead ? '✓' : i + 1}</span>
+      <div class="dr-main"><p class="sp-name">${esc(d.name)}</p><p class="small muted">${fmtRate(d.rate)} a year · ${fmt(d.minPayment)} a month${d.rate > 0 && !dead ? ` · interest adds ${fmt(d.balance * F.monthlyRate(d.rate))} a month` : ''}</p></div>
+      <div class="dr-prog"><span class="hc-bar" role="meter" aria-label="${esc(d.name)} paid off" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(paid)}"><span style="width:${paid}%"></span></span><span class="small muted">${dead ? 'Paid off' : `${Math.round(paid)}% paid off already`}</span></div>
+      <div class="dr-bal"><p class="dr-amt">${fmt(d.balance)}</p><p class="small ${never ? 'dr-warn' : 'muted'}">${dead ? `Cleared${d.defeatedAt ? ' ' + fmtDate(F.parseDate(d.defeatedAt)) : ''}` : never ? 'Never, at this payment' : m ? `Clear by ${fmtMonthYear(F.addMonths(t, m))}` : ''}</p></div>
+      <div class="dr-act no-print">${dead ? '' : `<button type="button" class="btn btn-sm${first ? ' btn-primary' : ''}" data-action="hit-debt" data-id="${d.id}">Log payment</button>`}<button type="button" class="icon-btn" data-action="edit-debt" data-id="${d.id}" aria-label="Edit ${esc(d.name)}">${ICON.edit}</button><button type="button" class="icon-btn danger" data-action="delete-debt" data-id="${d.id}" aria-label="Delete ${esc(d.name)}">${ICON.trash}</button></div>
+    </div>`;
   }).join('');
-  const debtsCard = `<div class="card mb">
-    <div class="card-head"><div><h2>Your debts</h2><p class="muted small">${fmt(sum(state.debts, d => d.balance))} total · ${fmt(minTotal)}/month in minimums</p></div>
-      <div class="actions">${csvBtn('debts', 'debts')}</div></div>
-    <div class="table-wrap"><table><thead><tr><th scope="col">Debt</th><th class="num" scope="col">Balance</th><th class="num" scope="col">Rate</th><th class="num" scope="col">Minimum</th><th class="num" scope="col">Monthly interest</th><th scope="col">Minimums only</th><th class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${warnings.length ? `<div style="margin-top:16px">${warnings.join('')}</div>` : ''}
-  </div>`;
+  const debtsCard = `<section class="debt-list mb" id="debt-list" aria-label="Your debts, in payoff order">
+    <div class="dl-head"><h2 class="tile-h">Payoff order</h2><p class="small muted">${fmt(sum(state.debts, d => d.balance))} total · ${fmt(minTotal)} a month in minimums</p><span class="actions">${csvBtn('debts', 'debts')}</span></div>
+    ${debtRows}
+    ${warnings.length ? `<div>${warnings.join('')}</div>` : ''}
+  </section>`;
 
   // Plan settings
   const budgetMonthly = minTotal + state.debtSettings.extra;
@@ -118,7 +122,7 @@ function renderDebt() {
 
   const principalPaid = Math.max(0, chosen.totalPaid - chosen.totalInterest);
   const html = head + debtHero(chosen, chosenKey) + tabbed('debt', {
-    debts: debtsCard + bossCard(),
+    debts: debtsCard,
     plan: planCard + (minTotal > 0 ? whatIfCard(minTotal) : '') + minLine + cappedWarn +
       `<div class="grid-2">${compareCard('avalanche')}${compareCard('snowball')}</div>` +
       `<div class="grid-2">${chartCard('Balance over time', `Each debt, ${chosenKey === 'snowball' ? 'Snowball' : 'Avalanche'} plan`, 'debt-area', chosen.rows.length > 0, 'No balance to chart.', 'lg')}

@@ -260,12 +260,35 @@ function subscriptionForm(sub) {
 /** The one number that matters on the debt page. */
 function debtHero(p, key) {
   const alive = state.debts.filter(d => d.balance > 0), total = sum(alive, d => d.balance);
-  if (!alive.length) return `<div class="card debt-hero featured mb" id="debt-hero"><p class="stat-label">Debt-free</p><p class="hero-value">You’re debt-free 🎉</p><p class="small">Every debt you added is paid off.</p></div>`;
-  if (!p.paidOff) return `<div class="card debt-hero tone-danger mb" id="debt-hero"><p class="stat-label">Debt-free by</p><p class="hero-value">Not in sight yet</p>
-    <p class="small">At these payments it takes more than 50 years. <a href="#debt/plan" class="linklike">Pay a bit more each month</a> to get a date.</p></div>`;
+  if (!alive.length) return `<div class="card debt-hero2 mb" id="debt-hero"><div class="dh-left"><span class="hero-chip">Debt-free</span><p class="dh-when">You did it</p><p class="small muted">Every debt you added is paid off.</p></div></div>`;
+  const other = debtPlan(key === 'snowball' ? 'avalanche' : 'snowball');
+  const seg = `<div class="seg-toggle no-print" role="radiogroup" aria-label="Payoff order">
+      <span class="seg-ind${key === 'snowball' ? ' right' : ''}" aria-hidden="true"></span>
+      <button type="button" role="radio" aria-checked="${key !== 'snowball'}" data-action="choose-strategy" data-strategy="avalanche">Highest interest first</button>
+      <button type="button" role="radio" aria-checked="${key === 'snowball'}" data-action="choose-strategy" data-strategy="snowball">Smallest first</button>
+    </div>`;
+  if (!p.paidOff) return `<div class="card debt-hero2 mb" id="debt-hero"><div class="dh-left"><span class="hero-chip">Debt-free by</span><p class="dh-when">Not in sight yet</p>
+    <p class="small muted">At these payments it takes more than 50 years. <a href="#debt/plan">Pay a bit more each month</a> to get a date.</p>${seg}</div></div>`;
+  const diff = other.paidOff ? other.totalInterest - p.totalInterest : 0;
+  const compare = !other.paidOff ? 'The other order doesn’t finish within 50 years.' : diff > 0.5 ? `Saves ${fmt(diff)} in interest over the other order.` : diff < -0.5 ? `Costs ${fmt(-diff)} more interest, but you clear small debts sooner.` : 'Same interest either way.';
   const when = F.addMonths(todayDate(), p.months);
-  return `<div class="card debt-hero featured mb" id="debt-hero"><p class="stat-label">Debt-free by</p><p class="hero-value">${fmtMonthYear(when)}</p>
-    <p class="small">${monthsLabel(p.months)} from now · ${fmt(total)} to go · ${fmt(p.totalInterest)} in interest on the way · ${key === 'snowball' ? 'Snowball' : 'Avalanche'} plan (<a href="#debt/plan" class="linklike">change</a>)</p></div>`;
+  const totals = [total].concat(p.rows.map(r => r.totalBalance));
+  const n = Math.max(1, totals.length - 1), max = Math.max(1, totals[0]);
+  const pts = totals.map((v, i) => [(i / n) * 600, 200 - (v / max) * 180]);
+  const line = 'M' + pts.map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' L');
+  const chart = `<div class="dh-chart"><div class="small muted dh-axis"><span>Total owed</span><span>${fmt(total)} today</span></div>
+    <svg viewBox="0 0 600 220" role="img" aria-label="Total owed falls from ${esc(fmt(total))} to zero by ${esc(fmtMonthYear(when))}">
+      <line x1="0" y1="200" x2="600" y2="200" class="dh-grid"></line><line x1="0" y1="110" x2="600" y2="110" class="dh-grid soft"></line><line x1="0" y1="20" x2="600" y2="20" class="dh-grid soft"></line>
+      <path d="${line} L600 200 L0 200 Z" class="dh-area"></path>
+      <path d="${line}" class="dh-line" pathLength="100"></path>
+    </svg>
+    <div class="small muted dh-axis"><span>${fmtMonthYear(todayDate())}</span><span class="dh-end">${fmtMonthYear(when)}</span></div></div>`;
+  return `<div class="card debt-hero2 mb" id="debt-hero">
+    <div class="dh-left"><span class="hero-chip">Debt-free by</span><p class="dh-when">${fmtMonthYear(when)}</p>
+      <p class="small muted">${monthsLabel(p.months)} · ${fmt(p.totalInterest)} interest · ${fmt(sum(alive, d => d.minPayment) + state.debtSettings.extra)} a month</p>
+      ${seg}<p class="small dh-compare">${compare}</p></div>
+    ${chart}
+  </div>`;
 }
 function bossCard() {
   const cards = state.debts.map((d, i) => {

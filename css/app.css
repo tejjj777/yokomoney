@@ -1596,3 +1596,50 @@ mark.hl span { position: relative; }
 .hang-card.is-lead .hc-more { border-top-color: #0A0A0A; }
 .hang-card .hc-add:hover, .hang-card .hc-add:focus-visible { background: color-mix(in srgb, var(--primary) 82%, #fff); color: var(--on-primary); }
 .hang-card.is-lead .hc-add:hover, .hang-card.is-lead .hc-add:focus-visible { background: #1A1A1A; color: var(--primary); }
+
+/* ---------- Debt (Bento × Zine) ---------- */
+.debt-hero2 { display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: center; padding: 24px; border: 2px solid var(--primary); border-radius: 20px; box-shadow: 6px 6px 0 var(--hard); }
+.debt-hero2 p { margin: 0; }
+.dh-left { flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.dh-when { font-family: var(--font-anton); font-size: clamp(48px, 11vw, 80px); line-height: 1.05; color: var(--primary); }
+.dh-compare { color: var(--link); font-weight: 600; }
+.seg-toggle { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin-top: 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface, var(--card-bg)); width: 100%; max-width: 380px; }
+.seg-toggle button { position: relative; z-index: 1; height: 40px; padding: 0 8px; border: 0; background: transparent; color: var(--muted); font: inherit; font-family: var(--font-display); font-weight: 700; font-size: 13px; cursor: pointer; transition: color .25s ease; }
+.seg-toggle button[aria-checked="true"] { color: var(--on-primary); }
+.seg-ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 8px; background: var(--primary); transition: transform .4s var(--ease-spring); }
+.seg-ind.right { transform: translateX(100%); }
+.dh-chart { flex: 2 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.dh-chart svg { display: block; width: 100%; height: auto; }
+.dh-axis { display: flex; justify-content: space-between; gap: 8px; }
+.dh-end { color: var(--primary); font-weight: 700; }
+.dh-grid { stroke: var(--border); }
+.dh-grid.soft { stroke-dasharray: 4 6; }
+.dh-area { fill: var(--tint); }
+.dh-line { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linejoin: round; stroke-dasharray: 100; }
+.yk-enter .dh-line { animation: yk-draw 1.6s var(--ease-out) both .2s; }
+.yk-enter .dh-area { animation: yk-fade .8s ease both 1s; }
+@keyframes yk-draw { from { stroke-dashoffset: 100; } }
+@keyframes yk-fade { from { opacity: 0; } }
+.debt-list { display: flex; flex-direction: column; gap: 8px; }
+.dl-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 4px; }
+.dl-head p { margin: 0; flex: 1; }
+.debt-row { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 20px; border-radius: 14px; transition: border-color .18s ease; }
+.debt-row:hover { border-color: var(--featured-border); }
+.debt-row.is-next { border: 2px solid var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--card-bg)); }
+.debt-row.is-done { opacity: .7; }
+.debt-row p { margin: 0; }
+.dr-order { width: 36px; height: 36px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--font-anton); font-size: 18px; background: var(--tint); color: var(--primary); border: 1px solid var(--featured-border); }
+.dr-order.hot { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.dr-main { flex: 1 1 200px; min-width: 0; }
+.dr-prog { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.dr-bal { text-align: right; min-width: 120px; }
+.dr-amt { font-family: var(--font-anton); font-size: 24px; line-height: 1.1; }
+.dr-warn { color: var(--link); font-weight: 600; }
+.dr-act { display: flex; align-items: center; gap: 4px; }
+.yk-enter .debt-row { animation: yk-in .5s var(--ease-out) both; animation-delay: calc(150ms + var(--d, 0) * 80ms); }
+@media (max-width: 599px) { .debt-hero2 { padding: 16px; } .debt-row { padding: 16px; } .dr-bal { text-align: left; min-width: 0; } .dr-act { width: 100%; } .dr-act .btn { margin-right: auto; } }
+@media (prefers-reduced-motion: reduce) { .yk-enter .dh-line, .yk-enter .dh-area, .yk-enter .debt-row { animation: none; } .seg-ind { transition: none; } }
+.redraw .dh-line { animation: yk-draw 1.2s var(--ease-out) both; }
+.redraw .dh-when { animation: yk-in .5s var(--ease-out) both; }
+@media (min-width: 600px) { .dr-act { min-width: 196px; justify-content: flex-end; } }
+@media (prefers-reduced-motion: reduce) { .redraw .dh-line, .redraw .dh-when { animation: none; } }

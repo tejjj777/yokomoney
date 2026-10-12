@@ -138,7 +138,15 @@ const ACTIONS = {
     const el = document.getElementById(`bk-name-${b.id}`); if (el) { el.focus(); el.select(); }
   },
   'delete-bucket': el => { state.split.buckets = state.split.buckets.filter(b => b.id !== el.dataset.id); commit(); },
-  'choose-strategy': el => { state.debtSettings.strategy = el.dataset.strategy === 'snowball' ? 'snowball' : 'avalanche'; commit(); },
+  'choose-strategy': el => {
+    const was = state.debtSettings.strategy;
+    state.debtSettings.strategy = el.dataset.strategy === 'snowball' ? 'snowball' : 'avalanche'; commit();
+    if (was === state.debtSettings.strategy || typeof motionOK !== 'function' || !motionOK()) return;
+    const hero = document.getElementById('debt-hero'), ind = hero && hero.querySelector('.seg-ind');
+    if (ind) { ind.style.transition = 'none'; ind.classList.toggle('right'); void ind.offsetWidth; ind.style.transition = ''; ind.classList.toggle('right'); }
+    if (hero) { hero.classList.remove('redraw'); void hero.offsetWidth; hero.classList.add('redraw'); }
+    const btn = hero && hero.querySelector(`[data-strategy="${state.debtSettings.strategy}"]`); if (btn) btn.focus();
+  },
   'use-split-debt': () => {
     const monthly = bucketMonthly('debt');
     if (!(monthly > 0)) { toast('Set an amount for the Debt bucket in your paycheck split first.', 4000); return; }

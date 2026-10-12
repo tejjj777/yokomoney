@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 29;   // bumped: Goals rings and tags
+const TOUR_VERSION = 30;   // bumped: Debt payoff order
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -83,9 +83,9 @@ const CHAPTERS = [
     { route: 'goals/gifts', target: ['#gifts-card', '#view-goals .view-head'], title: 'Gifts', text: 'Birthdays and festivals coming up, with a budget for each so they don’t sneak up on you.' }
   ] },
   { id: 'debt', icon: '💳', title: 'Debt', blurb: 'What you owe and when you’ll be free.', route: 'debt/debts', steps: [
-    { route: 'debt/debts', target: ['#debt-hero', '#view-debt .view-head'], title: 'Debt-free date', text: 'The month you’ll be done paying everything back, how much is left and how much interest it’ll cost.' },
+    { route: 'debt/debts', target: ['#debt-hero', '#view-debt .view-head'], title: 'Debt-free date', text: 'The month you’ll be done paying everything back and how much interest it’ll cost. Switch between highest interest first and smallest first to see which finishes cheaper.' },
     { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Add what you owe', text: 'Education loan, a phone on EMI, a credit card, money from family. Add the balance, interest (0 is fine) and monthly payment. It warns you if the payment is too small to ever finish.' },
-    { route: 'debt/debts', target: ['#view-debt .view-head'], title: 'Log payments', text: 'Each payment knocks down the debt’s health bar, like a boss fight. Clear one and you get a little celebration.' },
+    { route: 'debt/debts', target: ['#debt-list', '#view-debt .view-head'], title: 'Log payments', text: 'Your debts are listed in the order to pay them off. Tap Log payment and the bar fills up. Clear one and you get a little celebration.' },
     { route: 'debt/plan', target: ['#view-debt .view-head'], title: 'Payoff plan', text: 'Pick avalanche (highest interest first, saves the most) or snowball (smallest first, quick wins). Add an extra amount each month, or use your allowance split, and drag the “what if” slider to see how much sooner you’d be done.' },
     { route: 'debt/emi', target: ['#view-debt .view-head'], title: 'Loan calculator', text: 'Thinking of taking a loan? Enter the amount, interest and months to see the monthly payment, total interest and a month-by-month table.' }
   ] },
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend, Split and Goals.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend, Split, Goals and Debt.', hidden: true, steps: [
+    { route: 'debt/debts', target: ['#debt-hero'], title: 'Pick your order', text: 'Switch between highest interest first and smallest first. The date, the interest and the chart update right away.' },
     { route: 'goals/goals', target: ['.hang-card', '#view-goals .view-head'], title: 'Goal tags', text: 'Each goal is a tag. Tap Add to put money in with one tap, or + for another amount. The rings up top show your three biggest goals.' },
     { route: 'split/ious', target: ['#w-balances'], title: 'Money lines', text: 'Lines run between you and each friend. They flow toward you when a friend owes you, and away when you owe them. Tap Pay or Remind next to a name.' },
     { route: 'spend/log', target: ['#command-bar'], title: 'Type a spend', text: 'Type “120 chai” and tap Log it. Below, tap a chip to see one category. Spends are grouped by day.' },
@@ -337,9 +338,10 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
-        <li><strong>Fixed:</strong> the tab pill no longer lands in the wrong spot when the page loads slowly.</li></ul>
+        <li><strong>Debt, in order:</strong> your debt-free date with a chart that draws itself, a switch for highest interest first or smallest first, and your debts listed in the order to pay them.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
+        <li><strong>Fixed:</strong> the tab pill no longer lands in the wrong spot when the page loads slowly.</li>
         <li><strong>Split, drawn out:</strong> moving lines show who owes who, with Pay and Remind next to each friend and your group right there.</li>
         <li><strong>Spend by day:</strong> type “120 chai” in the bar to log it, tap a chip to see one category, and see your month total, a weekend insight and what’s coming up.</li>
         <li><strong>Budget sliders:</strong> drag a slider to change a limit. A bar shows how your income is split, plus planned vs spent and a carry over tile.</li>
