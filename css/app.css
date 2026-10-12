@@ -1737,3 +1737,14 @@ mark.hl span { position: relative; }
 @media (prefers-reduced-motion: reduce) { .cmd-parsed, .cp-chip { animation: none; } }
 .palette-modal .cmd-input:focus, .palette-modal .cmd-input:focus-visible { outline: none; box-shadow: none; border: 0; }
 .cmd-bar:focus-within { box-shadow: inset 0 -2px 0 var(--primary); }
+
+/* ---------- Centered page titles ---------- */
+.view-head { flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: 16px; }
+.view-head > div:first-child { display: flex; flex-direction: column; align-items: center; max-width: 640px; }
+.view-head h1 { font-size: 56px; line-height: 1.05; }
+@media (max-width: 560px) { .view-head h1 { font-size: 40px; } }
+.view-actions { justify-content: center; }
+.view > .subtabs, [id^="view-"] > .subtabs { display: flex; justify-content: center; }
+.dl-head { justify-content: center; text-align: center; flex-direction: column; align-items: center; }
+.dl-head p { flex: none; }
+[id^="view-"] > .subtabs .subtabs-inner { justify-content: center; }

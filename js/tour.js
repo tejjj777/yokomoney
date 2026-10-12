@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 32;   // bumped: command palette
+const TOUR_VERSION = 33;   // bumped: centered page titles
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -340,8 +340,9 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Command palette:</strong> press Ctrl K and type “250 food dinner”. You see the amount, category and note as chips, what safe to spend becomes, then Log it.</li></ul>
+        <li><strong>Centered titles:</strong> page titles, their buttons and tabs now sit in the middle.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Command palette:</strong> press Ctrl K and type “250 food dinner”. You see the amount, category and note as chips, what safe to spend becomes, then Log it.</li>
         <li><strong>Settings, tidied:</strong> cards, on/off switches, sliding pickers for language and chart colors, a live sync light, and Help shows the math check passing.</li>
         <li><strong>Debt, in order:</strong> your debt-free date with a chart that draws itself, a switch for highest interest first or smallest first, and your debts listed in the order to pay them.</li>
         <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
