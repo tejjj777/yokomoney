@@ -129,6 +129,11 @@ function ring(pct) {
     <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--primary-dark)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 32 32)"/>
     <text x="32" y="36.5" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" style="color:var(--text)" font-family="Space Grotesk, sans-serif">${Math.round(pct)}%</text></svg>`;
 }
+/** A row of radio buttons drawn as one control with a green pill that slides to the pick. */
+function segRadio({ name, options, value, label, attrs = '' }) {
+  const i = Math.max(0, options.findIndex(o => o[0] === value));
+  return `<div class="seg-radio" role="radiogroup" aria-label="${esc(label)}" style="--n:${options.length};--i:${i}"><span class="sr-ind" aria-hidden="true"></span>${options.map(([v, l, aria]) => `<label class="seg-opt"><input type="radio" class="sr-only" name="${name}" id="${name}-${v}" value="${esc(v)}" ${attrs} ${v === value ? 'checked' : ''}${aria ? ` aria-label="${esc(aria)}"` : ''}><span>${esc(l)}</span></label>`).join('')}</div>`;
+}
 function openAttr(key) { return ui.open[key] ? 'open' : ''; }
 
 /** "Where each paycheck goes" card (on Dashboard and Budget). */

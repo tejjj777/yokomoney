@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 30;   // bumped: Debt payoff order
+const TOUR_VERSION = 31;   // bumped: Settings sheet
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -90,13 +90,14 @@ const CHAPTERS = [
     { route: 'debt/emi', target: ['#view-debt .view-head'], title: 'Loan calculator', text: 'Thinking of taking a loan? Enter the amount, interest and months to see the monthly payment, total interest and a month-by-month table.' }
   ] },
   { id: 'settings', icon: '⚙️', title: 'Settings', blurb: 'Country, currency, account, backups and help.', tryIt: ['Open Settings', () => openSettings()], steps: [
-    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Basics', text: 'Change your country and currency (picked when you first signed up), switch theme, turn sounds on or off, blur amounts, and rename your pet.' },
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Basics', text: 'Pick your language, country and currency, switch theme and chart colors, flip sounds or privacy on and off, and rename your pet.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Money', text: 'Add your monthly work hours and prices also show as how long you’d work for them. Add savings that aren’t in a goal to see how long your money would last.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Account', text: 'Make an account to use YOKO! on more than one device. Everything is locked with your passphrase before it leaves your phone. Keep your recovery key somewhere safe.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
-    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'All the tutorials, how to add YOKO! to your home screen so it opens like an app, and a self-check of the app’s math.' }
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'A live check of the app’s math (it should say 133 of 133), all the tutorials, and how to add YOKO! to your home screen so it opens like an app.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for Home, Budget, Spend, Split, Goals and Debt.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'New layouts for every page and Settings.', hidden: true, steps: [
+    { target: ['#side-settings', '#settings-mobile-btn'], title: 'Settings, tidied', text: 'Settings is now a set of cards with switches, sliding pickers for language and chart colors, a live sync light and the math check on Help.' },
     { route: 'debt/debts', target: ['#debt-hero'], title: 'Pick your order', text: 'Switch between highest interest first and smallest first. The date, the interest and the chart update right away.' },
     { route: 'goals/goals', target: ['.hang-card', '#view-goals .view-head'], title: 'Goal tags', text: 'Each goal is a tag. Tap Add to put money in with one tap, or + for another amount. The rings up top show your three biggest goals.' },
     { route: 'split/ious', target: ['#w-balances'], title: 'Money lines', text: 'Lines run between you and each friend. They flow toward you when a friend owes you, and away when you owe them. Tap Pay or Remind next to a name.' },
@@ -338,8 +339,9 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
-        <li><strong>Debt, in order:</strong> your debt-free date with a chart that draws itself, a switch for highest interest first or smallest first, and your debts listed in the order to pay them.</li></ul>
+        <li><strong>Settings, tidied:</strong> cards, on/off switches, sliding pickers for language and chart colors, a live sync light, and Help shows the math check passing.</li></ul>
       <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Debt, in order:</strong> your debt-free date with a chart that draws itself, a switch for highest interest first or smallest first, and your debts listed in the order to pay them.</li>
         <li><strong>Goals as tags:</strong> rings for your top goals, your savings rate, your current challenge, and one-tap Add on every goal.</li>
         <li><strong>Fixed:</strong> the tab pill no longer lands in the wrong spot when the page loads slowly.</li>
         <li><strong>Split, drawn out:</strong> moving lines show who owes who, with Pay and Remind next to each friend and your group right there.</li>

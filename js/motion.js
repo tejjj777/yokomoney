@@ -102,3 +102,9 @@ window.addEventListener('resize', () => {
     slideSubtabs(view, route, false);
   });
 });
+
+/* Segmented radios: move the pill to the picked option */
+document.addEventListener('change', e => {
+  const g = e.target.closest && e.target.closest('.seg-radio');
+  if (g) g.style.setProperty('--i', [...g.querySelectorAll('input[type="radio"]')].indexOf(e.target));
+});

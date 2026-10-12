@@ -75,7 +75,7 @@ function bindMore() {
     if (e.target.id === 'set-country' && COUNTRIES[e.target.value]) setCountry(e.target.value);
     if (e.target.dataset && e.target.dataset.slide === 'cat') { const c = state.budget.categories.find(k => k.id === e.target.dataset.id); if (c) { c.planned = Math.max(0, Number(e.target.value) || 0); commit(); } }
     if (e.target.matches && e.target.matches('[data-chart-colors]')) { state.settings.chartColors = e.target.value === 'rainbow' ? 'rainbow' : 'yoko'; save(); render(); }
-    if (e.target.id === 'set-lang') { state.settings.lang = ['hi', 'te'].includes(e.target.value) ? e.target.value : 'en'; save(); setTimeout(() => location.reload(), 150); }
+    if (e.target.id === 'set-lang' || e.target.name === 'set-lang') { state.settings.lang = ['hi', 'te'].includes(e.target.value) ? e.target.value : 'en'; save(); setTimeout(() => location.reload(), 150); }
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lastTick && lastTick !== todayISO()) { if (dailyTick()) render(); } });
   document.addEventListener('keydown', e => {
@@ -268,7 +268,7 @@ function moreParse(q, words, low) {
 function moreSettingsHTML() {
   const s = state.settings;
   return `<div class="settings-group"><h3>Country and currency</h3><div class="form-grid two">
-    <div class="field"><label for="set-lang">Language</label><select id="set-lang" class="select">${LANGS.map(([k, n]) => `<option value="${k}" ${uiLang() === k ? 'selected' : ''}>${n}</option>`).join('')}</select><p class="help">Menus, tabs and buttons. Some text stays in English for now.</p></div>
+    <div class="field span-2"><span class="field-label">Language</span>${segRadio({ name: 'set-lang', label: 'Language', value: uiLang(), options: LANGS.map(([k, n]) => [k, n.replace(/\s*\(.*\)$/, ''), n]) })}<p class="help">Menus, tabs and buttons. Some text stays in English for now.</p></div>
     <div class="field"><label for="set-country">Country</label><select id="set-country" class="select">${Object.keys(COUNTRIES).map(k => [k, countryInfo(k).name]).sort((a, b) => (a[0] === 'OTHER') - (b[0] === 'OTHER') || a[1].localeCompare(b[1])).map(([k, n]) => `<option value="${k}" ${state.settings.country === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><p class="help">Sets your tax year, tax dates and how dates are read.</p></div>
     <div class="field"><label for="set-currency">Currency</label><select id="set-currency" class="select">${Object.entries(CURRENCIES).map(([code, c]) => `<option value="${code}" ${state.currency === code ? 'selected' : ''}>${esc(c.symbol)} ${code}</option>`).join('')}</select><p class="help">Only changes the symbol. Amounts aren’t converted.</p></div>
   </div></div>

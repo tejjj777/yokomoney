@@ -563,28 +563,55 @@ function openSettings(tab = 'general') {
       <button type="button" class="btn" data-action="redo-setup">Answer the setup questions again</button></div></div>
       <div class="settings-group"><h3>Reset</h3><p class="small muted">Deletes all income, debts, budget, gifts and goals from this browser.</p>
       <div class="row"><button type="button" class="btn btn-danger" data-action="reset-all">Reset all data</button></div></div>`;
-  const helpGroups = `<div class="settings-group"><h3>Tutorials</h3><p class="small muted">The full tutorial is also on the Home page.</p>
+  const helpGroups = `<div class="settings-group"><h3>Checks</h3><div class="test-badge" id="test-badge"><span class="tb-icon" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20"></circle><path d="M13 22.5l6 6 12-13"></path></svg></span><div><p class="tb-count" aria-live="polite">Checking…</p><p class="small muted">The app’s maths, tested on your device just now.</p></div></div></div>
+      <div class="settings-group"><h3>Tutorials</h3><p class="small muted">The full tutorial is also on the Home page.</p>
       <div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="tour-all">Full tutorial</button><button type="button" class="btn btn-sm" data-action="open-tutorials">Pick a page</button><button type="button" class="btn btn-sm" data-action="whats-new">What’s new</button></div></div>
       <div class="settings-group"><h3>Self-tests</h3><details class="set-details"><summary class="small">For checking the app’s math</summary><p class="small muted">Checks loan payments, payoff order, goals, safe-to-spend and amount words like “2 lakh”.</p>
       <div class="row"><button type="button" class="btn btn-sm" data-action="run-tests">Run self-tests</button></div><div id="test-out"></div></details></div>`;
   const groups = (prefsHTML() + moreSettingsHTML() + accountGroupHTML() + dataGroups + helpGroups).split(/(?=<div class="settings-group">)/).filter(g => g.trim());
   const where = { 'Country and currency': 'general', 'Theme and sound': 'general', 'Privacy and pet': 'general', 'Hours of work': 'money', 'Runway': 'money', 'Round-up jar': 'money',
-    'Sync across devices': 'account', 'Backups': 'data', 'Your data': 'data', 'Learned categories': 'data', 'Reset': 'data', 'Use it on your phone': 'help', 'Tutorials': 'help', 'Self-tests': 'help' };
+    'Sync across devices': 'account', 'Backups': 'data', 'Your data': 'data', 'Learned categories': 'data', 'Reset': 'data', 'Use it on your phone': 'help', 'Tutorials': 'help', 'Self-tests': 'help', 'Checks': 'help' };
   const panels = { general: [], money: [], account: [], data: [], help: [] };
   groups.forEach(g => { const m = /<h3>([^<]+)<\/h3>/.exec(g); panels[(m && where[m[1]]) || 'general'].push(g); });
   panels.general.sort((a, b) => /Country and currency/.test(b) - /Country and currency/.test(a));
-  panels.help.sort((a, b) => /<h3>Tutorials/.test(b) - /<h3>Tutorials/.test(a));
+  panels.help.sort((a, b) => /<h3>Checks/.test(b) - /<h3>Checks/.test(a));
   const names = [['general', 'Basics'], ['money', 'Money'], ['account', 'Account'], ['data', 'Data'], ['help', 'Help']];
   openModal({
-    title: 'Settings', hideSubmit: true, cancelLabel: 'Close',
+    title: 'Settings', hideSubmit: true, cancelLabel: 'Close', wide: true,
     body: `<div class="subtabs set-tabs"><div role="tablist" class="subtabs-inner">${names.map(([k, l]) => `<button type="button" role="tab" class="subtab" id="set-tab-${k}" data-set-tab="${k}" aria-selected="${k === tab}" aria-controls="set-panel-${k}">${l}</button>`).join('')}</div></div>
       ${names.map(([k]) => `<div class="set-panel" id="set-panel-${k}" role="tabpanel" aria-labelledby="set-tab-${k}" ${k === tab ? '' : 'hidden'}>${panels[k].join('')}</div>`).join('')}`,
     onMount: form => {
       bindPrefs(form);
+      form.closest('.modal').classList.add('settings-modal');
+      const inner = form.querySelector('.set-tabs .subtabs-inner'), ind = document.createElement('span');
+      ind.className = 'subtab-ind'; ind.setAttribute('aria-hidden', 'true'); inner.prepend(ind); inner.classList.add('has-ind');
+      const placeInd = (b, animate) => {
+        if (!animate || !motionOK()) ind.style.transition = 'none';
+        ind.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`; ind.style.width = b.offsetWidth + 'px'; ind.style.height = b.offsetHeight + 'px';
+        if (!animate || !motionOK()) { void ind.offsetWidth; ind.style.transition = ''; }
+      };
+      requestAnimationFrame(() => placeInd(inner.querySelector('[aria-selected="true"]'), false));
+      const showTests = () => {
+        const el = form.querySelector('#test-badge'); if (!el || el.dataset.done) return; el.dataset.done = '1';
+        setTimeout(() => {
+          let r; try { r = runSelfTests(); } catch (e) { r = null; }
+          const out = el.querySelector('.tb-count');
+          if (!r) { out.textContent = 'Checks could not run'; el.classList.add('bad'); return; }
+          el.classList.toggle('bad', r.passed !== r.total); el.classList.add('ran');
+          const end = `${r.passed} of ${r.total} checks passed`;
+          if (!motionOK()) { out.textContent = end; return; }
+          const t0 = performance.now();
+          const step = now => { const t = Math.min(1, (now - t0) / 900), v = Math.round(r.passed * (1 - Math.pow(1 - t, 3))); out.textContent = t >= 1 ? end : `${v} of ${r.total} checks passed`; if (t < 1 && out.isConnected) requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }, 60);
+      };
+      if (tab === 'help') showTests();
       form.querySelector('.set-tabs').addEventListener('click', e => {
         const b = e.target.closest('[data-set-tab]'); if (!b) return;
         form.querySelectorAll('[data-set-tab]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
         form.querySelectorAll('.set-panel').forEach(p => { p.hidden = p.id !== 'set-panel-' + b.dataset.setTab; });
+        placeInd(b, true);
+        if (b.dataset.setTab === 'help') showTests();
       });
       const lbl = form.querySelector('#import-label');
       lbl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); form.querySelector('#import-file').click(); } });
