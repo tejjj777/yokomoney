@@ -43,7 +43,7 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .35);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, .6);
   --surface-hover: #1B1B1B;
-  --topbar-bg: rgba(10, 10, 10, .92);
+  --topbar-bg: var(--bg);   /* solid: page content never shows through the top bar */
   --border-strong: #3B3B3B;
   --neutral-bg: #1F1F1F;
   --success-bg: #0F2A1C;
@@ -1327,7 +1327,12 @@ h1, h2, h3, .view-head h1, .card-head h2, .card-head h3, .btn, .tab-link, .nav-l
   .side-foot { display: flex; gap: 4px; flex: none; }
   .side-foot .nav-link { width: auto; padding: 8px 12px; white-space: nowrap; }
   .main-wrap { margin-left: 0; padding-top: calc(var(--topbar-h) + var(--subnav-h)); }
+  /* The section bar slides up under the top bar while you scroll down, and comes back when you scroll up */
+  .sidebar { transition: transform .25s ease, box-shadow .25s ease; }
+  html.subnav-hidden .sidebar { transform: translateY(-100%); box-shadow: none; }
+  html.subnav-hidden .sidebar:focus-within { transform: none; }
 }
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
 @media (min-width: 768px) and (max-width: 1023px) { .sidebar .nav-link .icon, .side-foot .nav-link span { display: none; } .side-foot .nav-link .icon { display: block; } }
 
 /* ---------- Home bento ---------- */

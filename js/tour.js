@@ -6,7 +6,7 @@
    ========================================================= */
 const q = sel => document.querySelector(sel);
 const closestCard = sel => { const el = q(sel); return el ? el.closest('.card') : null; };
-const TOUR_VERSION = 37;   // bumped: privacy, terms, support email, faster start
+const TOUR_VERSION = 38;   // bumped: solid top bar, section bar hides on scroll
 const cardHead = sel => { const el = q(sel); return el ? (el.querySelector('.card-head') || el) : null; };
 const CHAPTERS = [
   { id: 'quick', icon: '👋', title: 'Start here', blurb: 'How the app is laid out, in a minute.', steps: [
@@ -96,7 +96,8 @@ const CHAPTERS = [
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Data', text: 'Download a backup, set up automatic backups to a file, import a backup, see the shop categories it has learned, load demo data, redo the setup questions, or reset everything.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help', text: 'A live check of the app’s math (it should say 133 of 133), all the tutorials, how to add YOKO! to your home screen, and our Privacy Policy, Terms and support email.' }
   ] },
-  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'Privacy, terms and support in Settings, and a faster start.', hidden: true, steps: [
+  { id: 'new', icon: '✨', title: 'What’s new', blurb: 'A solid top bar and a page menu that slides away as you scroll.', hidden: true, steps: [
+    { target: ['#side-nav'], title: 'More room', text: 'On a laptop, the page menu slides away while you scroll down. Scroll up a little and it comes back.' },
     { target: ['#side-settings', '#settings-mobile-btn'], title: 'Help and legal', text: 'Settings → Help now has our Privacy Policy, Terms of Use and a support email. Your data still stays on your device.' },
     { route: 'dashboard/overview', target: ['#safe-hero'], title: 'Watch it move', text: 'Log a spend and it flies to its category while safe to spend rolls down digit by digit. Tap a Home tile and it grows into the page it opens.' },
     { target: ['#side-palette', '#palette-btn'], title: 'Type it, log it', text: 'Press Ctrl K (or the search button) and type “250 food dinner”. It shows exactly what it will log and how your safe-to-spend changes. Press Enter to log it.' },
@@ -342,12 +343,14 @@ function showWhatsNew() {
   openModal({
     title: 'What’s new in YOKO! Student', hideSubmit: true, cancelLabel: 'Got it',
     body: `<p class="wn-tag">This update</p><ul class="whats-new">
+        <li><strong>Cleaner top:</strong> the top bar is solid now, so nothing shows through it.</li>
+        <li><strong>More room:</strong> on a laptop, the page menu slides away as you scroll down and comes back when you scroll up.</li></ul>
+      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
         <li><strong>Help and legal:</strong> Settings → Help has our Privacy Policy, Terms of Use and a support email.</li>
         <li><strong>Sign in:</strong> tick a box to agree to the Terms and Privacy Policy when you sign in.</li>
         <li><strong>Faster start:</strong> the app loads less on open. Charts load when you need them.</li>
         <li><strong>Share it:</strong> sending a YOKO! link now shows a proper preview card.</li>
-        <li><strong>Wrong link?</strong> A mistyped address now shows a YOKO! page with a way back.</li></ul>
-      <details class="wn-earlier"><summary>Earlier updates</summary><ul class="whats-new">
+        <li><strong>Wrong link?</strong> A mistyped address now shows a YOKO! page with a way back.</li>
         <li><strong>Fixed:</strong> switching pages or tabs no longer plays the title animation twice.</li>
         <li><strong>Rolling numbers:</strong> when an amount changes, its digits roll to the new value and bars glide to their new size.</li>
         <li><strong>Spends fly:</strong> log a spend and a little chip flies to its category, then the category pulses.</li>

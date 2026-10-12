@@ -137,6 +137,19 @@ function init() {
   bindEvents();
   bindMore();
   let fitT; addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitNumbers, 150); });
+  // Laptop: hide the section bar while scrolling down, bring it back on any scroll up or near the top
+  let lastY = window.scrollY, navTick = false;
+  addEventListener('scroll', () => {
+    if (navTick) return; navTick = true;
+    requestAnimationFrame(() => {
+      navTick = false;
+      const y = window.scrollY, d = y - lastY;
+      if (Math.abs(d) < 6) return;   // ignore tiny jitters
+      const hide = d > 0 && y > 120 && !document.querySelector('.tour-card');
+      document.documentElement.classList.toggle('subnav-hidden', hide);
+      lastY = y;
+    });
+  }, { passive: true });
   const authLanding = takeAuthFromURL();   // came back from the sign-in email link
   if (!location.hash) history.replaceState(null, '', '#dashboard');
   redirectOldHash();
